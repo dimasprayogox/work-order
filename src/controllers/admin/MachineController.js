@@ -3,18 +3,24 @@ import { v4 as uuidv4 } from 'uuid';
 import {
     createMachineSchema,
     updateMachineSchema
-} from '../../schemas/machineSchema.js';
+} from '../../schemas/admin/machineSchema.js';
 
 export const MachineController = {
+    // GET /machines
     async index(req, res) {
         try {
             const machines = await Machine.query().withGraphFetched('[category]');
             res.json({ success: true, message: 'Fetched machines', data: machines });
         } catch (err) {
-            res.status(500).json({ success: false, message: 'Failed to fetch machines', error: err.message });
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch machines',
+                error: err.message,
+            });
         }
     },
 
+    // GET /machines/:id
     async show(req, res) {
         try {
             const machine = await Machine.query()
@@ -27,10 +33,15 @@ export const MachineController = {
 
             res.status(200).json({ success: true, data: machine });
         } catch (err) {
-            res.status(500).json({ success: false, message: 'Failed to fetch machine', error: err.message });
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch machine',
+                error: err.message,
+            });
         }
     },
 
+    // POST /machines
     async store(req, res) {
         try {
             const parsed = createMachineSchema.safeParse(req.body);
@@ -42,21 +53,26 @@ export const MachineController = {
                 });
             }
 
-            const { name, description, category_id } = parsed.data;
-
             const newMachine = await Machine.query().insert({
                 id: uuidv4(),
-                name,
-                description,
-                category_id,
+                ...parsed.data,
             });
 
-            res.status(201).json({ success: true, message: 'Machine created', data: newMachine });
+            res.status(201).json({
+                success: true,
+                message: 'Machine created',
+                data: newMachine,
+            });
         } catch (err) {
-            res.status(500).json({ success: false, message: 'Failed to create machine', error: err.message });
+            res.status(500).json({
+                success: false,
+                message: 'Failed to create machine',
+                error: err.message,
+            });
         }
     },
 
+    // PUT /machines/:id
     async update(req, res) {
         try {
             const parsed = updateMachineSchema.safeParse(req.body);
@@ -68,22 +84,30 @@ export const MachineController = {
                 });
             }
 
-            const machine = await Machine.query().findById(req.params.id);
-            if (!machine) {
+            const updated = await Machine.query().patchAndFetchById(req.params.id, {
+                ...parsed.data,
+                updated_at: new Date(),
+            });
+
+            if (!updated) {
                 return res.status(404).json({ success: false, message: 'Machine not found' });
             }
 
-            const updateData = parsed.data;
-            updateData.updated_at = new Date();
-
-            const updatedMachine = await Machine.query().patchAndFetchById(req.params.id, updateData);
-
-            res.status(200).json({ success: true, message: 'Machine updated', data: updatedMachine });
+            res.status(200).json({
+                success: true,
+                message: 'Machine updated',
+                data: updated,
+            });
         } catch (err) {
-            res.status(500).json({ success: false, message: 'Failed to update machine', error: err.message });
+            res.status(500).json({
+                success: false,
+                message: 'Failed to update machine',
+                error: err.message,
+            });
         }
     },
 
+    // DELETE /machines/:id
     async destroy(req, res) {
         try {
             const deleted = await Machine.query().deleteById(req.params.id);
@@ -91,9 +115,16 @@ export const MachineController = {
                 return res.status(404).json({ success: false, message: 'Machine not found' });
             }
 
-            res.status(200).json({ success: true, message: 'Machine deleted successfully' });
+            res.status(200).json({
+                success: true,
+                message: 'Machine deleted successfully',
+            });
         } catch (err) {
-            res.status(500).json({ success: false, message: 'Failed to delete machine', error: err.message });
+            res.status(500).json({
+                success: false,
+                message: 'Failed to delete machine',
+                error: err.message,
+            });
         }
-    }
+    },
 };
