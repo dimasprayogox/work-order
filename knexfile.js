@@ -20,6 +20,7 @@ const knexConfig = {
         directory: "./src/seeds",
         extension: "js",
         loadExtensions: [".js"],
+        stub: "./src/seeds/00_master_seed.js",
     },
   },
   production: {

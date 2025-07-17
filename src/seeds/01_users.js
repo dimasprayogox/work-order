@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 
 /**
  * @param { import("knex").Knex } knex
@@ -11,6 +12,7 @@ export const seed = async function(knex) {
 
   await knex("users").insert([
     {
+      id: crypto.randomUUID(),
       username: "Technician",
       email: "technician@example.com",
       password: hashedPassword,
@@ -18,6 +20,7 @@ export const seed = async function(knex) {
       full_name: "Mas Technician",
     },
     {
+      id: crypto.randomUUID(),
       username: "Manager",
       email: "manager@example.com",
       password: hashedPassword,
@@ -25,6 +28,7 @@ export const seed = async function(knex) {
       full_name: "Mas Manager",
     },
     {
+      id: crypto.randomUUID(),
       username: "admin",
       email: "admin@example.com",
       password: hashedPassword,
@@ -32,6 +36,7 @@ export const seed = async function(knex) {
       full_name: "Mas Admin",
     },
     {
+      id: crypto.randomUUID(),
       username: "Logistics",
       email: "logistics@example.com",
       password: hashedPassword,
