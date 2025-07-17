@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 import {
     createUserSchema,
     updateUserSchema,
-} from "../../schemas/userSchema.js";
+} from "../../schemas/admin/userSchema.js";
 
 export const UserController = {
     async index(req, res) {
