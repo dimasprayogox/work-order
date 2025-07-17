@@ -6,9 +6,7 @@ import cookieParser from "cookie-parser";
 import { setResponseHeader } from "./middleware/set-headers.js";
 
 import authRoutes from "./routes/authRoutes.js";
-// import userRoutes from "./routes/userRoutes.js";
-// import masterMesinRoutes from "./routes/masterMesinRoutes.js";
-// import monitorSuhuRouter from "./routes/monitorSuhuRoutes.js";
+import userRoutes from './routes/admin/user.routes.js';
 
 
 const app = express();
@@ -47,9 +45,7 @@ app.get("/", [setResponseHeader], (req, res) => {
     .json(`Welcome to the server! ${new Date().toLocaleString()}`);
 });
 
-// app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
-// app.use("/api/master-mesin", masterMesinRoutes);
-// app.use("/api/monitor-suhu", monitorSuhuRouter);
+app.use('/api/admin/users', userRoutes);
 
 export default app;
