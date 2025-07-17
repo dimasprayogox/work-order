@@ -2,7 +2,11 @@ import { getUserByEmail } from "../models/userModel.js";
 import { loginSchema } from "../schemas/authSchema.js";
 import { datetime, status } from "../utils/general.js";
 import { comparePassword } from "../utils/hash.js";
-import { generateToken } from "../utils/jwt.js";
+import {
+  generateToken,
+  generateRefreshToken,
+  verifyToken,
+} from "../utils/jwt.js";
 
 export const login = async (req, res) => {
   try {
@@ -48,11 +52,17 @@ export const login = async (req, res) => {
       role: existingUser["role"],
     });
 
+    const refreshToken = await generateRefreshToken({
+      userId: existingUser["id"],
+      role: existingUser["role"],
+    });
+
     return res.status(200).json({
       status: status.SUKSES,
       message: "Data User berhasil di dapatkan",
       datetime: datetime(),
       token,
+      refreshToken,
     });
   } catch (error) {
     return res.status(500).json({
@@ -81,6 +91,52 @@ export const logout = async (req, res) => {
     return res.status(500).json({
       status: status.GAGAL,
       message: `Terjadi kesalahan pada server: ${error.message}`,
+    });
+  }
+};
+
+//refresh token
+export const refreshToken = async (req, res) => {
+  try {
+    // Ambil refreshToken dari body (atau dari cookie jika kamu simpan di cookie)
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Refresh token diperlukan",
+        datetime: datetime(),
+      });
+    }
+
+    // Verifikasi refresh token
+    let payload;
+    try {
+      payload = await verifyToken(refreshToken);
+    } catch (err) {
+      return res.status(401).json({
+        status: status.GAGAL,
+        message: "Refresh token tidak valid atau sudah expired",
+        datetime: datetime(),
+      });
+    }
+
+    // Buat access token baru
+    const newToken = await generateToken({
+      userId: payload.userId,
+      role: payload.role,
+    });
+
+    return res.status(200).json({
+      status: status.SUKSES,
+      message: "Token berhasil diperbarui",
+      datetime: datetime(),
+      token: newToken,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: status.GAGAL,
+      message: `Terjadi kesalahan pada server: ${error.message}`,
+      datetime: datetime(),
     });
   }
 };
