@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser";
 
 import { setResponseHeader } from "./middleware/set-headers.js";
 
-import authRoutes from "./routes/authRoutes.js";
+import authRoutes from "./routes/auth.routes.js";
 import userRoutes from './routes/admin/user.routes.js';
 
 

@@ -19,6 +19,14 @@ export const generateToken = async (payload) => {
     .sign(secretKey);
 };
 
+export const generateRefreshToken = async (payload) => {
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: "HS512" })
+    .setIssuedAt()
+    .setExpirationTime("30d")
+    .sign(secretKey);
+};
+
 export const verifyToken = async (token) => {
   const { payload } = await jwtVerify(token, secretKey, {
     algorithms: ["HS512"],
