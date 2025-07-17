@@ -11,36 +11,32 @@ export const seed = async function(knex) {
 
   await knex("users").insert([
     {
-      name: "Technician",
+      username: "Technician",
       email: "technician@example.com",
       password: hashedPassword,
       role: "technician",
-      department: "Field Technician",
-      phone: "1234567890",
+      full_name: "Mas Technician",
     },
     {
-      name: "Manager",
+      username: "Manager",
       email: "manager@example.com",
       password: hashedPassword,
       role: "manager",
-      department: "Management",
-      phone: "1234567890",
+      full_name: "Mas Manager",
     },
     {
-      name: "admin",
+      username: "admin",
       email: "admin@example.com",
       password: hashedPassword,
       role: "admin",
-      department: "Administration",
-      phone: "1234567890",
+      full_name: "Mas Admin",
     },
     {
-      name: "Logistics",
+      username: "Logistics",
       email: "logistics@example.com",
       password: hashedPassword,
       role: "logistics",
-      department: "Logistics & Warehouse",
-      phone: "1234567890",
+      full_name: "Mas Logistics",
     },
   ]);
 };
