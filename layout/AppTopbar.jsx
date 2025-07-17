@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { classNames } from "primereact/utils";
-import React, { forwardRef, useContext, useImperativeHandle, useRef } from "react";
+import React, { forwardRef, useContext, useImperativeHandle, useRef, useState } from "react";
 import { LayoutContext } from "./context/layoutcontext";
 import { API_ENDPOINTS } from "../app/api/api";
 
-
 const AppTopbar = forwardRef((props, ref) => {
-    const { layoutConfig, layoutState, onMenuToggle, showProfileSidebar } = useContext(LayoutContext);
+    const { layoutConfig, layoutState, onMenuToggle } = useContext(LayoutContext);
     const menubuttonRef = useRef(null);
     const topbarmenuRef = useRef(null);
     const topbarmenubuttonRef = useRef(null);
+    const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
     useImperativeHandle(ref, () => ({
         menubutton: menubuttonRef.current,
@@ -19,16 +19,20 @@ const AppTopbar = forwardRef((props, ref) => {
         topbarmenubutton: topbarmenubuttonRef.current
     }));
 
-     const handleLogout = async () => {
-         await fetch(API_ENDPOINTS.LOGOUT, {
-             method: "POST",
-             credentials: "include",
-             headers: {
-                 "Content-Type": "application/json"
-             }
-         });
-         window.location.href = "/auth/login";
-     };
+    const handleLogout = async () => {
+        await fetch(API_ENDPOINTS.LOGOUT, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+        window.location.href = "/auth/login";
+    };
+
+    const toggleProfileDropdown = () => {
+        setIsProfileDropdownOpen(!isProfileDropdownOpen);
+    };
 
     return (
         <div className="layout-topbar">
@@ -41,29 +45,42 @@ const AppTopbar = forwardRef((props, ref) => {
                 <i className="pi pi-bars" />
             </button>
 
-            <button ref={topbarmenubuttonRef} type="button" className="p-link layout-topbar-menu-button layout-topbar-button" onClick={showProfileSidebar}>
-                <i className="pi pi-ellipsis-v" />
-            </button>
-
-            <div ref={topbarmenuRef} className={classNames("layout-topbar-menu", { "layout-topbar-menu-mobile-active": layoutState.profileSidebarVisible })}>
+            <div className="layout-topbar-actions">
                 <button type="button" className="p-link layout-topbar-button">
                     <i className="pi pi-calendar"></i>
                     <span>Calendar</span>
                 </button>
-                <button type="button" className="p-link layout-topbar-button">
-                    <i className="pi pi-user"></i>
-                    <span>Profile</span>
-                </button>
-                <button type="button" className="p-link layout-topbar-button" onClick={handleLogout}>
-                    <i className="pi pi-sign-out"></i>
-                    <span>Logout</span>
-                </button>
-                <Link href="/documentation">
-                    <button type="button" className="p-link layout-topbar-button">
-                        <i className="pi pi-cog"></i>
-                        <span>Settings</span>
+
+                <div className="profile-dropdown-container">
+                    <button 
+                        ref={topbarmenubuttonRef} 
+                        type="button" 
+                        className="p-link layout-topbar-button profile-button"
+                        onClick={toggleProfileDropdown}
+                        aria-expanded={isProfileDropdownOpen}
+                    >
+                        <i className="pi pi-user"></i>
+                        <span>Profile</span>
                     </button>
-                </Link>
+
+                    {isProfileDropdownOpen && (
+                        <div className="profile-dropdown">
+                            <div className="dropdown-item" onClick={toggleProfileDropdown}>
+                                <i className="pi pi-user"></i>
+                                <span>My Profile</span>
+                            </div>
+                            <Link href="/documentation" className="dropdown-item">
+                                <i className="pi pi-cog"></i>
+                                <span>Settings</span>
+                            </Link>
+                            <div className="dropdown-divider"></div>
+                            <div className="dropdown-item logout-item" onClick={handleLogout}>
+                                <i className="pi pi-sign-out"></i>
+                                <span>Logout</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

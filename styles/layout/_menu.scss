@@ -10,7 +10,7 @@
     transition: transform $transitionDuration, left $transitionDuration;
     background-color: var(--surface-overlay);
     border-radius: $borderRadius;
-    padding: 0.5rem 1.5rem;
+    padding: 0.5rem 1rem;
     box-shadow: 0px 3px 5px rgba(0, 0, 0, .02), 0px 0px 2px rgba(0, 0, 0, .05), 0px 1px 4px rgba(0, 0, 0, .08);
 }
 
@@ -34,47 +34,42 @@
         }
     }
 
-    li.active-menuitem {
-        > a {
-            .layout-submenu-toggler {
-                transform: rotate(-180deg);
+    li {
+        position: relative;
+        margin-bottom: 0.25rem;
+        
+        &.has-submenu {
+            > div {
+                cursor: pointer;
             }
         }
 
-        > ul {
-            max-height: auto;
-        }
-    }
-
-    ul {
-        margin: 0;
-        padding: 0;
-        list-style-type: none;
-
-        a {
+        .layout-menuitem-root {
             display: flex;
             align-items: center;
             position: relative;
             outline: 0 none;
             color: var(--text-color);
             cursor: pointer;
-            padding: .75rem 1rem;
+            padding: 0.5rem 0.75rem;
             border-radius: $borderRadius;
-            transition: background-color $transitionDuration, box-shadow $transitionDuration;
+            transition: all $transitionDuration;
+            justify-content: space-between;
+            width: 100%;
 
             .layout-menuitem-icon {
                 margin-right: .5rem;
+                transition: transform $transitionDuration;
             }
 
             .layout-submenu-toggler {
                 font-size: 75%;
                 margin-left: auto;
+                
                 transition: transform $transitionDuration;
-            }
-
-            &.rotated-icon {
-                .layout-menuitem-icon {
-                    transform: rotate(90deg);
+                
+                &.rotated {
+                    transform: rotate(-180deg);
                 }
             }
 
@@ -92,65 +87,61 @@
             }
         }
 
-        ul {
-            overflow: hidden;
-            max-height: 0;
-            border-radius: $borderRadius;
-
-            li {
-                a {
-                    margin-left: 1rem;
-                }
-
-                li {
-                    a {
-                        margin-left: 2rem;
-                    }
-
-                    li {
-                        a {
-                            margin-left: 2.5rem;
-                        }
-
-                        li {
-                            a {
-                                margin-left: 3rem;
-                            }
-
-                            li {
-                                a {
-                                    margin-left: 3.5rem;
-                                }
-
-                                li {
-                                    a {
-                                        margin-left: 4rem;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+        &.active-menuitem {
+            > .layout-menuitem-root {
+                background-color: var(--surface-hover);
             }
         }
     }
-}
 
-.layout-submenu-enter-active {
-    max-height: 1000px !important;
-    transition: max-height 1s ease-in-out;
-}
+    .layout-submenu {
+        overflow: hidden;
+        max-height: 0;
+        margin: 0;
+        padding: 0;
+        list-style-type: none;
+        border-left: 1px solid var(--surface-border);
+        margin-left: 1.5rem;
+        padding-left: 0.5rem;
+        transition: max-height 0.3s ease-out, opacity 0.2s ease;
+        opacity: 0;
 
-.layout-submenu-enter-done {
-    max-height: 1000px !important;
-}
+        li {
+            a {
+                display: flex;
+                align-items: center;
+                position: relative;
+                outline: 0 none;
+                color: var(--text-color);
+                cursor: pointer;
+                padding: 0.5rem 1rem;
+                border-radius: $borderRadius;
+                transition: all $transitionDuration;
 
-.layout-submenu-exit {
-    max-height: 1000px !important;
-}
+                .layout-menuitem-icon {
+                    margin-right: .5rem;
+                }
 
-.layout-submenu-exit-active {
-    overflow: hidden;
-    max-height: 0 !important;
-    transition: max-height 0.45s cubic-bezier(0, 1, 0, 1);
+                &:hover {
+                    background-color: var(--surface-hover);
+                    color: var(--primary-color);
+                }
+
+                &.active-route {
+                    font-weight: 700;
+                    color: var(--primary-color);
+                }
+            }
+        }
+
+        &.submenu-visible {
+            max-height: 500px;
+            opacity: 1;
+        }
+    }
+
+    .menu-separator {
+        border-top: 1px solid var(--surface-border);
+        margin: 1rem 0;
+    }
 }

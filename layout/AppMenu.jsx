@@ -1,11 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useRef } from "react";
 import AppMenuitem from "./AppMenuitem";
 import { LayoutContext } from "./context/layoutcontext";
 import { MenuProvider } from "./context/menucontext";
-import Link from "next/link";
 import { Button } from "primereact/button";
 import { usePathname } from "next/navigation";
 import { Dialog } from "primereact/dialog";
@@ -15,9 +14,10 @@ import { Dropdown } from "primereact/dropdown";
 
 const AppMenu = () => {
     const { layoutConfig } = useContext(LayoutContext);
-
     const pathname = usePathname();
     const [visible, setVisible] = useState(false);
+    const [activeMenu, setActiveMenu] = useState(null);
+    const timeoutRef = useRef(null);
 
     const model = [
         {
@@ -26,6 +26,7 @@ const AppMenu = () => {
         },
         {
             label: "Maintenance",
+            icon: "pi pi-fw pi-cog",
             items: [
                 { label: "Work Orders", icon: "pi pi-fw pi-file", to: "/maintenance/work-orders" },
                 { label: "Work Requests", icon: "pi pi-fw pi-file-edit", to: "/maintenance/work-orders/request" },
@@ -36,18 +37,22 @@ const AppMenu = () => {
         },
         {
             label: "Assets",
+            icon: "pi pi-fw pi-box",
             items: [{ label: "Asset Insights", icon: "pi pi-fw pi-box", to: "/assets/asset-insights" }]
         },
         {
             label: "Supplies",
+            icon: "pi pi-fw pi-truck",
             items: [{ label: "Parts Forecaster", icon: "pi pi-fw pi-truck", to: "/supplies/parts-forecaster" }]
         },
         {
             label: "Analytics",
+            icon: "pi pi-fw pi-chart-pie",
             items: [{ label: "Analytics", icon: "pi pi-fw pi-chart-pie", to: "/analytics" }]
         },
         {
             label: "Users",
+            icon: "pi pi-fw pi-users",
             items: [
                 { label: "Technician", icon: "pi pi-fw pi-user", to: "/Users-Technician" },
                 { label: "Manager", icon: "pi pi-fw pi-user", to: "/Users-Manager" },
@@ -55,41 +60,78 @@ const AppMenu = () => {
                 { label: "Logistics", icon: "pi pi-fw pi-user", to: "/Users-Logistics" }
             ]
         }
-        // {
-        //     label: 'Pages',
-        //     icon: 'pi pi-fw pi-briefcase',
-        //     to: '/pages',
-        //     items: [
-        //         {
-        //             label: 'Auth',
-        //             icon: 'pi pi-fw pi-user',
-        //             items: [
-        //                 {
-        //                     label: 'Login',
-        //                     icon: 'pi pi-fw pi-sign-in',
-        //                     to: '/auth/login'
-        //                 },
-        //                 {
-        //                     label: 'Error',
-        //                     icon: 'pi pi-fw pi-times-circle',
-        //                     to: '/auth/error'
-        //                 },
-        //                 {
-        //                     label: 'Access Denied',
-        //                     icon: 'pi pi-fw pi-lock',
-        //                     to: '/auth/access'
-        //                 }
-        //             ]
-        //         }
-        //     ]
-        // }
     ];
+
+    const handleMenuToggle = (index) => {
+        setActiveMenu(activeMenu === index ? null : index);
+    };
+
+    const handleMouseEnter = (index) => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+        setActiveMenu(index);
+    };
+
+    const handleMouseLeave = () => {
+        timeoutRef.current = setTimeout(() => {
+            setActiveMenu(null);
+        }, 200);
+    };
 
     return (
         <MenuProvider>
             <ul className="layout-menu">
                 {model.map((item, i) => {
-                    return !item?.seperator ? <AppMenuitem item={item} root={true} index={i} key={item.label} /> : <li className="menu-separator"></li>;
+                    if (item.separator) {
+                        return <li className="menu-separator" key={`separator-${i}`}></li>;
+                    }
+
+                    const hasSubmenu = item.items && item.items.length > 0;
+                    const isActive = activeMenu === i;
+
+                    return (
+                        <li 
+                            key={item.label}
+                            className={`relative ${hasSubmenu ? 'has-submenu' : ''}`}
+                            onMouseEnter={() => handleMouseEnter(i)}
+                            onMouseLeave={handleMouseLeave}
+                        >
+                            <div
+                                className={`layout-menuitem-root ${isActive ? 'active-menuitem' : ''}`}
+                            >
+                                <div 
+                                    className="flex align-items-center py-3 px-2 cursor-pointer"
+                                    onClick={() => hasSubmenu && handleMenuToggle(i)}
+                                >
+                                    {item.icon && <i className={`${item.icon} layout-menuitem-icon mr-2`}></i>}
+                                    <span className="layout-menuitem-root-text">{item.label}</span>
+                                    {hasSubmenu && (
+                                        <i 
+                                            className={`pi pi-chevron-down layout-submenu-toggler px-2 ml-auto ${isActive ? 'rotated' : ''}`}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+
+                            
+                            <div className={`layout-submenu ${isActive ? 'submenu-visible' : ''}`}>
+                                
+                                {hasSubmenu && (
+                                    <ul>
+                                        {item.items.map((subItem, subIndex) => (
+                                            <li key={subItem.label}>
+                                                <a href={subItem.to} className="flex align-items-center py-2 px-4">
+                                                    {subItem.icon && <i className={`${subItem.icon} layout-menuitem-icon mr-2`}></i>}
+                                                    <span className="layout-menuitem-text">{subItem.label}</span>
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </li>
+                    );
                 })}
             </ul>
 

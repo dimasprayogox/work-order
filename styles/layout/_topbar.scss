@@ -10,7 +10,7 @@
     transition: left $transitionDuration;
     display: flex;
     align-items: center;
-    box-shadow: 0px 3px 5px rgba(0,0,0,.02), 0px 0px 2px rgba(0,0,0,.05), 0px 1px 4px rgba(0,0,0,.08);
+    box-shadow: 0px 3px 5px rgba(0, 0, 0, .02), 0px 0px 2px rgba(0, 0, 0, .05), 0px 1px 4px rgba(0, 0, 0, .08);
 
     .layout-topbar-logo {
         display: flex;
@@ -41,11 +41,17 @@
         width: 3rem;
         height: 3rem;
         cursor: pointer;
-        transition: background-color $transitionDuration;
+        transition: all 0.2s ease-in-out;
 
         &:hover {
             color: var(--text-color);
             background-color: var(--surface-hover);
+            transform: translateY(-2px);
+        }
+
+        &:active {
+            transform: translateY(0);
+            transition: all 0.1s ease-in-out;
         }
 
         &:focus {
@@ -63,26 +69,125 @@
     }
 
     .layout-menu-button {
-        margin-left: 2rem;
+        margin-left: -3.5rem;
     }
 
-    .layout-topbar-menu-button {
-        display: none;
+    .layout-topbar-actions {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .layout-topbar-actions>.layout-topbar-button {
+
+        span {
+            display: none;
+        }
+    }
+
+    .profile-dropdown-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .profile-button {
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+        &:hover {
+            background-color: var(--primary-color-light);
+            color: var(--primary-color);
+        }
+
+        &[aria-expanded="true"] {
+            background-color: var(--primary-color);
+            color: white;
+            transform: scale(1.05);
+        }
+    }
+
+    .profile-dropdown {
+        position: absolute;
+        right: 0;
+        top: 100%;
+        margin-top: 0.5rem;
+        min-width: 200px;
+        background-color: var(--surface-overlay);
+        border-radius: 12px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        z-index: 1000;
+        animation: fadeInDown 0.3s ease-out;
+        max-height: 0;
+        opacity: 0;
+        visibility: hidden;
+        transition: max-height 0.3s ease-out, opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .profile-dropdown-container .profile-button[aria-expanded="true"]+.profile-dropdown {
+        max-height: 300px;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        color: var(--text-color);
+        transition: all 0.2s ease;
+        text-decoration: none;
 
         i {
-            font-size: 1.25rem;
+            margin-right: 0.75rem;
+            color: var(--text-color-secondary);
+        }
+
+        &:hover {
+            background-color: var(--surface-hover);
+            color: var(--primary-color);
+
+            i {
+                color: var(--primary-color);
+            }
+        }
+
+        &:active {
+            transform: scale(0.98);
         }
     }
 
-    .layout-topbar-menu {
-        margin: 0 0 0 auto;
-        padding: 0;
-        list-style: none;
-        display: flex;
+    .dropdown-divider {
+        height: 1px;
+        background-color: var(--surface-border);
+        margin: 0.25rem 0;
+    }
 
-        .layout-topbar-button {
-            margin-left: 1rem;
+    .logout-item {
+        color: var(--red-500);
+
+        i {
+            color: var(--red-500);
         }
+
+        &:hover {
+            background-color: var(--red-50);
+        }
+    }
+}
+
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
@@ -100,49 +205,43 @@
             order: 1;
         }
 
-        .layout-topbar-menu-button {
-            display: inline-flex;
-            margin-left: 0;
+        .layout-topbar-actions {
             order: 3;
-        }
-
-        .layout-topbar-menu {
             margin-left: 0;
-            position: absolute;
-            flex-direction: column;
-            background-color: var(--surface-overlay);
-            box-shadow: 0px 3px 5px rgba(0,0,0,.02), 0px 0px 2px rgba(0,0,0,.05), 0px 1px 4px rgba(0,0,0,.08);
-            border-radius: 12px;
-            padding: 1rem;
-            right: 2rem;
-            top: 5rem;
-            min-width: 15rem;
-            display: none;
-            -webkit-animation: scalein 0.15s linear;
-            animation: scalein 0.15s linear;
+            gap: 0;
 
-            &.layout-topbar-menu-mobile-active {
-                display: block
+            .layout-topbar-button span {
+                display: none;
             }
 
-            .layout-topbar-button {
-                margin-left: 0;
-                display: flex;
-                width: 100%;
-                height: auto;
-                justify-content: flex-start;
-                border-radius: 12px;
-                padding: 1rem;
+            .layout-topbar-button:not(.profile-button) {
+                display: inline-flex;
+            }
+        }
 
-                i {
-                    font-size: 1rem;
-                    margin-right: .5rem;
-                }
+        .profile-dropdown-container {
+            display: inline-flex;
+            margin-left: 0;
+            // order: 3;
+        }
 
-                span {
-                    font-weight: medium;
-                    display: block;
-                }
+        .profile-dropdown {
+            right: 0;
+            left: auto;
+            top: 100%;
+            transform: translateX(0);
+            width: fit-content;
+            min-width: 180px;
+        }
+    }
+
+
+    @media (max-width: 768px) {
+
+        .layout-topbar-actions {
+            .layout-topbar-button:not(.profile-button) {
+                display: none;
+                
             }
         }
     }
