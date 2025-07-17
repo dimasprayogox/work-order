@@ -7,6 +7,7 @@ import { setResponseHeader } from "./middleware/set-headers.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from './routes/admin/user.routes.js';
+import machineCategoryRoutes from './routes/admin/machine-category.routes.js';
 
 
 const app = express();
@@ -47,5 +48,6 @@ app.get("/", [setResponseHeader], (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use('/api/admin/users', userRoutes);
+app.use('/api/admin/machine-categories', machineCategoryRoutes);
 
 export default app;
