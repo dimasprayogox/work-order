@@ -43,5 +43,13 @@ export const seed = async function(knex) {
       role: "logistics",
       full_name: "Mas Logistics",
     },
+    {
+      id: crypto.randomUUID(),
+      username: "Employee",
+      email: "employee@example.com",
+      password: hashedPassword,
+      role: "employee",
+      full_name: "Mas Employee",
+    },
   ]);
 };
