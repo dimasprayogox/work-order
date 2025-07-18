@@ -7,8 +7,10 @@ export const createWorkOrderSchema = z.object({
     assigned_to_id: z.string().uuid().optional(),
     created_by_id: z.string().uuid(),
     priority: z.enum(['low', 'medium', 'high']).default('medium'),
-    scheduled_date: z.coerce.date().optional()
+    scheduled_date: z.coerce.date().optional(),
+    issue_id: z.string().uuid().optional()
 });
+
 
 export const updateWorkOrderSchema = z.object({
     title: z.string().min(3).optional(),

@@ -14,6 +14,15 @@ import userDetailRoutes from './routes/user-details.routes.js';
 import machineCategoryRoutes from './routes/admin/machine-category.routes.js';
 import machineRoutes from './routes/admin/machine.routes.js';
 
+//employee
+import employeeDashboardRoutes from './routes/employee/dashboard.routes.js';
+import issueRoutes from './routes/employee/issue.route.js';
+
+//technician
+import technicianDashboardRoutes from './routes/technician/dashboard.routes.js';
+import technicianWorkOrderRoutes from './routes/technician/workOrderRoute.js';
+
+
 //manager
 import managerDashboardRoutes from './routes/manager/dashboard.routes.js';
 import managerWorkOrderRoutes from './routes/manager/work-order.routes.js';
@@ -66,6 +75,14 @@ app.use("/api/user-detail", userDetailRoutes);
 app.use('/api/admin/users', userRoutes);
 app.use('/api/admin/machine-categories', machineCategoryRoutes);
 app.use('/api/admin/machines', machineRoutes);
+
+//employee
+app.use('/api/employee/dashboard', employeeDashboardRoutes);
+app.use('/api/employee/issues', issueRoutes);
+
+//technician
+app.use('/api/technician/dashboard', technicianDashboardRoutes);
+app.use('/api/technician/work-orders', technicianWorkOrderRoutes);
 
 //manager
 app.use('/api/manager/dashboard', managerDashboardRoutes);

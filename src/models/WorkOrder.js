@@ -18,7 +18,6 @@ export class WorkOrder extends BaseModel {
                     to: 'machines.id',
                 },
             },
-
             assignedTo: {
                 relation: BaseModel.BelongsToOneRelation,
                 modelClass: User,
@@ -27,7 +26,6 @@ export class WorkOrder extends BaseModel {
                     to: 'users.id',
                 },
             },
-
             createdBy: {
                 relation: BaseModel.BelongsToOneRelation,
                 modelClass: User,
@@ -36,13 +34,12 @@ export class WorkOrder extends BaseModel {
                     to: 'users.id',
                 },
             },
-
-            issues: {
-                relation: BaseModel.HasManyRelation,
+            issue: {
+                relation: BaseModel.BelongsToOneRelation,
                 modelClass: Issue,
                 join: {
-                    from: 'work_orders.id',
-                    to: 'issues.work_order_id',
+                    from: 'work_orders.issue_id',
+                    to: 'issues.id',
                 },
             },
         };

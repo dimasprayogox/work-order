@@ -14,7 +14,7 @@ export const authMiddleware = async (req, res, next) => {
   try {
     // Verifikasi token yang didapat dari cookie
     const decodedUser = await verifyToken(token);
-
+  console.log("isValid", isValid)
     if (!decodedUser) {
       return res.status(401).json({ errors: "Token tidak valid" });
     }

@@ -1,6 +1,7 @@
 import { WorkOrder } from '../../models/WorkOrder.js';
 import { User } from '../../models/User.js';
 import { Machine } from '../../models/Machine.js';
+import { Issue } from '../../models/Issue.js';
 import { v4 as uuidv4 } from 'uuid';
 import { createWorkOrderSchema, updateWorkOrderSchema } from '../../schemas/manager/workOrderSchema.js';
 
@@ -42,11 +43,20 @@ export const WorkOrderController = {
             }
 
             const data = parsed.data;
+            const newWOId = uuidv4();
+
             const newWO = await WorkOrder.query().insert({
-                id: uuidv4(),
+                id: newWOId,
                 ...data,
                 status: 'pending',
             });
+
+            // Jika issue_id dikirim, update tabel issues
+            if (data.issue_id) {
+                await Issue.query()
+                    .patch({ work_order_id: newWOId })
+                    .where('id', data.issue_id);
+            }
 
             res.status(201).json({ success: true, data: newWO });
         } catch (err) {
