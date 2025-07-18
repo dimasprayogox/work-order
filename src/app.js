@@ -5,11 +5,16 @@ import cookieParser from "cookie-parser";
 
 import { setResponseHeader } from "./middleware/set-headers.js";
 
+//auth
 import authRoutes from "./routes/auth.routes.js";
+
+//admin
 import userRoutes from './routes/admin/user.routes.js';
 import machineCategoryRoutes from './routes/admin/machine-category.routes.js';
 import machineRoutes from './routes/admin/machine.routes.js';
 
+//manager
+import managerWorkOrderRoutes from './routes/manager/work-order.routes.js';
 
 const app = express();
 
@@ -47,9 +52,16 @@ app.get("/", [setResponseHeader], (req, res) => {
     .json(`Welcome to the server! ${new Date().toLocaleString()}`);
 });
 
+
+//auth
 app.use("/api/auth", authRoutes);
+
+//admin
 app.use('/api/admin/users', userRoutes);
 app.use('/api/admin/machine-categories', machineCategoryRoutes);
 app.use('/api/admin/machines', machineRoutes);
+
+//manager
+app.use('/api/manager/work-orders', managerWorkOrderRoutes);
 
 export default app;
