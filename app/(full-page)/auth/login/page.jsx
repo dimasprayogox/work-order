@@ -9,7 +9,7 @@ import { Password } from "primereact/password";
 import { LayoutContext } from "../../../../layout/context/layoutcontext";
 import { InputText } from "primereact/inputtext";
 import { classNames } from "primereact/utils";
-// import { Toast } from 'primereact/toast'; // Anda mungkin perlu komponen ini
+ import { Toast } from 'primereact/toast'; 
 
 const LoginPage = () => {
     // --- STATE ---
@@ -22,11 +22,13 @@ const LoginPage = () => {
     const router = useRouter();
     const toastRef = useRef(null);
     const { layoutConfig } = useContext(LayoutContext); // 2. Dapatkan layoutConfig dari context
+    const [errorMsg, setErrorMsg] = useState("");
 
     // --- HANDLER ---
     const handleSubmit = async (e) => {
         e.preventDefault(); // Mencegah refresh halaman
         setLoading(true);
+        setErrorMsg("");
 
         try {
             const res = await fetch("/api/auth/login", {
@@ -37,13 +39,15 @@ const LoginPage = () => {
 
             const result = await res.json();
 
-            if (res.ok) {
-                // toastRef.current?.show({severity:'success', summary: 'Success', detail: result.message});
+            if (res.ok && result.status === "00") {
+                toastRef.current?.show({ severity: "success", summary: "Sukses", detail: result.message, life: 3000 });
                 console.log("Login sukses:", result.message);
-                router.push("/");
+               
+                setTimeout(() => {
+                    router.push("/");
+                }, 1500);
             } else {
-                // toastRef.current?.show({severity:'error', summary: 'Error', detail: result.message || 'Login Gagal'});
-                console.error("Login gagal:", result.message);
+               toastRef.current?.show({ severity: "error", summary: "Gagal", detail: result.message || "Email atau Password salah.", life: 3000 });
             }
         } catch (error) {
             console.error("Terjadi kesalahan:", error);
@@ -58,7 +62,7 @@ const LoginPage = () => {
 
     return (
         <div className={containerClassName}>
-            {/* <Toast ref={toastRef} /> */}
+            <Toast ref={toastRef} />
             <div className="flex flex-column align-items-center justify-content-center">
                 <img src={`/layout/images/logo-${layoutConfig.colorScheme === "light" ? "dark" : "white"}.svg`} alt="Sakai logo" className="mb-5 w-6rem flex-shrink-0" />
                 <div
@@ -83,14 +87,36 @@ const LoginPage = () => {
                                         Email
                                     </label>
                                     {/* 5. Hubungkan value dan onChange ke state email */}
-                                    <InputText id="email1" type="text" placeholder="Alamat Email" className="w-full md:w-30rem" style={{ padding: "1rem" }} value={email} onChange={(e) => setEmail(e.target.value)} />
+                                    <InputText
+                                        id="email1"
+                                        type="text"
+                                        placeholder="Alamat Email"
+                                        className="w-full md:w-30rem"
+                                        style={{ padding: "1rem" }}
+                                        value={email}
+                                        onChange={(e) => {
+                                            setEmail(e.target.value);
+                                            setErrorMsg("");
+                                        }}
+                                    />
                                 </div>
 
                                 <div className="mb-5">
                                     <label htmlFor="password" className="block text-900 font-medium text-xl mb-2">
                                         Password
                                     </label>
-                                    <Password inputId="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" toggleMask className="w-full" inputClassName="w-full p-3 md:w-30rem"></Password>
+                                    <Password
+                                        inputId="password"
+                                        value={password}
+                                        onChange={(e) => {
+                                            setPassword(e.target.value);
+                                            setErrorMsg("");
+                                        }}
+                                        placeholder="Password"
+                                        toggleMask
+                                        className="w-full"
+                                        inputClassName="w-full p-3 md:w-30rem"
+                                    ></Password>
                                 </div>
 
                                 <div className="flex align-items-center justify-content-between mb-5 gap-5">
