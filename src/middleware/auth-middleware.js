@@ -8,7 +8,7 @@ export const authMiddleware = async (req, res, next) => {
   }
 
   const isValid = await verifyToken(token);
-
+  console.log("isValid", isValid)
   req.user = isValid
   next()
 }

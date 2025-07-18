@@ -9,7 +9,7 @@ import authRoutes from "./routes/auth.routes.js";
 import userRoutes from './routes/admin/user.routes.js';
 import machineCategoryRoutes from './routes/admin/machine-category.routes.js';
 import machineRoutes from './routes/admin/machine.routes.js';
-
+import issueRoutes from './routes/employee/issue.route.js';
 
 const app = express();
 
@@ -51,5 +51,6 @@ app.use("/api/auth", authRoutes);
 app.use('/api/admin/users', userRoutes);
 app.use('/api/admin/machine-categories', machineCategoryRoutes);
 app.use('/api/admin/machines', machineRoutes);
+app.use('/api/employee/issues', issueRoutes);
 
 export default app;
