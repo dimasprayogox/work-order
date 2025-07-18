@@ -15,6 +15,7 @@ import machineRoutes from './routes/admin/machine.routes.js';
 
 //manager
 import managerWorkOrderRoutes from './routes/manager/work-order.routes.js';
+import managerScheduleRoutes from './routes/manager/schedule.routes.js';
 
 const app = express();
 
@@ -63,5 +64,6 @@ app.use('/api/admin/machines', machineRoutes);
 
 //manager
 app.use('/api/manager/work-orders', managerWorkOrderRoutes);
+app.use('/api/manager/schedules', managerScheduleRoutes);
 
 export default app;
