@@ -15,17 +15,17 @@ const LoginPage = () => {
     // --- STATE ---
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [checked, setChecked] = useState(false); // 1. State untuk checkbox 'Remember me'
+    const [checked, setChecked] = useState(false);
     const [loading, setLoading] = useState(false);
 
     // --- HOOKS ---
     const router = useRouter();
     const toastRef = useRef(null);
-    const { layoutConfig } = useContext(LayoutContext); // 2. Dapatkan layoutConfig dari context
+    const { layoutConfig } = useContext(LayoutContext);
 
     // --- HANDLER ---
     const handleSubmit = async (e) => {
-        e.preventDefault(); // Mencegah refresh halaman
+        e.preventDefault();
         setLoading(true);
 
         try {
@@ -40,7 +40,38 @@ const LoginPage = () => {
             if (res.ok) {
                 // toastRef.current?.show({severity:'success', summary: 'Success', detail: result.message});
                 console.log("Login sukses:", result.message);
-                router.push("/");
+
+                // --- MODIFIKASI DIMULAI DI SINI ---
+                const userRole = result.role; // Ambil role langsung dari respons API
+
+                // Definisikan path dasar untuk dashboard Anda
+                const dashboardBasePath = "/dashboard"; // Ini akan mengarah ke (main)/dashboard/
+
+                let redirectPath;
+
+                switch (userRole) {
+                    case "admin":
+                        redirectPath = `${dashboardBasePath}/admin`; // Akan menjadi /dashboard/admin
+                        break;
+                    case "employee":
+                        redirectPath = `${dashboardBasePath}/employee`; // Akan menjadi /dashboard/employee
+                        break;
+                    case "technician":
+                        redirectPath = `${dashboardBasePath}/technician`; // Akan menjadi /dashboard/technician
+                        break;
+                    case "manager":
+                        redirectPath = `${dashboardBasePath}/manager`; // Akan menjadi /dashboard/manager
+                        break;
+                    case "logistics":
+                        redirectPath = `${dashboardBasePath}/logistics`; // Akan menjadi /dashboard/logistics
+                        break;
+                    default:
+                        redirectPath = dashboardBasePath; // Fallback ke /dashboard jika role tidak dikenali
+                        break;
+                }
+                router.push(redirectPath);
+                // --- MODIFIKASI BERAKHIR DI SINI ---
+
             } else {
                 // toastRef.current?.show({severity:'error', summary: 'Error', detail: result.message || 'Login Gagal'});
                 console.error("Login gagal:", result.message);
@@ -53,7 +84,6 @@ const LoginPage = () => {
         }
     };
 
-    // 3. Definisikan containerClassName
     const containerClassName = classNames("surface-ground flex align-items-center justify-content-center min-h-screen min-w-full overflow-hidden", { "p-input-filled": layoutConfig.inputStyle === "filled" });
 
     return (
@@ -75,14 +105,12 @@ const LoginPage = () => {
                             <span className="text-600 font-medium">Masuk untuk melanjutkan</span>
                         </div>
 
-                        {/* 4. Gunakan <form> dengan onSubmit */}
                         <form onSubmit={handleSubmit}>
                             <div className="p-fluid">
                                 <div className="mb-5">
                                     <label htmlFor="email1" className="block text-900 text-xl font-medium mb-2">
                                         Email
                                     </label>
-                                    {/* 5. Hubungkan value dan onChange ke state email */}
                                     <InputText id="email1" type="text" placeholder="Alamat Email" className="w-full md:w-30rem" style={{ padding: "1rem" }} value={email} onChange={(e) => setEmail(e.target.value)} />
                                 </div>
 
@@ -103,7 +131,6 @@ const LoginPage = () => {
                                     </a>
                                 </div>
 
-                                {/* 6. Ubah tombol menjadi type="submit" */}
                                 <Button type="submit" label="Sign In" className="w-full p-3 text-xl" loading={loading}></Button>
                             </div>
                         </form>
