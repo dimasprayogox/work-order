@@ -17,6 +17,7 @@ const LoginPage = () => {
     const [password, setPassword] = useState("");
     const [checked, setChecked] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState(""); 
 
     // --- HOOKS ---
     const router = useRouter();
@@ -39,7 +40,7 @@ const LoginPage = () => {
             const result = await res.json();
 
             if (res.ok && result.status === "00") {
-                 toastRef.current?.show({severity:'success', summary: 'Success', detail: result.message});
+                toastRef.current?.show({severity:'success', summary: 'Success', detail: result.message});
                 console.log("Login sukses:", result.message);
 
                 // --- MODIFIKASI DIMULAI DI SINI ---
