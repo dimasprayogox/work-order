@@ -54,10 +54,11 @@ const AppMenu = () => {
             label: "Users",
             icon: "pi pi-fw pi-users",
             items: [
-                { label: "Technician", icon: "pi pi-fw pi-user", to: "/Users-Technician" },
-                { label: "Manager", icon: "pi pi-fw pi-user", to: "/Users-Manager" },
-                { label: "Admin", icon: "pi pi-fw pi-user", to: "/Users-Admin" },
-                { label: "Logistics", icon: "pi pi-fw pi-user", to: "/Users-Logistics" }
+                { label: "Admin", icon: "pi pi-fw pi-user", to: "/Users/admin" },
+                { label: "Teknisi", icon: "pi pi-fw pi-user", to: "/Users/technician" },
+                { label: "Manager", icon: "pi pi-fw pi-user", to: "/Users/manager" },
+                { label: "Logistik", icon: "pi pi-fw pi-user", to: "/Users/logistics" },
+                { label: "Karyawan", icon: "pi pi-fw pi-user", to: "/Users/employee" }
             ]
         }
     ];
