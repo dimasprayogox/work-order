@@ -14,6 +14,7 @@ import machineCategoryRoutes from './routes/admin/machine-category.routes.js';
 import machineRoutes from './routes/admin/machine.routes.js';
 
 //manager
+import managerDashboardRoutes from './routes/manager/dashboard.routes.js';
 import managerWorkOrderRoutes from './routes/manager/work-order.routes.js';
 import managerScheduleRoutes from './routes/manager/schedule.routes.js';
 
@@ -63,6 +64,7 @@ app.use('/api/admin/machine-categories', machineCategoryRoutes);
 app.use('/api/admin/machines', machineRoutes);
 
 //manager
+app.use('/api/manager/dashboard', managerDashboardRoutes);
 app.use('/api/manager/work-orders', managerWorkOrderRoutes);
 app.use('/api/manager/schedules', managerScheduleRoutes);
 
