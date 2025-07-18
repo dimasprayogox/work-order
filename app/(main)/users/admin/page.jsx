@@ -12,24 +12,12 @@ import { Checkbox } from 'primereact/checkbox';
 import { Toast } from 'primereact/toast';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 
-// Mock Data for demonstration purposes
-let mockUsers = [
-    { id: '1', username: 'admin', email: 'admin@example.com', full_name: 'Admin User', role: 'admin', is_active: true, created_at: '2023-01-01T10:00:00Z', updated_at: '2023-01-01T10:00:00Z' },
-    { id: '2', username: 'john.doe', email: 'john.doe@example.com', full_name: 'John Doe', role: 'user', is_active: true, created_at: '2023-02-15T11:30:00Z', updated_at: '2023-02-15T11:30:00Z' },
-    { id: '3', username: 'jane.smith', email: 'jane.smith@example.com', full_name: 'Jane Smith', role: 'user', is_active: false, created_at: '2023-03-20T14:00:00Z', updated_at: '2023-03-20T14:00:00Z' },
-    { id: '4', username: 'peter.jones', email: 'peter.jones@example.com', full_name: 'Peter Jones', role: 'editor', is_active: true, created_at: '2023-04-10T09:00:00Z', updated_at: '2023-04-10T09:00:00Z' },
-    { id: '5', username: 'susan.white', email: 'susan.white@example.com', full_name: 'Susan White', role: 'user', is_active: true, created_at: '2023-05-01T16:00:00Z', updated_at: '2023-05-01T16:00:00Z' },
-];
-
-// Helper to generate UUIDs for mock data
-const uuidv4 = () => {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
+const API_ENDPOINTS = {
+    USERS: '/api/admin/users', 
 };
 
-// Header for DataTable (Search and Role Filter)
+const AUTH_TOKEN = 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOiIxODBkNTVjNy00ODEwLTRiM2ItYjAyNC00YjkxMTIzOGQxOWEiLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NTI4MjExNDEsImV4cCI6MTc1MjkwNzU0MX0.LTvNa5P_TQKfmDC3oe8PSYP571ZrbMTBrfFtpJEiX5PtGLOMo8z2prkwwHTSMis6aTzgDejsVwkbH_9A8zCjKw'; // Replace with a valid JWT token for an 'admin' user
+
 const HeaderDataTable = ({ search, roleFilter, setSearch, setRoleFilter, roleOptions }) => (
     <div className="flex align-items-center justify-content-between gap-2 flex-wrap">
         <div>
@@ -51,7 +39,6 @@ const HeaderDataTable = ({ search, roleFilter, setSearch, setRoleFilter, roleOpt
     </div>
 );
 
-// Custom body template for Role column
 const RoleBodyTemplate = (rowData) => {
     let bgClass = "";
     let textColorClass = "";
@@ -63,6 +50,22 @@ const RoleBodyTemplate = (rowData) => {
         case "editor":
             bgClass = "bg-yellow-100";
             textColorClass = "text-yellow-800";
+            break;
+        case "technician":
+            bgClass = "bg-green-100";
+            textColorClass = "text-green-800";
+            break;
+        case "manager":
+            bgClass = "bg-red-100";
+            textColorClass = "text-red-800";
+            break;
+        case "logistics":
+            bgClass = "bg-indigo-100";
+            textColorClass = "text-indigo-800";
+            break;
+        case "employee":
+            bgClass = "bg-gray-100";
+            textColorClass = "text-gray-800";
             break;
         case "user":
         default:
@@ -77,7 +80,6 @@ const RoleBodyTemplate = (rowData) => {
     );
 };
 
-// Custom body template for Is Active column
 const ActiveBodyTemplate = (rowData) => {
     return rowData.is_active ? (
         <i className="pi pi-check-circle text-green-500 text-xl" />
@@ -86,49 +88,60 @@ const ActiveBodyTemplate = (rowData) => {
     );
 };
 
-// Main UserAdminPage Component
 const UserAdminPage = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isFormDialogVisible, setIsFormDialogVisible] = useState(false);
-    const [currentUser, setCurrentUser] = useState(null); // For edit operation
-    const [selectedUsers, setSelectedUsers] = useState([]); // For bulk delete
+    const [currentUser, setCurrentUser] = useState(null);
+    const [selectedUsers, setSelectedUsers] = useState([]); 
     const [search, setSearch] = useState("");
     const [roleFilter, setRoleFilter] = useState("");
 
-    const toast = useRef(null); // Ref for PrimeReact Toast
+    const toast = useRef(null); 
 
-    const roleOptions = ["", "admin", "editor", "user"]; // Options for role filter dropdown
+    const roleOptions = ["", "admin", "editor", "technician", "manager", "logistics", "employee", "user"];
 
-    // Form data state for Add/Edit User Dialog
     const [formData, setFormData] = useState({
         username: '',
         email: '',
         password: '',
         full_name: '',
-        role: 'user',
+        role: 'employee', 
         is_active: true,
     });
     const [formErrors, setFormErrors] = useState({});
 
-    // Simulate API calls
-    const fetchUsers = () => {
+    const showToast = (severity, summary, detail) => {
+        toast.current.show({ severity, summary, detail, life: 3000 });
+    };
+    const fetchUsers = async () => {
         setLoading(true);
-        setTimeout(() => {
-            setUsers([...mockUsers]); // Create a copy to ensure state update
+        try {
+            const response = await fetch(API_ENDPOINTS.USERS, {
+                method: "GET",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${AUTH_TOKEN}`, 
+                },
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+            const result = await response.json();
+            setUsers(result.data);
+            showToast('success', 'Success', result.message || 'Users retrieved successfully!');
+        } catch (err) {
+            console.error("Failed to fetch users:", err);
+            showToast('error', 'Error', `Failed to retrieve users: ${err.message}`);
+        } finally {
             setLoading(false);
-        }, 500);
+        }
     };
 
     useEffect(() => {
         fetchUsers();
     }, []);
-
-    const showToast = (severity, summary, detail) => {
-        toast.current.show({ severity, summary, detail, life: 3000 });
-    };
-
-    // Handlers for Add/Edit User Dialog
     const openNewUserDialog = () => {
         setCurrentUser(null);
         setFormData({
@@ -136,7 +149,7 @@ const UserAdminPage = () => {
             email: '',
             password: '',
             full_name: '',
-            role: 'user',
+            role: 'employee', 
             is_active: true,
         });
         setFormErrors({});
@@ -148,9 +161,9 @@ const UserAdminPage = () => {
         setFormData({
             username: user.username || '',
             email: user.email || '',
-            password: '', // Password is not pre-filled for security
+            password: '', 
             full_name: user.full_name || '',
-            role: user.role || 'user',
+            role: user.role || 'employee',
             is_active: user.is_active ?? true,
         });
         setFormErrors({});
@@ -177,56 +190,95 @@ const UserAdminPage = () => {
         } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
             newErrors.email = 'Email is invalid.';
         }
-        if (!currentUser && !formData.password.trim()) newErrors.password = 'Password is required for new users.';
-        if (formData.password.trim() && formData.password.trim().length < 6) newErrors.password = 'Password must be at least 6 characters.';
+        
+        if (!currentUser && !formData.password.trim()) {
+            newErrors.password = 'Password is required for new users.';
+        } else if (formData.password.trim() && formData.password.trim().length < 8) {
+            newErrors.password = 'Password must be at least 8 characters.';
+        }
         if (!formData.full_name.trim()) newErrors.full_name = 'Full Name is required.';
 
         setFormErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    const saveUser = () => {
+    const saveUser = async () => {
         if (!validateForm()) {
             showToast('error', 'Validation Error', 'Please correct the form errors.');
             return;
         }
 
         setLoading(true);
-        setTimeout(() => {
+        try {
+            let response;
+            let url;
+            let method;
+            const payload = {
+                username: formData.username,
+                email: formData.email,
+                full_name: formData.full_name,
+                role: formData.role,
+                is_active: formData.is_active,
+            };
+
             if (currentUser) {
                 // Update user
-                mockUsers = mockUsers.map((user) =>
-                    user.id === currentUser.id
-                        ? {
-                            ...user,
-                            ...formData,
-                            password: formData.password || user.password, // Keep old password if new one is empty
-                            updated_at: new Date().toISOString(),
-                        }
-                        : user
-                );
-                showToast('success', 'Success', 'User updated successfully!');
+                url = `${API_ENDPOINTS.USERS}/${currentUser.id}`;
+                method = 'PUT';
+                if (formData.password) {
+                    payload.password = formData.password;
+                }
             } else {
                 // Create new user
-                const newUser = {
-                    id: uuidv4(),
-                    ...formData,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                };
-                mockUsers.push(newUser);
-                showToast('success', 'Success', 'User created successfully!');
+                url = API_ENDPOINTS.USERS;
+                method = 'POST';
+                payload.password = formData.password; 
             }
-            fetchUsers(); // Re-fetch to update UI
+
+            response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${AUTH_TOKEN}`, 
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 400 && result.errors) {
+                    
+                    const backendErrors = {};
+                    for (const key in result.errors) {
+                        
+                        backendErrors[key] = result.errors[key].join(', ');
+                    }
+                    setFormErrors(backendErrors);
+                    showToast('error', 'Validation Failed', result.message || 'Please check the form for errors.');
+                } else {
+                    throw new Error(result.message || `HTTP error! status: ${response.status}`);
+                }
+            } else {
+                showToast('success', 'Success', result.message || `User ${currentUser ? 'updated' : 'created'} successfully!`);
+                fetchUsers(); 
+                hideFormDialog();
+            }
+        } catch (err) {
+            console.error(`Failed to ${currentUser ? 'update' : 'create'} user:`, err);
+            showToast('error', 'Error', `Failed to ${currentUser ? 'update' : 'create'} user: ${err.message}`);
+        } finally {
             setLoading(false);
-            hideFormDialog();
-        }, 500);
+        }
     };
 
-    // Handlers for Delete operations
     const confirmDeleteSelected = () => {
+        if (selectedUsers.length === 0) {
+            showToast('warn', 'No Selection', 'Please select users to delete.');
+            return;
+        }
         confirmDialog({
-            message: 'Are you sure you want to delete the selected users?',
+            message: `Are you sure you want to delete ${selectedUsers.length} selected user(s)?`,
             header: 'Confirm Deletion',
             icon: 'pi pi-exclamation-triangle',
             acceptClassName: 'p-button-danger',
@@ -235,16 +287,45 @@ const UserAdminPage = () => {
         });
     };
 
-    const deleteSelectedUsers = () => {
+    const deleteSelectedUsers = async () => {
         setLoading(true);
-        setTimeout(() => {
-            const selectedIds = selectedUsers.map(u => u.id);
-            mockUsers = mockUsers.filter((user) => !selectedIds.includes(user.id));
-            showToast('success', 'Success', 'Selected users deleted successfully!');
-            setSelectedUsers([]); // Clear selection
-            fetchUsers();
-            setLoading(false);
-        }, 500);
+        let successCount = 0;
+        let errorCount = 0;
+
+        const deletePromises = selectedUsers.map(async (user) => {
+            try {
+                const response = await fetch(`${API_ENDPOINTS.USERS}/${user.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AUTH_TOKEN}`, 
+                    },
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.message || `Failed to delete ${user.username}`);
+                }
+                successCount++;
+                return { status: 'fulfilled', value: user.id };
+            } catch (err) {
+                console.error(`Error deleting user ${user.username}:`, err);
+                errorCount++;
+                return { status: 'rejected', reason: err };
+            }
+        });
+
+        await Promise.allSettled(deletePromises);
+
+        if (successCount > 0) {
+            showToast('success', 'Success', `${successCount} user(s) deleted successfully.`);
+        }
+        if (errorCount > 0) {
+            showToast('error', 'Error', `${errorCount} user(s) failed to delete.`);
+        }
+
+        setSelectedUsers([]); 
+        fetchUsers(); 
+        setLoading(false);
     };
 
     const confirmDeleteUser = (user) => {
@@ -258,17 +339,30 @@ const UserAdminPage = () => {
         });
     };
 
-    const deleteUser = (id) => {
+    const deleteUser = async (id) => {
         setLoading(true);
-        setTimeout(() => {
-            mockUsers = mockUsers.filter((user) => user.id !== id);
-            showToast('success', 'Success', 'User deleted successfully!');
-            fetchUsers();
+        try {
+            const response = await fetch(`${API_ENDPOINTS.USERS}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${AUTH_TOKEN}`, 
+                },
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || `HTTP error! status: ${response.status}`);
+            }
+            showToast('success', 'Success', result.message || 'User deleted successfully!');
+            fetchUsers(); 
+        } catch (err) {
+            console.error("Failed to delete user:", err);
+            showToast('error', 'Error', `Failed to delete user: ${err.message}`);
+        } finally {
             setLoading(false);
-        }, 500);
+        }
     };
 
-    // Filtered data based on search and role filter
     const filteredUsers = users.filter((user) => {
         const matchesRole = roleFilter === "" || user.role === roleFilter;
         const matchesSearch =
@@ -279,7 +373,6 @@ const UserAdminPage = () => {
         return matchesRole && matchesSearch;
     });
 
-    // Action buttons for each row
     const actionBodyTemplate = (rowData) => {
         return (
             <div className="flex gap-2">
@@ -306,7 +399,6 @@ const UserAdminPage = () => {
         );
     };
 
-    // Footer for the form dialog
     const formDialogFooter = (
         <div className="flex justify-end gap-2">
             <Button
@@ -350,7 +442,7 @@ const UserAdminPage = () => {
                         disabled={selectedUsers.length === 0}
                         className="p-button-sm p-button-raised"
                     />
-                    {/* Placeholder buttons - can be made functional if needed */}
+                    
                     <Divider layout="vertical" className="hidden sm:block" />
                     <Button size="small" label="Import" icon="pi pi-file-import" outlined className="p-button-sm" disabled />
                     <Button size="small" label="Export" icon="pi pi-file-export" outlined className="p-button-sm" disabled />
@@ -374,9 +466,9 @@ const UserAdminPage = () => {
                     rows={10}
                     rowsPerPageOptions={[5, 10, 20, 50]}
                     paginator
-                    sortMode="single" // Enable single column sorting
-                    sortField="username" // Default sort field
-                    sortOrder={1} // Default sort order (1 for ascending, -1 for descending)
+                    sortMode="single" 
+                    sortField="username" 
+                    sortOrder={1} 
                     emptyMessage="No users found."
                 >
                     <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
