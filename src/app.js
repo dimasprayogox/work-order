@@ -10,6 +10,7 @@ import authRoutes from "./routes/auth.routes.js";
 
 //admin
 import userRoutes from './routes/admin/user.routes.js';
+import userDetailRoutes from './routes/user-details.routes.js';
 import machineCategoryRoutes from './routes/admin/machine-category.routes.js';
 import machineRoutes from './routes/admin/machine.routes.js';
 
@@ -57,6 +58,9 @@ app.get("/", [setResponseHeader], (req, res) => {
 
 //auth
 app.use("/api/auth", authRoutes);
+
+//user details
+app.use("/api/user-detail", userDetailRoutes);
 
 //admin
 app.use('/api/admin/users', userRoutes);

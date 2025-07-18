@@ -9,7 +9,7 @@ export class User extends BaseModel {
     }
 
     static get idColumn() {
-        return 'id';
+        return 'id'; 
     }
 
     static get relationMappings() {
