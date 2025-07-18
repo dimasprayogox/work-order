@@ -42,7 +42,7 @@ export const login = async (req, res) => {
     if (!isPasswordTrue) {
       return res.status(400).json({
         status: status.BAD_REQUEST,
-        message: "Email atau password salah",
+        message: "Password salah",
         datetime: datetime(),
       });
     }
@@ -60,6 +60,8 @@ export const login = async (req, res) => {
     return res.status(200).json({
       status: status.SUKSES,
       message: "Data User berhasil di dapatkan",
+      userId: existingUser["id"],
+      role: existingUser["role"],
       datetime: datetime(),
       token,
       refreshToken,
@@ -75,11 +77,9 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    // Kirim respons yang memberitahu browser untuk menghapus cookie 'authToken'
-    // dengan mengatur masa berlakunya ke masa lalu (maxAge: 0)
     res.cookie("authToken", "", {
       httpOnly: true,
-      expires: new Date(0), // Set tanggal kedaluwarsa ke masa lalu
+      expires: new Date(0), 
       path: "/",
     });
 
@@ -98,7 +98,6 @@ export const logout = async (req, res) => {
 //refresh token
 export const refreshToken = async (req, res) => {
   try {
-    // Ambil refreshToken dari body (atau dari cookie jika kamu simpan di cookie)
     const { refreshToken } = req.body;
     if (!refreshToken) {
       return res.status(400).json({
