@@ -1,9 +1,9 @@
 import express from 'express';
-import { TechnicianController } from '../controllers/TechnicianController.js';
-import { authMiddleware } from '../middlewares/authMiddleware.js'; // Contoh nama middleware
+import { TechnicianController } from '../../controllers/technician/workOrderController.js';
+import { authMiddleware } from '../../middleware/auth-middleware.js';
 import { authorizeRole } from '../../middleware/role-middleware.js';
-const router = express.Router();
 
+const router = express.Router();
 router.use(authMiddleware);
 router.use(authorizeRole('technician'));
 
