@@ -1,13 +1,13 @@
-// routes/employee/workOrderRoute.js (atau routes/employee/dashboard.routes.js)
+
 import express from "express";
-import { WorkOrderController } from "../../controllers/technician/WorkOrderController.js"; // Sesuaikan path controller
+import { WorkOrderController } from "../../controllers/technician/WorkOrderController.js"; 
 import { authMiddleware } from '../../middleware/auth-middleware.js';
 import { authorizeRole } from '../../middleware/role-middleware.js';
 
 const router = express.Router();
 router.use(authMiddleware);
-router.use(authorizeRole('employee')); // Hanya employee yang bisa melihat request mereka sendiri
+router.use(authorizeRole('employee')); 
 
-router.get("/my-requests", WorkOrderController.getMyWorkRequests); // <<< RUTE BARU
+router.get("/my-requests", WorkOrderController.getMyWorkRequests);
 
 export default router;

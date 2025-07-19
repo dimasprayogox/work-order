@@ -1,7 +1,7 @@
-// controllers/manager/DashboardController.js (atau lokasi DashboardController Anda)
+
 import { Machine } from '../../models/Machine.js';
 import { WorkOrder } from '../../models/WorkOrder.js';
-import { Issue } from '../../models/Issue.js'; // Pastikan Anda mengimpor model Issue
+import { Issue } from '../../models/Issue.js'; 
 import { raw } from 'objection';
 
 export const DashboardController = {

@@ -1,28 +1,27 @@
-// src/controllers/technician/workOrderController.js
+
 import { WorkOrder } from "../../models/WorkOrder.js";
 import { Issue } from "../../models/Issue.js";
 import { Machine } from "../../models/Machine.js";
-// Pastikan path ke schema ini benar
+
 import { updateWorkOrderSchema } from "../../schemas/technician/workOrderSchema.js"; 
 
 export const WorkOrderController = {
     /**
-     * @description Get all work orders assigned to the logged-in technician
-     * @route GET /api/technician/work-orders
+     * @description 
+     * @route 
      */
     async getMyWorkOrders(req, res) {
         try {
-            const technicianId = req.user.userId; // Diambil dari middleware otentikasi
+            const technicianId = req.user.userId; 
 
             const workOrders = await WorkOrder.query()
-                // Pastikan nama kolom di database Anda adalah 'assigned_to_id' atau 'assigned_to'
-                // Sesuai dengan yang disimpan di model WorkOrder
-                .where("assigned_to_id", technicianId) // Asumsi nama kolom adalah assigned_to_id
-                .withGraphFetched('[issue, machine, assignedTo]') // Ambil juga data issue, mesin, dan info teknisi yang di-assign
+                
+                .where("assigned_to_id", technicianId) 
+                .withGraphFetched('[issue, machine, assignedTo]') 
                 .orderBy('created_at', 'desc');
 
             if (!workOrders || workOrders.length === 0) {
-                // Return 200 OK dengan data kosong jika tidak ada, bukan 404
+                
                 return res.status(200).json({ message: "No work orders assigned to you.", data: [] });
             }
 
@@ -32,18 +31,18 @@ export const WorkOrderController = {
             });
 
         } catch (err) {
-            console.error("Error fetching work orders for technician:", err); // Log lebih spesifik
+            console.error("Error fetching work orders for technician:", err);
             res.status(500).json({ message: "Failed to fetch work orders", error: err.message });
         }
     },
 
     /**
-     * @description Update a specific work order's status and description.
-     * @route PATCH /api/technician/work-orders/:id
+     * @description 
+     * @route 
      */
     async updateWorkOrder(req, res) {
         try {
-            const { id } = req.params; // ID dari work order yang akan diupdate
+            const { id } = req.params; 
             const technicianId = req.user.userId;
 
             // 1. Validasi input dari body
@@ -64,22 +63,21 @@ export const WorkOrderController = {
 
             // 3. Otorisasi: Pastikan teknisi hanya bisa mengubah WO miliknya sendiri
             // Pastikan workOrder.assigned_to_id (atau assigned_to) sesuai dengan field di database Anda
-            if (workOrder.assigned_to_id !== technicianId) { // Asumsi nama kolom adalah assigned_to_id
+            if (workOrder.assigned_to_id !== technicianId) { 
                 return res.status(403).json({ message: "Forbidden. You are not authorized to update this work order." });
             }
 
             // 4. Lakukan update pada work order
             const updatedWorkOrder = await workOrder.$query().patchAndFetch({
                 status,
-                technician_notes: description, // Menggunakan 'description' dari frontend sebagai 'technician_notes' di backend
-                                              // Pastikan ada kolom 'technician_notes' di tabel Work Order
-                updated_at: new Date().toISOString(), // Tambahkan updated_at
+                technician_notes: description,
+                updated_at: new Date().toISOString(), 
             });
 
             // 5. Logika tambahan jika pekerjaan selesai (completed)
             if (status === "completed") {
                 // Update status issue terkait menjadi 'resolved'
-                if (workOrder.issue_id) { // Pastikan ada issue_id
+                if (workOrder.issue_id) { 
                     await Issue.query().patchAndFetchById(workOrder.issue_id, {
                         status: 'resolved',
                         updated_at: new Date().toISOString(),
@@ -87,9 +85,9 @@ export const WorkOrderController = {
                 }
 
                 // Update status mesin menjadi 'available'
-                if (workOrder.machine_id) { // Pastikan ada machine_id
+                if (workOrder.machine_id) {
                     await Machine.query().patchAndFetchById(workOrder.machine_id, {
-                        status: 'available', // Atau 'idle', 'operational'
+                        status: 'available',
                         updated_at: new Date().toISOString(),
                     });
                 }
@@ -106,10 +104,6 @@ export const WorkOrderController = {
         }
     },
 
-    // --- getMyWorkRequests (Untuk Employee Dashboard) ---
-    // Metode ini kita diskusikan sebelumnya untuk employee.
-    // Jika Anda ingin menggunakannya, pastikan ada di sini dan dirutekan dengan benar
-    // di routes/employee/workOrderRoute.js
     async getMyWorkRequests(req, res) {
         try {
             const userId = req.user.userId;
@@ -118,14 +112,14 @@ export const WorkOrderController = {
             }
 
             const myWorkRequests = await WorkOrder.query()
-                .where('created_by_id', userId) // Asumsi employee membuat WO atau issue terkait
+                .where('created_by_id', userId) 
                 .withGraphFetched('[machine, issue, createdBy]')
                 .select(
                     'work_orders.id',
                     'work_orders.status',
                     'work_orders.created_at as submittedDate',
                     'work_orders.description',
-                    'issue.title as type', // Menggunakan judul isu sebagai type
+                    'issue.title as type',
                     'issue.description as issue_description'
                 )
                 .leftJoin('issues as issue', 'work_orders.issue_id', 'issue.id')
