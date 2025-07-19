@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useContext, useState, useRef } from "react";
+import React, { useContext, useState, useRef, useEffect } from "react";
 import AppMenuitem from "./AppMenuitem";
 import { LayoutContext } from "./context/layoutcontext";
 import { MenuProvider } from "./context/menucontext";
@@ -11,6 +11,8 @@ import { Dialog } from "primereact/dialog";
 import { TabPanel, TabView } from "primereact/tabview";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
+import { jwtDecode } from "jwt-decode"; 
+import Cookies from 'js-cookie'; 
 
 const AppMenu = () => {
     const { layoutConfig } = useContext(LayoutContext);
@@ -18,11 +20,30 @@ const AppMenu = () => {
     const [visible, setVisible] = useState(false);
     const [activeMenu, setActiveMenu] = useState(null);
     const timeoutRef = useRef(null);
+    const [userRole, setUserRole] = useState(null); 
+
+    useEffect(() => {
+        const authToken = Cookies.get("authToken");
+        if (authToken) {
+            try {
+                const decodedToken = jwtDecode(authToken);
+                setUserRole(decodedToken.role);
+            } catch (error) {
+                console.error("Failed to decode token or invalid token:", error);
+                
+            }
+        }
+    }, []);
 
     const model = [
         {
             label: "Dashboard",
-            items: [{ label: "Dashboard", icon: "pi pi-fw pi-home", to: "/" }]
+            items: [{ 
+                label: "Dashboard", 
+                icon: "pi pi-fw pi-home", 
+                
+                to: userRole ? `/dashboard/${userRole}` : "/" 
+            }]
         },
         {
             label: "Maintenance",
@@ -115,16 +136,16 @@ const AppMenu = () => {
                             <div className={`layout-submenu ${isActive ? 'submenu-visible' : ''}`}>
                                 
                                 {hasSubmenu && (
-                                    <ul>
-                                        {item.items.map((subItem, subIndex) => (
-                                            <li key={subItem.label}>
-                                                <a href={subItem.to} className="flex align-items-center py-2 px-4">
-                                                    {subItem.icon && <i className={`${subItem.icon} layout-menuitem-icon mr-2`}></i>}
-                                                    <span className="layout-menuitem-text">{subItem.label}</span>
-                                                </a>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                        <ul>
+                                            {item.items.map((subItem, subIndex) => (
+                                                <li key={subItem.label}>
+                                                    <a href={subItem.to} className="flex align-items-center py-2 px-4">
+                                                        {subItem.icon && <i className={`${subItem.icon} layout-menuitem-icon mr-2`}></i>}
+                                                        <span className="layout-menuitem-text">{subItem.label}</span>
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ul>
                                 )}
                             </div>
                         </li>

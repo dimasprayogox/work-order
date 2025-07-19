@@ -5,6 +5,23 @@ export function middleware(request) {
     const authToken = request.cookies.get("authToken")?.value;
     const { pathname } = request.nextUrl;
 
+    const publicPaths = [
+        '/auth/login',
+        '/auth/register',
+        '/access-denied',
+        
+    ];
+
+    const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
+
+    const roleDashboards = {
+        "admin": "/dashboard/admin",
+        "employee": "/dashboard/employee",
+        "technician": "/dashboard/technician",
+        "manager": "/dashboard/manager",
+        "logistics": "/dashboard/logistics",
+    };
+
     const allowedRolesForPaths = {
         "/dashboard/admin": ["admin"],
         "/dashboard/employee": ["employee"],
@@ -16,16 +33,13 @@ export function middleware(request) {
         "/profile": ["admin", "employee", "technician", "manager", "logistics"]
     };
 
-    if (pathname === '/' || pathname === '/index') {
-        return NextResponse.redirect(new URL("/auth/login", request.url));
-    }
-
     if (!authToken) {
         
-        if (pathname.startsWith("/dashboard") || pathname.startsWith("/master") || pathname.startsWith("/monitor") || pathname.startsWith("/profile")) {
+        if (!isPublicPath) {
+            console.log(`No authToken, redirecting '${pathname}' to /auth/login`);
             return NextResponse.redirect(new URL("/auth/login", request.url));
         }
-        return NextResponse.next(); 
+        return NextResponse.next();
     }
 
     let userRole = null;
@@ -33,14 +47,20 @@ export function middleware(request) {
         const decodedToken = jwtDecode(authToken);
         userRole = decodedToken.role;
     } catch (error) {
-        console.error("Gagal mendekode token atau token tidak valid:", error);
+        console.error("Failed to decode token or invalid token:", error);
+        
         return NextResponse.redirect(new URL("/auth/login", request.url));
     }
 
-    if (pathname === "/dashboard" || pathname === "/dashboard/") {
-        const redirectPath = `/dashboard/${userRole}`;
-        console.log(`Mengarahkan pengguna '${userRole}' dari /dashboard ke ${redirectPath}`);
-        return NextResponse.redirect(new URL(redirectPath, request.url));
+    if (pathname === '/' || pathname === '/index' || pathname === '/dashboard' || pathname === '/dashboard/') {
+        const redirectPath = roleDashboards[userRole];
+        if (redirectPath) {
+            console.log(`Redirecting user role '${userRole}' to ${redirectPath}`);
+            return NextResponse.redirect(new URL(redirectPath, request.url));
+        } else {
+            console.warn(`Unknown user role '${userRole}', redirecting to default dashboard or login.`);
+            return NextResponse.redirect(new URL("/auth/login", request.url));
+        }
     }
 
     let isRoleSpecificRoute = false;
@@ -56,21 +76,25 @@ export function middleware(request) {
 
     if (isRoleSpecificRoute) {
         if (!allowedRoles.includes(userRole)) {
-            console.warn(`Akses ditolak: Pengguna dengan peran '${userRole}' mencoba mengakses '${pathname}'`);
+            console.warn(`Access denied: User with role '${userRole}' tried to access '${pathname}'`);
             return NextResponse.redirect(new URL("/access-denied", request.url));
         }
     }
-
     return NextResponse.next();
 }
 
 export const config = {
-    
     matcher: [
         "/", 
+        "/index",
         "/dashboard/:path*",
         "/master/:path*",
         "/monitor/:path*",
-        "/profile/:path*"
+        "/profile/:path*",
+        "/maintenance/:path*",
+        "/assets/:path*",
+        "/supplies/:path*",
+        "/analytics/:path*",
+        "/users/:path*",
     ],
 };
