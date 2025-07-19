@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect, useState, useRef } from "react";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
@@ -12,11 +11,6 @@ import { Checkbox } from 'primereact/checkbox';
 import { Toast } from 'primereact/toast';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 
-const API_ENDPOINTS = {
-    USERS: '/api/admin/users', 
-};
-
-const AUTH_TOKEN = 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOiIxODBkNTVjNy00ODEwLTRiM2ItYjAyNC00YjkxMTIzOGQxOWEiLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NTI4MjExNDEsImV4cCI6MTc1MjkwNzU0MX0.LTvNa5P_TQKfmDC3oe8PSYP571ZrbMTBrfFtpJEiX5PtGLOMo8z2prkwwHTSMis6aTzgDejsVwkbH_9A8zCjKw'; // Replace with a valid JWT token for an 'admin' user
 
 const HeaderDataTable = ({ search, roleFilter, setSearch, setRoleFilter, roleOptions }) => (
     <div className="flex align-items-center justify-content-between gap-2 flex-wrap">
@@ -40,41 +34,17 @@ const HeaderDataTable = ({ search, roleFilter, setSearch, setRoleFilter, roleOpt
 );
 
 const RoleBodyTemplate = (rowData) => {
-    let bgClass = "";
-    let textColorClass = "";
-    switch (rowData.role) {
-        case "admin":
-            bgClass = "bg-purple-100";
-            textColorClass = "text-purple-800";
-            break;
-        case "editor":
-            bgClass = "bg-yellow-100";
-            textColorClass = "text-yellow-800";
-            break;
-        case "technician":
-            bgClass = "bg-green-100";
-            textColorClass = "text-green-800";
-            break;
-        case "manager":
-            bgClass = "bg-red-100";
-            textColorClass = "text-red-800";
-            break;
-        case "logistics":
-            bgClass = "bg-indigo-100";
-            textColorClass = "text-indigo-800";
-            break;
-        case "employee":
-            bgClass = "bg-gray-100";
-            textColorClass = "text-gray-800";
-            break;
-        case "user":
-        default:
-            bgClass = "bg-blue-100";
-            textColorClass = "text-blue-800";
-            break;
-    }
+    const roleClasses = {
+        admin: "bg-purple-100 text-purple-800",
+        manager: "bg-red-100 text-red-800",
+        technician: "bg-green-100 text-green-800",
+        logistics: "bg-indigo-100 text-indigo-800",
+        employee: "bg-gray-100 text-gray-800",
+        user: "bg-blue-100 text-blue-800",
+    };
+    const classes = roleClasses[rowData.role] || roleClasses.user;
     return (
-        <span className={`px-2 py-1 text-sm rounded-md font-medium ${bgClass} ${textColorClass}`}>
+        <span className={`px-2 py-1 text-sm rounded-md font-medium ${classes}`}>
             {rowData.role}
         </span>
     );
@@ -88,49 +58,42 @@ const ActiveBodyTemplate = (rowData) => {
     );
 };
 
+
 const UserAdminPage = () => {
+    
     const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [isFormDialogVisible, setIsFormDialogVisible] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
-    const [selectedUsers, setSelectedUsers] = useState([]); 
+    const [selectedUsers, setSelectedUsers] = useState([]);
     const [search, setSearch] = useState("");
     const [roleFilter, setRoleFilter] = useState("");
+    const toast = useRef(null);
 
-    const toast = useRef(null); 
-
-    const roleOptions = ["", "admin", "editor", "technician", "manager", "logistics", "employee", "user"];
+    const API_BASE_URL = "http://localhost:3100/api/admin/users";
+    const roleOptions = ["", "admin", "employee", "technician", "manager", "logistics"];
 
     const [formData, setFormData] = useState({
-        username: '',
-        email: '',
-        password: '',
-        full_name: '',
-        role: 'employee', 
-        is_active: true,
+        username: '', email: '', password: '', full_name: '', role: 'employee', is_active: true,
     });
     const [formErrors, setFormErrors] = useState({});
 
     const showToast = (severity, summary, detail) => {
         toast.current.show({ severity, summary, detail, life: 3000 });
     };
+
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const response = await fetch(API_ENDPOINTS.USERS, {
+            const response = await fetch(API_BASE_URL, {
                 method: "GET",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${AUTH_TOKEN}`, 
-                },
+                credentials: "include",
             });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-            }
             const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || `HTTP error! status: ${response.status}`);
+            }
             setUsers(result.data);
-            showToast('success', 'Success', result.message || 'Users retrieved successfully!');
         } catch (err) {
             console.error("Failed to fetch users:", err);
             showToast('error', 'Error', `Failed to retrieve users: ${err.message}`);
@@ -142,16 +105,87 @@ const UserAdminPage = () => {
     useEffect(() => {
         fetchUsers();
     }, []);
+
+    const saveUser = async () => {
+        if (!validateForm()) {
+            showToast('error', 'Validation Error', 'Please correct the form errors.');
+            return;
+        }
+
+        setLoading(true);
+        const isUpdating = !!currentUser;
+        const url = isUpdating ? `${API_BASE_URL}/${currentUser.id}` : API_BASE_URL;
+        const method = isUpdating ? 'PUT' : 'POST';
+        
+        const payload = { ...formData };
+        if (isUpdating && !payload.password) {
+            delete payload.password;
+        }
+
+        try {
+            const response = await fetch(url, {
+                method,
+                credentials: "include",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to save user.');
+            }
+            showToast('success', 'Success', `User ${isUpdating ? 'updated' : 'created'} successfully!`);
+            fetchUsers();
+            hideFormDialog();
+        } catch (err) {
+            console.error(`Failed to ${isUpdating ? 'update' : 'create'} user:`, err);
+            showToast('error', 'Error', `Failed to save user: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const deleteUser = async (id) => {
+        setLoading(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/${id}`, {
+                method: 'DELETE',
+                credentials: "include",
+            });
+            if (!response.ok) {
+                const result = await response.json();
+                throw new Error(result.message || 'Failed to delete user.');
+            }
+            showToast('success', 'Success', 'User deleted successfully!');
+            fetchUsers();
+        } catch (err) {
+            console.error("Failed to delete user:", err);
+            showToast('error', 'Error', `Failed to delete user: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const deleteSelectedUsers = async () => {
+        setLoading(true);
+        const deletePromises = selectedUsers.map(user =>
+            fetch(`${API_BASE_URL}/${user.id}`, { method: 'DELETE', credentials: "include" })
+        );
+        const results = await Promise.allSettled(deletePromises);
+        
+        const successCount = results.filter(r => r.status === 'fulfilled' && r.value.ok).length;
+        const errorCount = results.length - successCount;
+
+        if (successCount > 0) showToast('success', 'Success', `${successCount} user(s) deleted.`);
+        if (errorCount > 0) showToast('error', 'Error', `${errorCount} user(s) failed to delete.`);
+        
+        setSelectedUsers([]);
+        fetchUsers();
+        setLoading(false);
+    };
+
     const openNewUserDialog = () => {
         setCurrentUser(null);
-        setFormData({
-            username: '',
-            email: '',
-            password: '',
-            full_name: '',
-            role: 'employee', 
-            is_active: true,
-        });
+        setFormData({ username: '', email: '', password: '', full_name: '', role: 'employee', is_active: true });
         setFormErrors({});
         setIsFormDialogVisible(true);
     };
@@ -161,7 +195,7 @@ const UserAdminPage = () => {
         setFormData({
             username: user.username || '',
             email: user.email || '',
-            password: '', 
+            password: '',
             full_name: user.full_name || '',
             role: user.role || 'employee',
             is_active: user.is_active ?? true,
@@ -170,106 +204,33 @@ const UserAdminPage = () => {
         setIsFormDialogVisible(true);
     };
 
-    const hideFormDialog = () => {
-        setIsFormDialogVisible(false);
-    };
+    const hideFormDialog = () => setIsFormDialogVisible(false);
 
     const onFormInputChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value,
-        }));
+        setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     };
 
     const validateForm = () => {
         const newErrors = {};
         if (!formData.username.trim()) newErrors.username = 'Username is required.';
-        if (!formData.email.trim()) {
-            newErrors.email = 'Email is required.';
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = 'Email is invalid.';
-        }
-        
-        if (!currentUser && !formData.password.trim()) {
-            newErrors.password = 'Password is required for new users.';
-        } else if (formData.password.trim() && formData.password.trim().length < 8) {
-            newErrors.password = 'Password must be at least 8 characters.';
-        }
+        if (!formData.email.trim()) newErrors.email = 'Email is required.';
+        else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid.';
+        if (!currentUser && !formData.password) newErrors.password = 'Password is required for new users.';
+        if (formData.password && formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters.';
         if (!formData.full_name.trim()) newErrors.full_name = 'Full Name is required.';
-
         setFormErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    const saveUser = async () => {
-        if (!validateForm()) {
-            showToast('error', 'Validation Error', 'Please correct the form errors.');
-            return;
-        }
-
-        setLoading(true);
-        try {
-            let response;
-            let url;
-            let method;
-            const payload = {
-                username: formData.username,
-                email: formData.email,
-                full_name: formData.full_name,
-                role: formData.role,
-                is_active: formData.is_active,
-            };
-
-            if (currentUser) {
-                // Update user
-                url = `${API_ENDPOINTS.USERS}/${currentUser.id}`;
-                method = 'PUT';
-                if (formData.password) {
-                    payload.password = formData.password;
-                }
-            } else {
-                // Create new user
-                url = API_ENDPOINTS.USERS;
-                method = 'POST';
-                payload.password = formData.password; 
-            }
-
-            response = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${AUTH_TOKEN}`, 
-                },
-                body: JSON.stringify(payload),
-            });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                if (response.status === 400 && result.errors) {
-                    
-                    const backendErrors = {};
-                    for (const key in result.errors) {
-                        
-                        backendErrors[key] = result.errors[key].join(', ');
-                    }
-                    setFormErrors(backendErrors);
-                    showToast('error', 'Validation Failed', result.message || 'Please check the form for errors.');
-                } else {
-                    throw new Error(result.message || `HTTP error! status: ${response.status}`);
-                }
-            } else {
-                showToast('success', 'Success', result.message || `User ${currentUser ? 'updated' : 'created'} successfully!`);
-                fetchUsers(); 
-                hideFormDialog();
-            }
-        } catch (err) {
-            console.error(`Failed to ${currentUser ? 'update' : 'create'} user:`, err);
-            showToast('error', 'Error', `Failed to ${currentUser ? 'update' : 'create'} user: ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
+    const confirmDeleteUser = (user) => {
+        confirmDialog({
+            message: `Are you sure you want to delete user ${user.username}?`,
+            header: 'Confirm Deletion',
+            icon: 'pi pi-info-circle',
+            acceptClassName: 'p-button-danger',
+            accept: () => deleteUser(user.id),
+        });
     };
 
     const confirmDeleteSelected = () => {
@@ -283,135 +244,28 @@ const UserAdminPage = () => {
             icon: 'pi pi-exclamation-triangle',
             acceptClassName: 'p-button-danger',
             accept: deleteSelectedUsers,
-            reject: () => showToast('info', 'Cancelled', 'Deletion cancelled.'),
         });
-    };
-
-    const deleteSelectedUsers = async () => {
-        setLoading(true);
-        let successCount = 0;
-        let errorCount = 0;
-
-        const deletePromises = selectedUsers.map(async (user) => {
-            try {
-                const response = await fetch(`${API_ENDPOINTS.USERS}/${user.id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${AUTH_TOKEN}`, 
-                    },
-                });
-                const result = await response.json();
-                if (!response.ok) {
-                    throw new Error(result.message || `Failed to delete ${user.username}`);
-                }
-                successCount++;
-                return { status: 'fulfilled', value: user.id };
-            } catch (err) {
-                console.error(`Error deleting user ${user.username}:`, err);
-                errorCount++;
-                return { status: 'rejected', reason: err };
-            }
-        });
-
-        await Promise.allSettled(deletePromises);
-
-        if (successCount > 0) {
-            showToast('success', 'Success', `${successCount} user(s) deleted successfully.`);
-        }
-        if (errorCount > 0) {
-            showToast('error', 'Error', `${errorCount} user(s) failed to delete.`);
-        }
-
-        setSelectedUsers([]); 
-        fetchUsers(); 
-        setLoading(false);
-    };
-
-    const confirmDeleteUser = (user) => {
-        confirmDialog({
-            message: `Are you sure you want to delete user ${user.username}?`,
-            header: 'Confirm Deletion',
-            icon: 'pi pi-info-circle',
-            acceptClassName: 'p-button-danger',
-            accept: () => deleteUser(user.id),
-            reject: () => showToast('info', 'Cancelled', 'Deletion cancelled.'),
-        });
-    };
-
-    const deleteUser = async (id) => {
-        setLoading(true);
-        try {
-            const response = await fetch(`${API_ENDPOINTS.USERS}/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${AUTH_TOKEN}`, 
-                },
-            });
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.message || `HTTP error! status: ${response.status}`);
-            }
-            showToast('success', 'Success', result.message || 'User deleted successfully!');
-            fetchUsers(); 
-        } catch (err) {
-            console.error("Failed to delete user:", err);
-            showToast('error', 'Error', `Failed to delete user: ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
     };
 
     const filteredUsers = users.filter((user) => {
-        const matchesRole = roleFilter === "" || user.role === roleFilter;
-        const matchesSearch =
-            search === "" ||
-            user.username.toLowerCase().includes(search.toLowerCase()) ||
-            user.email.toLowerCase().includes(search.toLowerCase()) ||
-            user.full_name.toLowerCase().includes(search.toLowerCase());
+        const matchesRole = !roleFilter || user.role === roleFilter;
+        const matchesSearch = !search || Object.values(user).some(val => 
+            String(val).toLowerCase().includes(search.toLowerCase())
+        );
         return matchesRole && matchesSearch;
     });
 
-    const actionBodyTemplate = (rowData) => {
-        return (
-            <div className="flex gap-2">
-                <Button
-                    icon="pi pi-pencil"
-                    rounded
-                    outlined
-                    className="p-button-sm"
-                    onClick={() => openEditUserDialog(rowData)}
-                    tooltip="Edit User"
-                    tooltipOptions={{ position: 'bottom' }}
-                />
-                <Button
-                    icon="pi pi-trash"
-                    rounded
-                    outlined
-                    severity="danger"
-                    className="p-button-sm"
-                    onClick={() => confirmDeleteUser(rowData)}
-                    tooltip="Delete User"
-                    tooltipOptions={{ position: 'bottom' }}
-                />
-            </div>
-        );
-    };
+    const actionBodyTemplate = (rowData) => (
+        <div className="flex gap-2">
+            <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => openEditUserDialog(rowData)} />
+            <Button icon="pi pi-trash" rounded outlined severity="danger" className="p-button-sm" onClick={() => confirmDeleteUser(rowData)} />
+        </div>
+    );
 
     const formDialogFooter = (
         <div className="flex justify-end gap-2">
-            <Button
-                label="Cancel"
-                icon="pi pi-times"
-                outlined
-                onClick={hideFormDialog}
-            />
-            <Button
-                label={currentUser ? "Update" : "Create"}
-                icon="pi pi-check"
-                onClick={saveUser}
-            />
+            <Button label="Cancel" icon="pi pi-times" outlined onClick={hideFormDialog} />
+            <Button label={currentUser ? "Update" : "Create"} icon="pi pi-check" onClick={saveUser} loading={loading} />
         </div>
     );
 
@@ -419,36 +273,17 @@ const UserAdminPage = () => {
         <>
             <Toast ref={toast} />
             <ConfirmDialog />
-
             <div className="card p-6 rounded-lg shadow-xl bg-white m-4">
                 <h3 className="text-3xl font-bold text-gray-800 mb-6">User Administration</h3>
-
                 <div className="flex flex-wrap gap-3 mb-6">
-                    <Button
-                        size="small"
-                        label="New User"
-                        icon="pi pi-plus"
-                        severity="success"
-                        onClick={openNewUserDialog}
-                        className="p-button-sm p-button-raised"
-                    />
+                    <Button size="small" label="New User" icon="pi pi-plus" severity="success" onClick={openNewUserDialog} className="p-button-sm p-button-raised" />
                     <Divider layout="vertical" className="hidden sm:block" />
-                    <Button
-                        size="small"
-                        label="Delete Selected"
-                        icon="pi pi-trash"
-                        severity="danger"
-                        onClick={confirmDeleteSelected}
-                        disabled={selectedUsers.length === 0}
-                        className="p-button-sm p-button-raised"
-                    />
-                    
+                    <Button size="small" label="Delete Selected" icon="pi pi-trash" severity="danger" onClick={confirmDeleteSelected} disabled={selectedUsers.length === 0} className="p-button-sm p-button-raised" />
                     <Divider layout="vertical" className="hidden sm:block" />
                     <Button size="small" label="Import" icon="pi pi-file-import" outlined className="p-button-sm" disabled />
                     <Button size="small" label="Export" icon="pi pi-file-export" outlined className="p-button-sm" disabled />
                     <Button size="small" label="Print" icon="pi pi-print" outlined className="p-button-sm" disabled />
                 </div>
-
                 <DataTable
                     className="my-3 p-datatable-gridlines"
                     value={filteredUsers}
@@ -456,19 +291,13 @@ const UserAdminPage = () => {
                     onSelectionChange={(e) => setSelectedUsers(e.value)}
                     dataKey="id"
                     loading={loading}
-                    header={<HeaderDataTable
-                        search={search}
-                        roleFilter={roleFilter}
-                        setSearch={setSearch}
-                        setRoleFilter={setRoleFilter}
-                        roleOptions={roleOptions}
-                    />}
+                    header={<HeaderDataTable search={search} roleFilter={roleFilter} setSearch={setSearch} setRoleFilter={setRoleFilter} roleOptions={roleOptions} />}
                     rows={10}
                     rowsPerPageOptions={[5, 10, 20, 50]}
                     paginator
-                    sortMode="single" 
-                    sortField="username" 
-                    sortOrder={1} 
+                    sortMode="single"
+                    sortField="username"
+                    sortOrder={1}
                     emptyMessage="No users found."
                 >
                     <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
@@ -480,8 +309,6 @@ const UserAdminPage = () => {
                     <Column header="Active" field="is_active" body={ActiveBodyTemplate} sortable />
                     <Column header="Actions" body={actionBodyTemplate} exportable={false} style={{ minWidth: '8rem' }} />
                 </DataTable>
-
-                {/* Add/Edit User Dialog */}
                 <Dialog
                     header={currentUser ? "Edit User" : "Add New User"}
                     visible={isFormDialogVisible}
@@ -494,77 +321,30 @@ const UserAdminPage = () => {
                 >
                     <div className="p-field mb-4">
                         <label htmlFor="username" className="font-bold mb-2 block">Username</label>
-                        <InputText
-                            id="username"
-                            name="username"
-                            value={formData.username}
-                            onChange={onFormInputChange}
-                            required
-                            autoFocus
-                            className={formErrors.username ? 'p-invalid' : ''}
-                        />
+                        <InputText id="username" name="username" value={formData.username} onChange={onFormInputChange} required autoFocus className={formErrors.username ? 'p-invalid' : ''} />
                         {formErrors.username && <small className="p-error">{formErrors.username}</small>}
                     </div>
-
                     <div className="p-field mb-4">
                         <label htmlFor="email" className="font-bold mb-2 block">Email</label>
-                        <InputText
-                            id="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={onFormInputChange}
-                            required
-                            type="email"
-                            className={formErrors.email ? 'p-invalid' : ''}
-                        />
+                        <InputText id="email" name="email" value={formData.email} onChange={onFormInputChange} required type="email" className={formErrors.email ? 'p-invalid' : ''} />
                         {formErrors.email && <small className="p-error">{formErrors.email}</small>}
                     </div>
-
                     <div className="p-field mb-4">
                         <label htmlFor="password" className="font-bold mb-2 block">Password {currentUser ? '(Leave blank to keep current)' : ''}</label>
-                        <InputText
-                            id="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={onFormInputChange}
-                            type="password"
-                            className={formErrors.password ? 'p-invalid' : ''}
-                        />
+                        <InputText id="password" name="password" value={formData.password} onChange={onFormInputChange} type="password" className={formErrors.password ? 'p-invalid' : ''} />
                         {formErrors.password && <small className="p-error">{formErrors.password}</small>}
                     </div>
-
                     <div className="p-field mb-4">
                         <label htmlFor="full_name" className="font-bold mb-2 block">Full Name</label>
-                        <InputText
-                            id="full_name"
-                            name="full_name"
-                            value={formData.full_name}
-                            onChange={onFormInputChange}
-                            required
-                            className={formErrors.full_name ? 'p-invalid' : ''}
-                        />
+                        <InputText id="full_name" name="full_name" value={formData.full_name} onChange={onFormInputChange} required className={formErrors.full_name ? 'p-invalid' : ''} />
                         {formErrors.full_name && <small className="p-error">{formErrors.full_name}</small>}
                     </div>
-
                     <div className="p-field mb-4">
                         <label htmlFor="role" className="font-bold mb-2 block">Role</label>
-                        <Dropdown
-                            id="role"
-                            name="role"
-                            value={formData.role}
-                            options={roleOptions.filter(opt => opt !== "")} // Exclude empty option for form
-                            onChange={onFormInputChange}
-                            placeholder="Select a Role"
-                        />
+                        <Dropdown id="role" name="role" value={formData.role} options={roleOptions.filter(opt => opt)} onChange={onFormInputChange} placeholder="Select a Role" />
                     </div>
-
                     <div className="p-field-checkbox flex items-center mb-4">
-                        <Checkbox
-                            inputId="is_active"
-                            name="is_active"
-                            checked={formData.is_active}
-                            onChange={onFormInputChange}
-                        />
+                        <Checkbox inputId="is_active" name="is_active" checked={formData.is_active} onChange={onFormInputChange} />
                         <label htmlFor="is_active" className="ml-2">Is Active</label>
                     </div>
                 </Dialog>
