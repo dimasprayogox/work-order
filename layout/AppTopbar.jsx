@@ -52,23 +52,17 @@ const AppTopbar = forwardRef((props, ref) => {
                 </button>
 
                 <div className="profile-dropdown-container">
-                    <button 
-                        ref={topbarmenubuttonRef} 
-                        type="button" 
-                        className="p-link layout-topbar-button profile-button"
-                        onClick={toggleProfileDropdown}
-                        aria-expanded={isProfileDropdownOpen}
-                    >
+                    <button ref={topbarmenubuttonRef} type="button" className="p-link layout-topbar-button profile-button" onClick={toggleProfileDropdown} aria-expanded={isProfileDropdownOpen}>
                         <i className="pi pi-user"></i>
                         <span>Profile</span>
                     </button>
 
                     {isProfileDropdownOpen && (
                         <div className="profile-dropdown">
-                            <div className="dropdown-item" onClick={toggleProfileDropdown}>
+                            <Link href="/profile" className="dropdown-item" onClick={toggleProfileDropdown}>
                                 <i className="pi pi-user"></i>
                                 <span>My Profile</span>
-                            </div>
+                            </Link>
                             <Link href="/documentation" className="dropdown-item">
                                 <i className="pi pi-cog"></i>
                                 <span>Settings</span>

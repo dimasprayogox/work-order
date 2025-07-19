@@ -13,15 +13,16 @@ export function middleware(request) {
         "/dashboard/logistics": ["logistics"],
         "/master": ["admin", "manager"],
         "/monitor": ["admin", "technician", "manager"],
+        "/profile": ["admin", "employee", "technician", "manager", "logistics"]
     };
 
-    if (pathname === '/' || pathname === '/index') { 
+    if (pathname === '/' || pathname === '/index') {
         return NextResponse.redirect(new URL("/auth/login", request.url));
     }
 
     if (!authToken) {
         
-        if (pathname.startsWith('/dashboard') || pathname.startsWith('/master') || pathname.startsWith('/monitor')) {
+        if (pathname.startsWith("/dashboard") || pathname.startsWith("/master") || pathname.startsWith("/monitor") || pathname.startsWith("/profile")) {
             return NextResponse.redirect(new URL("/auth/login", request.url));
         }
         return NextResponse.next(); 
@@ -35,7 +36,8 @@ export function middleware(request) {
         console.error("Gagal mendekode token atau token tidak valid:", error);
         return NextResponse.redirect(new URL("/auth/login", request.url));
     }
-    if (pathname === '/dashboard' || pathname === '/dashboard/') {
+
+    if (pathname === "/dashboard" || pathname === "/dashboard/") {
         const redirectPath = `/dashboard/${userRole}`;
         console.log(`Mengarahkan pengguna '${userRole}' dari /dashboard ke ${redirectPath}`);
         return NextResponse.redirect(new URL(redirectPath, request.url));
@@ -69,5 +71,6 @@ export const config = {
         "/dashboard/:path*",
         "/master/:path*",
         "/monitor/:path*",
+        "/profile/:path*"
     ],
 };
