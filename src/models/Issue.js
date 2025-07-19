@@ -1,3 +1,4 @@
+// models/Issue.js
 import { BaseModel } from './BaseModel.js';
 import { Machine } from './Machine.js';
 import { User } from './User.js';

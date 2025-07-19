@@ -1,5 +1,7 @@
+// controllers/manager/DashboardController.js (atau lokasi DashboardController Anda)
 import { Machine } from '../../models/Machine.js';
 import { WorkOrder } from '../../models/WorkOrder.js';
+import { Issue } from '../../models/Issue.js'; // Pastikan Anda mengimpor model Issue
 import { raw } from 'objection';
 
 export const DashboardController = {
@@ -32,6 +34,7 @@ export const DashboardController = {
                 }
             });
         } catch (err) {
+            console.error("Error in DashboardController.overview:", err);
             res.status(500).json({ success: false, message: err.message });
         }
     },
@@ -45,6 +48,33 @@ export const DashboardController = {
 
             res.json({ success: true, data: overdueWOs });
         } catch (err) {
+            console.error("Error in DashboardController.workOrderOverdue:", err);
+            res.status(500).json({ success: false, message: err.message });
+        }
+    },
+
+    async employeeOverview(req, res) {
+        try {
+            
+            const userId = req.user.userId;
+            if (!userId) {
+                return res.status(400).json({ success: false, message: "User ID not found in request. Authentication middleware might be missing or faulty." });
+            }
+
+            const myReportedIssuesCount = await Issue.query()
+                .where('reported_by_id', userId)
+                .resultSize();
+
+
+            res.json({
+                success: true,
+                data: {
+                    myReportedIssuesCount,
+                    
+                }
+            });
+        } catch (err) {
+            console.error("Error in DashboardController.employeeOverview:", err);
             res.status(500).json({ success: false, message: err.message });
         }
     }
