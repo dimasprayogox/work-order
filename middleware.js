@@ -15,27 +15,27 @@ export function middleware(request) {
         "/monitor": ["admin", "technician", "manager"],
     };
 
+    if (pathname === '/' || pathname === '/index') { 
+        return NextResponse.redirect(new URL("/auth/login", request.url));
+    }
+
     if (!authToken) {
         
         if (pathname.startsWith('/dashboard') || pathname.startsWith('/master') || pathname.startsWith('/monitor')) {
             return NextResponse.redirect(new URL("/auth/login", request.url));
         }
-        return NextResponse.next();
+        return NextResponse.next(); 
     }
 
     let userRole = null;
     try {
-        
         const decodedToken = jwtDecode(authToken);
         userRole = decodedToken.role;
     } catch (error) {
         console.error("Gagal mendekode token atau token tidak valid:", error);
-        
         return NextResponse.redirect(new URL("/auth/login", request.url));
     }
-
     if (pathname === '/dashboard' || pathname === '/dashboard/') {
-        
         const redirectPath = `/dashboard/${userRole}`;
         console.log(`Mengarahkan pengguna '${userRole}' dari /dashboard ke ${redirectPath}`);
         return NextResponse.redirect(new URL(redirectPath, request.url));
@@ -55,9 +55,7 @@ export function middleware(request) {
     if (isRoleSpecificRoute) {
         if (!allowedRoles.includes(userRole)) {
             console.warn(`Akses ditolak: Pengguna dengan peran '${userRole}' mencoba mengakses '${pathname}'`);
-            
             return NextResponse.redirect(new URL("/access-denied", request.url));
-            
         }
     }
 
@@ -67,6 +65,7 @@ export function middleware(request) {
 export const config = {
     
     matcher: [
+        "/", 
         "/dashboard/:path*",
         "/master/:path*",
         "/monitor/:path*",
