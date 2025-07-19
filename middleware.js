@@ -1,3 +1,5 @@
+// middleware.js
+
 import { NextResponse } from "next/server";
 import { jwtDecode } from "jwt-decode";
 
@@ -9,7 +11,7 @@ export function middleware(request) {
         '/auth/login',
         '/auth/register',
         '/access-denied',
-        
+        '/api/auth',
     ];
 
     const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
@@ -30,36 +32,52 @@ export function middleware(request) {
         "/dashboard/logistics": ["logistics"],
         "/master": ["admin", "manager"],
         "/monitor": ["admin", "technician", "manager"],
-        "/profile": ["admin", "employee", "technician", "manager", "logistics"]
+        "/profile": ["admin", "employee", "technician", "manager", "logistics"],
+        
+        "/api/admin/users": ["admin"],
+        "/api/admin/machine-categories": ["admin"],
+        "/api/admin/machines": ["admin"],
+        "/api/employee/dashboard/my-overview": ["employee"],
+        "/api/employee/issues": ["employee"],
+        "/api/technician/dashboard": ["technician"],
+        "/api/technician/work-orders": ["technician"],
+        "/api/manager/dashboard": ["manager"],
+        "/api/manager/work-orders": ["manager"],
+        "/api/manager/schedules": ["manager"],
+        "/api/user-detail": ["admin", "employee", "technician", "manager", "logistics"],
+        
+        "/api/employee/machines/available": ["employee"], 
     };
 
-    if (!authToken) {
-        
-        if (!isPublicPath) {
-            console.log(`No authToken, redirecting '${pathname}' to /auth/login`);
-            return NextResponse.redirect(new URL("/auth/login", request.url));
-        }
+    if (isPublicPath) {
         return NextResponse.next();
+    }
+
+    if (!authToken) {
+        console.log(`Middleware: Tidak ada authToken. Mengalihkan '${pathname}' ke /auth/login.`);
+        return NextResponse.redirect(new URL("/auth/login", request.url));
     }
 
     let userRole = null;
     try {
         const decodedToken = jwtDecode(authToken);
         userRole = decodedToken.role;
+        console.log(`Middleware: Token berhasil didekode. Peran pengguna: ${userRole}`);
     } catch (error) {
-        console.error("Failed to decode token or invalid token:", error);
-        
-        return NextResponse.redirect(new URL("/auth/login", request.url));
+        console.error("Middleware Error: Gagal mendekode token atau token tidak valid:", error);
+        const response = NextResponse.redirect(new URL("/auth/login", request.url));
+        response.cookies.delete('authToken'); 
+        return response;
     }
 
     if (pathname === '/' || pathname === '/index' || pathname === '/dashboard' || pathname === '/dashboard/') {
         const redirectPath = roleDashboards[userRole];
         if (redirectPath) {
-            console.log(`Redirecting user role '${userRole}' to ${redirectPath}`);
+            console.log(`Middleware: Mengalihkan peran pengguna '${userRole}' dari '${pathname}' ke ${redirectPath}.`);
             return NextResponse.redirect(new URL(redirectPath, request.url));
         } else {
-            console.warn(`Unknown user role '${userRole}', redirecting to default dashboard or login.`);
-            return NextResponse.redirect(new URL("/auth/login", request.url));
+            console.warn(`Middleware: Peran pengguna tidak dikenal '${userRole}'. Mengalihkan ke /access-denied.`);
+            return NextResponse.redirect(new URL("/access-denied", request.url));
         }
     }
 
@@ -67,34 +85,29 @@ export function middleware(request) {
     let allowedRoles = [];
 
     for (const pathPrefix in allowedRolesForPaths) {
-        if (pathname.startsWith(pathPrefix)) {
+        if (pathname.startsWith(pathPrefix)) { 
             isRoleSpecificRoute = true;
             allowedRoles = allowedRolesForPaths[pathPrefix];
+            console.log(`Middleware: Path '${pathname}' cocok dengan prefix '${pathPrefix}'. Peran yang diizinkan: ${allowedRoles.join(', ')}.`);
             break;
         }
     }
 
     if (isRoleSpecificRoute) {
         if (!allowedRoles.includes(userRole)) {
-            console.warn(`Access denied: User with role '${userRole}' tried to access '${pathname}'`);
+            console.warn(`Middleware: Akses ditolak. Pengguna dengan peran '${userRole}' mencoba mengakses '${pathname}'.`);
             return NextResponse.redirect(new URL("/access-denied", request.url));
         }
+        console.log(`Middleware: Akses diizinkan untuk peran '${userRole}' ke '${pathname}'.`);
+    } else {
+        console.log(`Middleware: Tidak ada aturan peran spesifik untuk '${pathname}'. Mengizinkan akses.`);
     }
+
     return NextResponse.next();
 }
 
 export const config = {
     matcher: [
-        "/", 
-        "/index",
-        "/dashboard/:path*",
-        "/master/:path*",
-        "/monitor/:path*",
-        "/profile/:path*",
-        "/maintenance/:path*",
-        "/assets/:path*",
-        "/supplies/:path*",
-        "/analytics/:path*",
-        "/users/:path*",
+        '/((?!api/auth|auth/login|auth/register|access-denied|_next/static|_next/image|favicon.ico).*)',
     ],
 };

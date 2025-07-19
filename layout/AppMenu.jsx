@@ -11,8 +11,8 @@ import { Dialog } from "primereact/dialog";
 import { TabPanel, TabView } from "primereact/tabview";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
-import { jwtDecode } from "jwt-decode"; 
-import Cookies from 'js-cookie'; 
+import { jwtDecode } from "jwt-decode";
+import Cookies from 'js-cookie';
 
 const AppMenu = () => {
     const { layoutConfig } = useContext(LayoutContext);
@@ -20,7 +20,7 @@ const AppMenu = () => {
     const [visible, setVisible] = useState(false);
     const [activeMenu, setActiveMenu] = useState(null);
     const timeoutRef = useRef(null);
-    const [userRole, setUserRole] = useState(null); 
+    const [userRole, setUserRole] = useState(null);
 
     useEffect(() => {
         const authToken = Cookies.get("authToken");
@@ -30,19 +30,17 @@ const AppMenu = () => {
                 setUserRole(decodedToken.role);
             } catch (error) {
                 console.error("Failed to decode token or invalid token:", error);
-                
             }
         }
     }, []);
 
-    const model = [
+    const baseModel = [
         {
             label: "Dashboard",
-            items: [{ 
-                label: "Dashboard", 
-                icon: "pi pi-fw pi-home", 
-                
-                to: userRole ? `/dashboard/${userRole}` : "/" 
+            items: [{
+                label: "Dashboard",
+                icon: "pi pi-fw pi-home",
+                to: userRole ? `/dashboard/${userRole}` : "/"
             }]
         },
         {
@@ -70,15 +68,21 @@ const AppMenu = () => {
             label: "Analytics",
             icon: "pi pi-fw pi-chart-pie",
             items: [{ label: "Analytics", icon: "pi pi-fw pi-chart-pie", to: "/analytics" }]
-        },
-        {
-            label: "Users",
-            icon: "pi pi-fw pi-users",
-            items: [
-                { label: "Users", icon: "pi pi-fw pi-user", to: "/users/admin" }
-            ]
         }
     ];
+
+    const model = userRole === "employee"
+        ? baseModel 
+        : [ 
+            ...baseModel,
+            {
+                label: "Users",
+                icon: "pi pi-fw pi-users",
+                items: [
+                    { label: "Users", icon: "pi pi-fw pi-user", to: "/users/admin" }
+                ]
+            }
+        ];
 
     const handleMenuToggle = (index) => {
         setActiveMenu(activeMenu === index ? null : index);
@@ -109,7 +113,7 @@ const AppMenu = () => {
                     const isActive = activeMenu === i;
 
                     return (
-                        <li 
+                        <li
                             key={item.label}
                             className={`relative ${hasSubmenu ? 'has-submenu' : ''}`}
                             onMouseEnter={() => handleMouseEnter(i)}
@@ -118,34 +122,34 @@ const AppMenu = () => {
                             <div
                                 className={`layout-menuitem-root ${isActive ? 'active-menuitem' : ''}`}
                             >
-                                <div 
+                                <div
                                     className="flex align-items-center py-3 px-2 cursor-pointer"
                                     onClick={() => hasSubmenu && handleMenuToggle(i)}
                                 >
                                     {item.icon && <i className={`${item.icon} layout-menuitem-icon mr-2`}></i>}
                                     <span className="layout-menuitem-root-text">{item.label}</span>
                                     {hasSubmenu && (
-                                        <i 
+                                        <i
                                             className={`pi pi-chevron-down layout-submenu-toggler px-2 ml-auto ${isActive ? 'rotated' : ''}`}
                                         />
                                     )}
                                 </div>
                             </div>
 
-                            
+
                             <div className={`layout-submenu ${isActive ? 'submenu-visible' : ''}`}>
-                                
+
                                 {hasSubmenu && (
-                                        <ul>
-                                            {item.items.map((subItem, subIndex) => (
-                                                <li key={subItem.label}>
-                                                    <a href={subItem.to} className="flex align-items-center py-2 px-4">
-                                                        {subItem.icon && <i className={`${subItem.icon} layout-menuitem-icon mr-2`}></i>}
-                                                        <span className="layout-menuitem-text">{subItem.label}</span>
-                                                    </a>
-                                                </li>
-                                            ))}
-                                        </ul>
+                                    <ul>
+                                        {item.items.map((subItem, subIndex) => (
+                                            <li key={subItem.label}>
+                                                <a href={subItem.to} className="flex align-items-center py-2 px-4">
+                                                    {subItem.icon && <i className={`${subItem.icon} layout-menuitem-icon mr-2`}></i>}
+                                                    <span className="layout-menuitem-text">{subItem.label}</span>
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 )}
                             </div>
                         </li>
