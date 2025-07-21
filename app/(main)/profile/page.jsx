@@ -117,7 +117,7 @@ const ProfilePage = () => {
                 </div>
                 <Divider />
                 <div className="p-3 text-center">
-                    <Button label="Edit Profil" icon="pi pi-user-edit" className="p-button-raised" onClick={() => router.push("/dashboard/profile/edit")} />
+                    <Button label="Edit Profil" icon="pi pi-user-edit" className="p-button-raised" onClick={() => router.push("/profile/edit")} />
                 </div>
             </Card>
         </div>
