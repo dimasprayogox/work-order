@@ -87,7 +87,7 @@ const ManagerDashboardPage = () => {
             // --- 2. Fetch data dari KPI Gabungan (Jika Anda membuat endpoint ini di backend) ---
             // Contoh endpoint: GET /api/manager/dashboard/kpi_metrics
             // Anda perlu mengimplementasikan endpoint ini di backend
-            /*
+            
             const kpiResponse = await fetch(`${API_BASE_URL}/manager/dashboard/kpi_metrics`, {
                 method: "GET",
                 credentials: "include",
@@ -106,11 +106,11 @@ const ManagerDashboardPage = () => {
                 setPendingPurchaseOrders(kpiResult.data.pendingPO || 0);
                 setTotalInventoryValue(kpiResult.data.inventoryValue || 0);
             }
-            */
+            
 
             // --- 3. Fetch data untuk Grafik (Jika Anda membuat endpoint ini di backend) ---
             // Contoh endpoint: GET /api/manager/dashboard/monthly_trends
-            /*
+            
             const chartResponse = await fetch(`${API_BASE_URL}/manager/dashboard/monthly_trends`, {
                 method: "GET",
                 credentials: "include",
@@ -146,18 +146,18 @@ const ManagerDashboardPage = () => {
                     }
                 });
             }
-            */
+            
 
-            // --- Untuk sementara, jika belum ada endpoint, isi dengan nilai default atau simulasi ---
-            // Ini akan dihapus setelah endpoint backend di atas diimplementasikan
-            setOnTimeCompletionRate(85);
-            setMttr("4.2H");
-            setMtbf("150H");
-            setMaintenanceExpenses(5750.25);
-            setPlannedMaintenancePercentage(70);
-            setLowStockItemsCount(25);
-            setPendingPurchaseOrders(2);
-            setTotalInventoryValue(800.00);
+            // // --- Untuk sementara, jika belum ada endpoint, isi dengan nilai default atau simulasi ---
+            // // Ini akan dihapus setelah endpoint backend di atas diimplementasikan
+            // setOnTimeCompletionRate(85);
+            // setMttr("4.2H");
+            // setMtbf("150H");
+            // setMaintenanceExpenses(5750.25);
+            // setPlannedMaintenancePercentage(70);
+            // setLowStockItemsCount(25);
+            // setPendingPurchaseOrders(2);
+            // setTotalInventoryValue(800.00);
 
             // Data grafik simulasi
             const documentStyle = getComputedStyle(document.documentElement);
