@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useContext, useState, useRef, useEffect } from "react";
-import AppMenuitem from "./AppMenuitem";
+import AppMenuitem from "./AppMenuitem"; 
 import { LayoutContext } from "./context/layoutcontext";
 import { MenuProvider } from "./context/menucontext";
 import { Button } from "primereact/button";
@@ -18,8 +18,7 @@ const AppMenu = () => {
     const { layoutConfig } = useContext(LayoutContext);
     const pathname = usePathname();
     const [visible, setVisible] = useState(false);
-    const [activeMenu, setActiveMenu] = useState(null);
-    const timeoutRef = useRef(null);
+    const [activeMenu, setActiveMenu] = useState(null); 
     const [userRole, setUserRole] = useState(null);
 
     useEffect(() => {
@@ -88,18 +87,6 @@ const AppMenu = () => {
         setActiveMenu(activeMenu === index ? null : index);
     };
 
-    const handleMouseEnter = (index) => {
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-        }
-        setActiveMenu(index);
-    };
-
-    const handleMouseLeave = () => {
-        timeoutRef.current = setTimeout(() => {
-            setActiveMenu(null);
-        }, 200);
-    };
 
     return (
         <MenuProvider>
@@ -116,8 +103,6 @@ const AppMenu = () => {
                         <li
                             key={item.label}
                             className={`relative ${hasSubmenu ? 'has-submenu' : ''}`}
-                            onMouseEnter={() => handleMouseEnter(i)}
-                            onMouseLeave={handleMouseLeave}
                         >
                             <div
                                 className={`layout-menuitem-root ${isActive ? 'active-menuitem' : ''}`}
@@ -136,9 +121,7 @@ const AppMenu = () => {
                                 </div>
                             </div>
 
-
                             <div className={`layout-submenu ${isActive ? 'submenu-visible' : ''}`}>
-
                                 {hasSubmenu && (
                                     <ul>
                                         {item.items.map((subItem, subIndex) => (
