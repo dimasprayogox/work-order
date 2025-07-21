@@ -12,18 +12,51 @@ export const minioClient = new Client({
 
 export const checkAndCreateBucket = async (bucketName) => {
   try {
-    // 1. Cek apakah bucket sudah ada
-    const bucketExists = await minioClient.bucketExists(bucketName);
+    const bucketExists = await minioClient.bucketExists(bucketName)
 
-    // 2. Jika tidak ada, buat bucket baru
     if (!bucketExists) {
-      console.log(`Bucket "${bucketName}" tidak ditemukan. Membuat bucket...`);
-      await minioClient.makeBucket(bucketName);
-      console.log(`Bucket "${bucketName}" berhasil dibuat.`);
-    } else {
-      console.log(`Bucket "${bucketName}" sudah ada.`);
+      console.log(`Bucket "${bucketName}" tidak ditemukan. Membuat bucket...`)
+      await minioClient.makeBucket(bucketName, "")
+      console.log(`Bucket "${bucketName}" berhasil dibuat.`)
+      await setBucketPublic(bucketName)
+      return
+    }
+
+    console.log(`Bucket "${bucketName}" sudah ada.`)
+
+    // Cek policy bucket
+    try {
+      const policy = await minioClient.getBucketPolicy(bucketName)
+      const isPublic = policy.includes('"Action":["s3:GetObject"]') &&
+                       policy.includes('"Principal":"*"')
+
+      if (!isPublic) {
+        console.log(`Bucket "${bucketName}" ada, tapi belum public. Mengatur jadi public...`)
+        await setBucketPublic(bucketName)
+      } else {
+        console.log(`Bucket "${bucketName}" sudah public.`)
+      }
+    } catch (err) {
+      console.log(`Tidak ada policy atau tidak bisa mengambil policy. Mengatur jadi public...`)
+      await setBucketPublic(bucketName)
     }
   } catch (err) {
-    console.error("Terjadi kesalahan:", err);
+    console.error("Terjadi kesalahan:", err)
   }
-};
+}
+
+const setBucketPublic = async (bucketName) => {
+  const policy = {
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Allow",
+        Principal: "*",
+        Action: ["s3:GetObject"],
+        Resource: [`arn:aws:s3:::${bucketName}/*`]
+      }
+    ]
+  }
+  await minioClient.setBucketPolicy(bucketName, JSON.stringify(policy))
+  console.log(`Policy public-read diterapkan untuk bucket "${bucketName}".`)
+}

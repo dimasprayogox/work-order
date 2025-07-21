@@ -50,7 +50,9 @@ export const IssueController = {
                     objectName, 
                     req.file.buffer,
                     req.file.size,
-                    req.file.mimetype
+                    {
+                        'Content-Type': req.file.mimetype  // browser bisa tampilkan sesuai tipe file
+                    }
                 );
 
                 // 4. Buat URL publik yang benar
