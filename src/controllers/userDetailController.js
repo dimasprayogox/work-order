@@ -3,7 +3,6 @@ import {
   updateUserProfile,
 } from "../models/userDetailModel.js";
 import { minioClient, checkAndCreateBucket } from "../utils/minio.js";
-import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import { updateProfileSchema } from "../schemas/userDetailSchema.js";
 import dotenv from "dotenv"
@@ -25,14 +24,14 @@ export const update = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    const parsed = await updateProfileSchema.safeParse(req.body);
+    const parsed = updateProfileSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({
         message: "Validasi gagal",
         errors: parsed.error.flatten().fieldErrors,
       });
     }
-    
+
     const body = parsed.data;
 
     const userData = {};
@@ -67,7 +66,7 @@ export const update = async (req, res) => {
 
       await checkAndCreateBucket(bucketName);
 
-      const photoId = uuidv4();
+      const photoId = userId;
       const originalFileName = `${photoId}${path.extname(req.file.originalname)}`;
       const objectName = `${folderName}/${originalFileName}`;
 
