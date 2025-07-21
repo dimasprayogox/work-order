@@ -420,9 +420,6 @@ const EmployeeDashboardPage = () => {
 
             <div className="col-12">
                 <Panel header="PERMINTAAN KERJA SAYA">
-                    <div className="flex justify-content-end mb-3">
-                        <Button label="Buat Permintaan Baru" icon="pi pi-plus" onClick={() => setDisplayRequestDialog(true)} />
-                    </div>
                     
                     <DataTable
                         value={myWorkRequests}
@@ -440,24 +437,6 @@ const EmployeeDashboardPage = () => {
                     </DataTable>
                 </Panel>
             </div>
-
-            <Dialog header="Buat Permintaan Kerja Baru" visible={displayRequestDialog} style={{ width: '50vw' }} modal onHide={() => setDisplayRequestDialog(false)} footer={
-                <div>
-                    <Button label="Batal" icon="pi pi-times" onClick={() => setDisplayRequestDialog(false)} className="p-button-text" />
-                    <Button label="Kirim" icon="pi pi-check" onClick={submitNewRequest} autoFocus />
-                </div>
-            }>
-                <div className="p-fluid">
-                    <div className="field mb-3">
-                        <label htmlFor="description" className="font-bold mb-2">Deskripsi Masalah</label>
-                        <InputTextarea id="description" rows={5} cols={30} value={newRequestDescription} onChange={(e) => setNewRequestDescription(e.target.value)} autoFocus />
-                    </div>
-                    <div className="field">
-                        <label htmlFor="requestType" className="font-bold mb-2">Jenis Permintaan</label>
-                        <Dropdown id="requestType" value={newRequestType} options={requestTypes} onChange={(e) => setNewRequestType(e.value)} placeholder="Pilih Jenis" />
-                    </div>
-                </div>
-            </Dialog>
         </div>
     );
 };
