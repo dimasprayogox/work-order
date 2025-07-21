@@ -1,26 +1,22 @@
 import { verifyToken } from "../utils/jwt.js"; 
 
 export const authMiddleware = async (req, res, next) => {
-    // --- PERBAIKAN DI SINI ---
-    // Ambil token dari cookie, bukan dari header
+    
     const token = req.cookies.authToken;
-
-    // Cek jika token tidak ada di cookie
+e
     if (!token) {
         return res.status(401).json({ errors: "Authorization token is missing" });
     }
 
     try {
-        // Verifikasi token yang didapat dari cookie
         const decodedUser = await verifyToken(token);
 
         if (!decodedUser) {
            return res.status(401).json({ errors: "Token tidak valid" });
         }
 
-        // Simpan data pengguna ke request
         req.user = decodedUser;
-        next(); // Lanjutkan ke controller
+        next(); 
     } catch (error) {
         return res.status(401).json({ errors: "Token tidak valid atau terjadi error" });
     }

@@ -3,7 +3,7 @@ import { Machine } from "../../models/Machine.js";
 import { WorkOrder } from "../../models/WorkOrder.js";
 import path from "path";
 import { notifyManager } from "../../utils/notifyManager.js";
-import { minioClient, checkAndCreateBucket } from "../../utils/minio.js"; // Pastikan checkAndCreateBucket diekspor dari file minio.js
+import { minioClient, checkAndCreateBucket } from "../../utils/minio.js";
 import { v4 as uuidv4 } from "uuid";
 import { createIssueSchema } from "../../schemas/employee/issueSchema.js";
 import dotenv from "dotenv"
@@ -83,7 +83,9 @@ export const IssueController = {
             const workOrder = await WorkOrder.query().insert({
                 id: uuidv4(),
                 machine_id,
-                status: "open",
+                title: newIssue.title,
+                description: newIssue.description,
+                status: "pending",
                 created_by_id: req.user.userId,
                 issue_id: newIssue.id,
             });
