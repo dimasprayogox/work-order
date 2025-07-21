@@ -2,12 +2,9 @@ import { verifyToken } from "../utils/jwt.js";
 
 export const authMiddleware = async (req, res, next) => {
     
-    let token = req.cookies.authToken;
+    const token = req.cookies.authToken || req.headers.authorization?.split(" ")[1];
 
     if (!token) {
-        token = req.headers.authorization?.split(" ")[1]
-    }
-    else {
         return res.status(401).json({ errors: "Authorization token is missing" });
     }
 
