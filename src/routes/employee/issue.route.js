@@ -8,7 +8,8 @@ const router = express.Router();
 router.use(authMiddleware);
 router.use(authorizeRole('employee'));
 
-// Buat issue baru (dengan upload foto opsional)
 router.post("/", upload.single("photo"), IssueController.store);
+router.get("/", IssueController.getAll);
+router.get("/:id", IssueController.getById);
 
 export default router;

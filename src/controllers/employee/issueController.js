@@ -112,4 +112,43 @@ export const IssueController = {
             res.status(500).json({ message: "Failed to create issue", error: err.message });
         }
     },
+    // Ambil semua issue
+    async getAll(req, res) {
+        try {
+        const issues = await Issue.query()
+            .withGraphFetched("[machine, workOrder]") // ikutkan relasi kalau ada
+            .orderBy("created_at", "desc");
+
+        res.status(200).json({
+            message: "Issues fetched successfully",
+            data: issues,
+        });
+        } catch (err) {
+        console.error("Error fetching issues:", err);
+        res.status(500).json({ message: "Failed to fetch issues", error: err.message });
+        }
+    },
+
+    // Ambil issue berdasarkan ID
+    async getById(req, res) {
+        try {
+        const { id } = req.params;
+
+        const issue = await Issue.query()
+            .findById(id)
+            .withGraphFetched("[machine, workOrder]"); // ikutkan relasi kalau ada
+
+        if (!issue) {
+            return res.status(404).json({ message: "Issue not found" });
+        }
+
+        res.status(200).json({
+            message: "Issue fetched successfully",
+            data: issue,
+        });
+        } catch (err) {
+        console.error("Error fetching issue by ID:", err);
+        res.status(500).json({ message: "Failed to fetch issue", error: err.message });
+        }
+    },
 };
