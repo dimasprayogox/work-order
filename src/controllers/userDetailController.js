@@ -2,6 +2,11 @@ import {
   getUserDetailByUserId,
   updateUserProfile,
 } from "../models/userDetailModel.js";
+import { minioClient, checkAndCreateBucket } from "../utils/minio.js";
+import { v4 as uuidv4 } from "uuid";
+import path from "path";
+import dotenv from "dotenv"
+dotenv.config()
 
 export const show = async (req, res) => {
   try {
@@ -20,13 +25,10 @@ export const update = async (req, res) => {
     const userId = req.user.userId;
     const body = req.body;
 
-    // 2. Pisahkan data untuk masing-masing tabel
     const userData = {};
     const detailsData = {};
 
-    // Daftar field untuk tabel 'users'
     const userFields = ["username", "full_name", "email"];
-    // Daftar field untuk tabel 'user_details'
     const detailFields = [
       "phone_number",
       "address",
@@ -48,17 +50,44 @@ export const update = async (req, res) => {
       }
     });
 
-    // Cek jika tidak ada data yang valid untuk diupdate
+    // Upload foto profil jika ada
+    if (req.file) {
+      const bucketName = process.env.MINIO_BUCKET_NAME;
+      const folderName = "photo-profile";
+
+      await checkAndCreateBucket(bucketName);
+
+      const photoId = uuidv4();
+      const originalFileName = `${photoId}${path.extname(req.file.originalname)}`;
+      const objectName = `${folderName}/${originalFileName}`;
+
+      await minioClient.putObject(
+        bucketName,
+        objectName,
+        req.file.buffer,
+        req.file.size,
+        {
+          "Content-Type": req.file.mimetype,
+        }
+      );
+
+      const photoUrl = `${process.env.MINIO_PUBLIC_URL || "http://localhost:9000"}/${bucketName}/${objectName}`;
+      detailsData.profile_photo_url = photoUrl; // simpan di tabel user_details
+    }
+
     if (
       Object.keys(userData).length === 0 &&
       Object.keys(detailsData).length === 0
     ) {
-      return res
-        .status(400)
-        .json({ message: "Tidak ada data valid untuk diperbarui." });
+      return res.status(400).json({ message: "Tidak ada data valid untuk diperbarui." });
     }
 
-    // 3. Panggil fungsi model yang baru dengan DUA objek data
+    console.log("Data yang akan diperbarui:", {
+      userId,
+      userData,
+      detailsData,
+    });
+
     const updatedProfile = await updateUserProfile(
       userId,
       userData,
@@ -67,7 +96,6 @@ export const update = async (req, res) => {
 
     res.json({ message: "Profil berhasil diperbarui", data: updatedProfile });
   } catch (err) {
-    // Tangani error duplikat email jika ada
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ message: "Email sudah digunakan." });
     }

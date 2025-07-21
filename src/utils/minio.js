@@ -18,28 +18,13 @@ export const checkAndCreateBucket = async (bucketName) => {
       console.log(`Bucket "${bucketName}" tidak ditemukan. Membuat bucket...`)
       await minioClient.makeBucket(bucketName, "")
       console.log(`Bucket "${bucketName}" berhasil dibuat.`)
+      console.log("Menerapkan policy public-read untuk bucket ini...")
       await setBucketPublic(bucketName)
       return
     }
 
     console.log(`Bucket "${bucketName}" sudah ada.`)
 
-    // Cek policy bucket
-    try {
-      const policy = await minioClient.getBucketPolicy(bucketName)
-      const isPublic = policy.includes('"Action":["s3:GetObject"]') &&
-                       policy.includes('"Principal":"*"')
-
-      if (!isPublic) {
-        console.log(`Bucket "${bucketName}" ada, tapi belum public. Mengatur jadi public...`)
-        await setBucketPublic(bucketName)
-      } else {
-        console.log(`Bucket "${bucketName}" sudah public.`)
-      }
-    } catch (err) {
-      console.log(`Tidak ada policy atau tidak bisa mengambil policy. Mengatur jadi public...`)
-      await setBucketPublic(bucketName)
-    }
   } catch (err) {
     console.error("Terjadi kesalahan:", err)
   }
