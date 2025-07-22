@@ -1,142 +1,153 @@
-
 import { WorkOrder } from "../../models/WorkOrder.js";
 import { Issue } from "../../models/Issue.js";
 import { Machine } from "../../models/Machine.js";
-
-import { updateWorkOrderSchema } from "../../schemas/technician/workOrderSchema.js"; 
+import { updateWorkOrderSchema } from "../../schemas/technician/workOrderSchema.js";
 
 export const WorkOrderController = {
     /**
-     * @description 
-     * @route 
+     * @description Ambil semua Work Order yang ditugaskan ke teknisi login
+     * @route GET /technician/work-orders
      */
     async getMyWorkOrders(req, res) {
         try {
-            const technicianId = req.user.userId; 
+            const technicianId = req.user.userId;
 
             const workOrders = await WorkOrder.query()
-                
-                .where("assigned_to_id", technicianId) 
-                .withGraphFetched('[issue, machine, assignedTo]') 
-                .orderBy('created_at', 'desc');
+                .where("assigned_to_id", technicianId)
+                .withGraphFetched("[issue, machine, assignedTo]")
+                .orderBy("created_at", "desc");
 
             if (!workOrders || workOrders.length === 0) {
-                
-                return res.status(200).json({ message: "No work orders assigned to you.", data: [] });
+                return res.status(200).json({
+                    message: "No work orders assigned to you.",
+                    data: []
+                });
             }
 
             res.status(200).json({
                 message: "Work orders fetched successfully.",
-                data: workOrders,
+                data: workOrders
             });
-
         } catch (err) {
             console.error("Error fetching work orders for technician:", err);
-            res.status(500).json({ message: "Failed to fetch work orders", error: err.message });
+            res.status(500).json({
+                message: "Failed to fetch work orders",
+                error: err.message
+            });
         }
     },
 
     /**
-     * @description 
-     * @route 
+     * @description Update status dan catatan work order milik teknisi
+     * @route PATCH /technician/work-orders/:id
      */
     async updateWorkOrder(req, res) {
         try {
-            const { id } = req.params; 
+            const id = req.params.id;
             const technicianId = req.user.userId;
 
-            // 1. Validasi input dari body
+            // 1. Validasi input
             const parsed = updateWorkOrderSchema.safeParse(req.body);
             if (!parsed.success) {
                 return res.status(400).json({
                     message: "Validation failed",
-                    errors: parsed.error.flatten().fieldErrors,
+                    errors: parsed.error.flatten().fieldErrors
                 });
             }
-            const { status, description } = parsed.data;
+            const { status, notes } = parsed.data;
 
-            // 2. Cari work order berdasarkan ID
+            // 2. Cari work order
             const workOrder = await WorkOrder.query().findById(id);
             if (!workOrder) {
                 return res.status(404).json({ message: "Work Order not found." });
             }
 
-            // 3. Otorisasi: Pastikan teknisi hanya bisa mengubah WO miliknya sendiri
-            // Pastikan workOrder.assigned_to_id (atau assigned_to) sesuai dengan field di database Anda
-            if (workOrder.assigned_to_id !== technicianId) { 
-                return res.status(403).json({ message: "Forbidden. You are not authorized to update this work order." });
+            // 3. Cek otorisasi teknisi
+            if (workOrder.assigned_to_id !== technicianId) {
+                return res.status(403).json({
+                    message: "Forbidden. You are not authorized to update this work order. or work order have not assigned to you."
+                });
             }
 
-            // 4. Lakukan update pada work order
+            // 4. Update WO
             const updatedWorkOrder = await workOrder.$query().patchAndFetch({
                 status,
-                technician_notes: description,
-                updated_at: new Date().toISOString(), 
+                notes
             });
 
-            // 5. Logika tambahan jika pekerjaan selesai (completed)
+            // 5. Jika WO selesai, update issue & mesin
             if (status === "completed") {
-                // Update status issue terkait menjadi 'resolved'
-                if (workOrder.issue_id) { 
+                if (workOrder.issue_id) {
                     await Issue.query().patchAndFetchById(workOrder.issue_id, {
-                        status: 'resolved',
-                        updated_at: new Date().toISOString(),
+                        status: "resolved"
                     });
                 }
 
-                // Update status mesin menjadi 'available'
                 if (workOrder.machine_id) {
                     await Machine.query().patchAndFetchById(workOrder.machine_id, {
-                        status: 'available',
-                        updated_at: new Date().toISOString(),
+                        status: "available"
                     });
                 }
             }
 
             res.status(200).json({
                 message: `Work order successfully updated to '${status}'.`,
-                data: updatedWorkOrder,
+                data: updatedWorkOrder
             });
-
         } catch (err) {
             console.error("Error updating work order:", err);
-            res.status(500).json({ message: "Failed to update work order", error: err.message });
+            res.status(500).json({
+                message: "Failed to update work order",
+                error: err.message
+            });
         }
     },
 
+    /**
+     * @description Ambil semua Work Request yang dibuat oleh user login
+     * @route GET /technician/my-work-requests
+     */
     async getMyWorkRequests(req, res) {
         try {
             const userId = req.user.userId;
             if (!userId) {
-                return res.status(401).json({ success: false, message: "Authentication required: User ID not found." });
+                return res.status(401).json({
+                    success: false,
+                    message: "Authentication required: User ID not found."
+                });
             }
 
             const myWorkRequests = await WorkOrder.query()
-                .where('created_by_id', userId) 
-                .withGraphFetched('[machine, issue, createdBy]')
+                .where("created_by_id", userId)
+                .withGraphFetched("[machine, issue, createdBy]")
                 .select(
-                    'work_orders.id',
-                    'work_orders.status',
-                    'work_orders.created_at as submittedDate',
-                    'work_orders.description',
-                    'issue.title as type',
-                    'issue.description as issue_description'
+                    "work_orders.id",
+                    "work_orders.status",
+                    "work_orders.created_at as submittedDate",
+                    "work_orders.description",
+                    "issue.title as type",
+                    "issue.description as issue_description"
                 )
-                .leftJoin('issues as issue', 'work_orders.issue_id', 'issue.id')
-                .orderBy('work_orders.created_at', 'desc');
+                .leftJoin("issues as issue", "work_orders.issue_id", "issue.id")
+                .orderBy("work_orders.created_at", "desc");
 
-            const formattedRequests = myWorkRequests.map(wo => ({
+            const formattedRequests = myWorkRequests.map((wo) => ({
                 id: wo.id,
-                description: wo.description || wo.issue_description || 'N/A',
+                description: wo.description || wo.issue_description || "N/A",
                 status: wo.status,
-                submittedDate: wo.submittedDate ? new Date(wo.submittedDate).toISOString().slice(0, 10) : 'N/A',
-                type: wo.type || 'General Request'
+                submittedDate: wo.submittedDate
+                    ? new Date(wo.submittedDate).toISOString().slice(0, 10)
+                    : "N/A",
+                type: wo.type || "General Request"
             }));
 
             res.json({ success: true, data: formattedRequests });
         } catch (err) {
             console.error("Error in WorkOrderController.getMyWorkRequests:", err);
-            res.status(500).json({ success: false, message: err.message || 'Failed to fetch my work requests.' });
+            res.status(500).json({
+                success: false,
+                message: err.message || "Failed to fetch my work requests."
+            });
         }
     }
 };

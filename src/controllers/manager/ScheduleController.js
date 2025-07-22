@@ -20,10 +20,14 @@ export const ScheduleController = {
                 return res.status(400).json({ success: false, errors: parsed.error.flatten() });
             }
 
-            const data = parsed.data;
+            // Pastikan format waktu tidak diubah (ambil langsung dari frontend)
+            const { next_due_date, ...rest } = parsed.data;
+
             const schedule = await Schedule.query().insert({
                 id: uuidv4(),
-                ...data
+                created_by_id: req.user.userId,
+                next_due_date, // disimpan sesuai input frontend
+                ...rest
             });
 
             res.status(201).json({ success: true, data: schedule });
@@ -40,8 +44,13 @@ export const ScheduleController = {
                 return res.status(400).json({ success: false, errors: parsed.error.flatten() });
             }
 
-            const data = parsed.data;
-            const updated = await Schedule.query().patchAndFetchById(id, data);
+            const { next_due_date, ...rest } = parsed.data;
+
+            const updated = await Schedule.query().patchAndFetchById(id, {
+                next_due_date,
+                ...rest
+            });
+
             res.json({ success: true, data: updated });
         } catch (err) {
             res.status(500).json({ success: false, message: err.message });
@@ -58,13 +67,12 @@ export const ScheduleController = {
         }
     },
 
-    // Dipanggil oleh cron/interval untuk generate WO
     async generateDueWorkOrders(req, res) {
         try {
-            const today = new Date().toISOString().split('T')[0];
+            const now = new Date().toISOString(); // pakai timestamp lengkap
 
             const dueSchedules = await Schedule.query()
-                .where('next_due', '<=', today)
+                .where('next_due_date', '<=', now)
                 .withGraphFetched('machine');
 
             const createdWOs = [];
@@ -73,10 +81,10 @@ export const ScheduleController = {
                 const existingWO = await WorkOrder.query()
                     .where('title', schedule.title)
                     .where('machine_id', schedule.machine_id)
-                    .where('scheduled_date', schedule.next_due)
+                    .where('scheduled_date', schedule.next_due_date)
                     .first();
 
-                if (existingWO) continue; // skip jika sudah dibuat
+                if (existingWO) continue;
 
                 const newWO = await WorkOrder.query().insert({
                     id: uuidv4(),
@@ -85,12 +93,12 @@ export const ScheduleController = {
                     machine_id: schedule.machine_id,
                     created_by_id: schedule.created_by_id,
                     priority: 'medium',
-                    scheduled_date: schedule.next_due,
+                    scheduled_date: schedule.next_due_date,
                     status: 'pending'
                 });
 
-                // Hitung next_due selanjutnya
-                const nextDate = new Date(schedule.next_due);
+                // Hitung jadwal berikutnya
+                const nextDate = new Date(schedule.next_due_date);
                 if (schedule.frequency === 'monthly') {
                     nextDate.setMonth(nextDate.getMonth() + 1);
                 } else if (schedule.frequency === 'weekly') {
@@ -98,7 +106,7 @@ export const ScheduleController = {
                 }
 
                 await Schedule.query().patchAndFetchById(schedule.id, {
-                    next_due: nextDate.toISOString().split('T')[0]
+                    next_due_date: nextDate.toISOString().slice(0, 19).replace('T', ' ')
                 });
 
                 createdWOs.push(newWO);

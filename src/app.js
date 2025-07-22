@@ -27,8 +27,14 @@ import employeeWorkOrderRoutes from './routes/employee/workOrderRoute.js';
 
 //technician
 import technicianDashboardRoutes from './routes/technician/dashboard.routes.js';
-import technicianWorkOrderRoutes from './routes/technician/workOrderRoute.js';
+import technicianWorkOrderRoutes from './routes/technician/workOrder.routes.js';
+import technicianPartRequestRoutes from './routes/technician/partRequest.routes.js';
 
+// logistics
+import logisticsDashboardRoutes from './routes/logistics/dashboard.routes.js';
+import partRoutes from './routes/logistics/part.routes.js';
+import partRequestRoutes from './routes/logistics/part-request.routes.js';
+import partUsageRoutes from './routes/logistics/part-usage.routes.js';
 
 //manager
 import managerDashboardRoutes from './routes/manager/dashboard.routes.js';
@@ -55,7 +61,7 @@ app.use(
             "X-Timestamp",
             "X-Signature",
         ],
-        methods: ["GET", "POST", "PUT", "DELETE"],
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
         optionSuccessStatus: 200,
     })
 );
@@ -92,6 +98,13 @@ app.use('/api/employee/work-orders', employeeWorkOrderRoutes);
 //technician
 app.use('/api/technician/dashboard', technicianDashboardRoutes);
 app.use('/api/technician/work-orders', technicianWorkOrderRoutes);
+app.use('/api/technician/part-request', technicianPartRequestRoutes);
+
+// logistics
+app.use('/api/logistics/dashboard', logisticsDashboardRoutes);
+app.use('/api/logistics/parts', partRoutes);
+app.use('/api/logistics/part-requests', partRequestRoutes);
+app.use('/api/logistics/part-usage', partUsageRoutes);
 
 //manager
 app.use('/api/manager/dashboard', managerDashboardRoutes);

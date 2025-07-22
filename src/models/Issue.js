@@ -39,4 +39,9 @@ export class Issue extends BaseModel {
             },
         };
     }
+
+     // Fungsi update Issue berdasarkan ID
+    static async updateIssue(id, updateData) {
+        return await this.query().patchAndFetchById(id, updateData);
+    }
 }
