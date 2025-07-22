@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react"; 
 import { Card } from "primereact/card";
 import { Button } from "primereact/button";
 import { Dialog } from 'primereact/dialog';
@@ -40,11 +40,11 @@ const EmployeeDashboardPage = () => {
 
     const API_BASE_URL = "http://localhost:3100/api";
 
-    const showToast = (severity, summary, detail) => {
+    const showToast = useCallback((severity, summary, detail) => {
         toast.current.show({ severity, summary, detail, life: 3000 });
-    };
+    }, []); 
 
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = useCallback(async () => { 
         setLoadingDashboard(true);
         try {
             const response = await fetch(`${API_BASE_URL}/employee/dashboard/my-overview`, {
@@ -64,9 +64,9 @@ const EmployeeDashboardPage = () => {
         } finally {
             setLoadingDashboard(false);
         }
-    };
+    }, [showToast]); 
 
-    const fetchMachines = async () => {
+    const fetchMachines = useCallback(async () => { 
         try {
             const response = await fetch(`${API_BASE_URL}/employee/machines/available`, {
                 method: "GET",
@@ -86,9 +86,9 @@ const EmployeeDashboardPage = () => {
                 showToast('error', 'Error', `Gagal memuat daftar mesin: ${error.message}`);
             }
         }
-    };
+    }, [showToast]); 
 
-    const fetchMyWorkRequests = async () => {
+    const fetchMyWorkRequests = useCallback(async () => {
         setLoadingWorkRequests(true);
         try {
             const response = await fetch(`${API_BASE_URL}/employee/issues`, {
@@ -111,10 +111,10 @@ const EmployeeDashboardPage = () => {
         } finally {
             setLoadingWorkRequests(false);
         }
-    };
+    }, [showToast]);
 
 
-    const validateIssueForm = () => {
+    const validateIssueForm = useCallback(() => { 
         const errors = {};
         if (!issueFormData.machine_id) errors.machine_id = "Mesin harus dipilih.";
         if (!issueFormData.title.trim()) errors.title = "Judul tidak boleh kosong.";
@@ -123,21 +123,34 @@ const EmployeeDashboardPage = () => {
         else if (issueFormData.description.trim().length < 10) errors.description = "Deskripsi minimal 10 karakter.";
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
-    };
+    }, [issueFormData]);
 
-    const handleIssueFormChange = (e, name) => {
+    const handleIssueFormChange = useCallback((e, name) => { 
         const value = e.target ? e.target.value : e.value;
         setIssueFormData((prev) => ({ ...prev, [name]: value }));
         if (formErrors[name]) {
             setFormErrors((prev) => ({ ...prev, [name]: undefined }));
         }
-    };
+    }, [formErrors]); 
 
-    const handleFileChange = (e) => {
+    const handleFileChange = useCallback((e) => { 
         setIssueFormData((prev) => ({ ...prev, photo: e.target.files[0] }));
-    };
+    }, []); 
 
-    const submitIssue = async () => {
+    const resetIssueForm = useCallback(() => { 
+        setIssueFormData({
+            machine_id: null,
+            title: "",
+            description: "",
+            photo: null,
+        });
+        setFormErrors({});
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    }, []); 
+
+    const submitIssue = useCallback(async () => {
         if (!validateIssueForm()) {
             showToast('error', 'Validasi Gagal', 'Harap perbaiki kesalahan pada formulir.');
             return;
@@ -176,27 +189,15 @@ const EmployeeDashboardPage = () => {
         } finally {
             setLoadingSubmitIssue(false);
         }
-    };
+    }, [issueFormData, validateIssueForm, showToast, resetIssueForm, fetchDashboardData, fetchMyWorkRequests]); 
 
-    const resetIssueForm = () => {
-        setIssueFormData({
-            machine_id: null,
-            title: "",
-            description: "",
-            photo: null,
-        });
-        setFormErrors({});
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
-    };
-
-    const renderIssueDialogFooter = () => (
+    const renderIssueDialogFooter = useCallback(() => ( 
         <div className="flex justify-content-end gap-2">
             <Button label="Batal" icon="pi pi-times" outlined onClick={() => { setIsIssueDialogVisible(false); resetIssueForm(); }} />
             <Button label="Laporkan" icon="pi pi-check" onClick={submitIssue} loading={loadingSubmitIssue} />
         </div>
-    );
+    ), [resetIssueForm, submitIssue, loadingSubmitIssue]); 
+
 
     const getStatusSeverity = (status) => {
         switch (status) {
@@ -212,22 +213,19 @@ const EmployeeDashboardPage = () => {
         }
     };
 
-    const statusBodyTemplate = (rowData) => {
+    const statusBodyTemplate = useCallback((rowData) => {
         const formattedStatus = rowData.status ? rowData.status.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()) : '';
         return <Tag value={formattedStatus} severity={getStatusSeverity(rowData.status)} />;
-    };
+    }, []); 
 
-    const handleImageClick = (imageUrl) => {
+    const handleImageClick = useCallback((imageUrl) => { 
         if (imageUrl) {
             setCurrentImagePreviewUrl(imageUrl);
             setIsImagePreviewVisible(true);
         }
-    };
+    }, []); 
 
-    const photoBodyTemplate = (rowData) => {
-        console.log("rowData in photoBodyTemplate:", rowData);
-        console.log("rowData.photo_url:", rowData.photo_url);
-
+    const photoBodyTemplate = useCallback((rowData) => { 
         if (rowData.photo_url) {
             return (
                 <img
@@ -235,7 +233,7 @@ const EmployeeDashboardPage = () => {
                     alt="Pratinjau Foto Isu"
                     style={{ width: '50px', height: '50px', objectFit: 'cover', cursor: 'pointer' }}
                     className="shadow-2 border-round"
-                    onClick={() => handleImageClick(rowData.photo_url)} // Menambahkan onClick handler
+                    onClick={() => handleImageClick(rowData.photo_url)}
                     onError={(e) => {
                         e.target.onerror = null;
                         e.target.src = "https://placehold.co/50x50/cccccc/000000?text=No+Image";
@@ -252,22 +250,22 @@ const EmployeeDashboardPage = () => {
                 className="shadow-2 border-round"
             />
         );
-    };
+    }, [handleImageClick]); 
 
-    const dateBodyTemplate = (rowData) => {
+    const dateBodyTemplate = useCallback((rowData) => { 
         if (rowData.created_at) {
             const date = new Date(rowData.created_at);
             return date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
         }
         return null;
-    };
+    }, []); 
 
 
     useEffect(() => {
         fetchDashboardData();
         fetchMachines();
         fetchMyWorkRequests();
-    }, []);
+    }, [fetchDashboardData, fetchMachines, fetchMyWorkRequests]); 
 
 
     return (
@@ -391,14 +389,14 @@ const EmployeeDashboardPage = () => {
                     <DataTable
                         value={myWorkRequests}
                         paginator
-                        rows={10} 
+                        rows={10}
                         dataKey="id"
                         loading={loadingWorkRequests}
                         emptyMessage="Anda belum mengajukan permintaan kerja."
                     >
                         <Column field="id" header="ID Isu" style={{ width: '100px' }}></Column>
                         <Column field="description" header="Deskripsi" body={(rowData) => <span style={{ whiteSpace: 'normal', display: 'block' }}>{rowData.description}</span>}></Column>
-                        <Column field="machine.name" header="Mesin"></Column> {/* Menampilkan nama mesin */}
+                        <Column field="machine.name" header="Mesin"></Column>
                         <Column field="status" header="Status" body={statusBodyTemplate}></Column>
                         <Column header="Foto" body={photoBodyTemplate}></Column>
                         <Column field="created_at" header="Diajukan" body={dateBodyTemplate}></Column>

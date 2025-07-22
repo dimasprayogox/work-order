@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { classNames } from "primereact/utils";
-import React, { forwardRef, useContext, useImperativeHandle, useRef, useState } from "react";
+import React, { forwardRef, useContext, useImperativeHandle, useRef, useState, useEffect } from "react"; 
 import { LayoutContext } from "./context/layoutcontext";
 import { API_ENDPOINTS } from "../app/api/api";
 
@@ -31,8 +31,22 @@ const AppTopbar = forwardRef((props, ref) => {
     };
 
     const toggleProfileDropdown = () => {
-        setIsProfileDropdownOpen(!isProfileDropdownOpen);
+        setIsProfileDropdownOpen(prev => !prev);
     };
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (topbarmenuRef.current && !topbarmenuRef.current.contains(event.target) &&
+                topbarmenubuttonRef.current && !topbarmenubuttonRef.current.contains(event.target)) {
+                setIsProfileDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     return (
         <div className="layout-topbar">
@@ -58,12 +72,12 @@ const AppTopbar = forwardRef((props, ref) => {
                     </button>
 
                     {isProfileDropdownOpen && (
-                        <div className="profile-dropdown">
+                        <div ref={topbarmenuRef} className="profile-dropdown">
                             <Link href="/profile" className="dropdown-item" onClick={toggleProfileDropdown}>
                                 <i className="pi pi-user"></i>
                                 <span>My Profile</span>
                             </Link>
-                            <Link href="/documentation" className="dropdown-item">
+                            <Link href="/documentation" className="dropdown-item" onClick={toggleProfileDropdown}>
                                 <i className="pi pi-cog"></i>
                                 <span>Settings</span>
                             </Link>
