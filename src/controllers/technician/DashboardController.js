@@ -41,7 +41,7 @@ export const DashboardController = {
             const overdueWOs = await WorkOrder.query()
                 .where('status', '!=', 'completed')
                 .where('scheduled_date', '<', new Date().toISOString().split('T')[0])
-                .withGraphFetched('[machine, technician]');
+                .withGraphFetched('[machine]');
 
             res.json({ success: true, data: overdueWOs });
         } catch (err) {
