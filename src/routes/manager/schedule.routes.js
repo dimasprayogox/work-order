@@ -9,7 +9,7 @@ router.use(authorizeRole('manager'));
 
 router.get('/', ScheduleController.index);
 router.post('/', ScheduleController.create);
-router.put('/:id', ScheduleController.update);
+router.patch('/:id', ScheduleController.update);
 router.delete('/:id', ScheduleController.delete);
 router.post('/generate', ScheduleController.generateDueWorkOrders); // bisa dipanggil scheduler/cron
 
