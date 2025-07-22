@@ -27,6 +27,8 @@ import employeeWorkOrderRoutes from './routes/employee/workOrderRoute.js';
 import technicianDashboardRoutes from './routes/technician/dashboard.routes.js';
 import technicianWorkOrderRoutes from './routes/technician/workOrderRoute.js';
 
+// logistics
+import partRoutes from './routes/logistics/part.routes.js';
 
 //manager
 import managerDashboardRoutes from './routes/manager/dashboard.routes.js';
@@ -89,6 +91,9 @@ app.use('/api/employee/work-orders', employeeWorkOrderRoutes);
 //technician
 app.use('/api/technician/dashboard', technicianDashboardRoutes);
 app.use('/api/technician/work-orders', technicianWorkOrderRoutes);
+
+// logistics
+app.use('/api/logistics/parts', partRoutes);
 
 //manager
 app.use('/api/manager/dashboard', managerDashboardRoutes);
