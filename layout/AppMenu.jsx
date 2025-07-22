@@ -1,8 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useContext, useState, useRef, useEffect } from "react";
-import AppMenuitem from "./AppMenuitem"; 
+import React, { useContext, useState, useEffect } from "react";
 import { LayoutContext } from "./context/layoutcontext";
 import { MenuProvider } from "./context/menucontext";
 import { Button } from "primereact/button";
@@ -12,126 +11,183 @@ import { TabPanel, TabView } from "primereact/tabview";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
 import { jwtDecode } from "jwt-decode";
-import Cookies from 'js-cookie';
+import Cookies from "js-cookie";
+import { classNames } from "primereact/utils";
 
 const AppMenu = () => {
     const { layoutConfig } = useContext(LayoutContext);
     const pathname = usePathname();
     const [visible, setVisible] = useState(false);
-    const [activeMenu, setActiveMenu] = useState(null); 
+    const [activeMenu, setActiveMenu] = useState(null);
     const [userRole, setUserRole] = useState(null);
+    const [model, setModel] = useState([]);
 
     useEffect(() => {
         const authToken = Cookies.get("authToken");
         if (authToken) {
             try {
                 const decodedToken = jwtDecode(authToken);
-                setUserRole(decodedToken.role);
+                const role = decodedToken.role;
+                setUserRole(role);
+
+                // Definisikan semua kemungkinan menu
+                const allMenus = {
+                    dashboard: {
+                        label: "Dashboard",
+                        items: [
+                            {
+                                label: "Dashboard",
+                                icon: "pi pi-fw pi-home",
+                                to: `/dashboard/${role}`
+                            }
+                        ]
+                    },
+                    maintenance: {
+                        label: "Maintenance",
+                        icon: "pi pi-fw pi-cog",
+                        items: [
+                            { label: "Work Orders", icon: "pi pi-fw pi-file", to: "/maintenance/work-orders" },
+                            { label: "Work Requests", icon: "pi pi-fw pi-file-edit", to: "/maintenance/work-orders/request" },
+                            { label: "Scheduled Maintenance", icon: "pi pi-fw pi-calendar", to: "/maintenance/scheduled-maintenance" },
+                            { label: "Active Work Order", icon: "pi pi-fw pi-home", to: "/maintenance/active-work-order" },
+                            { label: "Closed Work Order", icon: "pi pi-fw pi-home", to: "/maintenance/closed-work-order" }
+                        ]
+                    },
+                    assets: {
+                        label: "Assets",
+                        icon: "pi pi-fw pi-box",
+                        items: [{ label: "Asset Insights", icon: "pi pi-fw pi-box", to: "/assets/asset-insights" }]
+                    },
+                    supplies: {
+                        label: "Supplies",
+                        icon: "pi pi-fw pi-truck",
+                        items: [{ label: "Parts Forecaster", icon: "pi pi-fw pi-truck", to: "/supplies/parts-forecaster" }]
+                    },
+                    users: {
+                        label: "Users",
+                        icon: "pi pi-fw pi-users",
+                        items: [{ label: "Users", icon: "pi pi-fw pi-user", to: "/users/admin" }]
+                    }
+                };
+
+                let filteredModel = [];
+                if (role === "admin") {
+                    filteredModel = [allMenus.dashboard, allMenus.maintenance, allMenus.assets, allMenus.supplies, allMenus.users];
+                } else if (role === "employee") {
+                    filteredModel = [
+                        allMenus.dashboard.items[0],
+                        allMenus.maintenance.items[0] // Mengambil "Work Orders"
+                    ];
+                } else if (role === "manager") {
+                    const managerAllowedLabels = ["Work Orders", "Scheduled Maintenance"];
+                    const managerMaintenanceItems = allMenus.maintenance.items.filter((item) => managerAllowedLabels.includes(item.label));
+
+                    filteredModel = [
+                        allMenus.dashboard.items[0],
+                        {
+                            ...allMenus.maintenance,
+                            items: managerMaintenanceItems
+                        }
+                    ];
+                } else if (role === "technician") {
+                     const technicianAllowedLabels = ["Work Orders", "Scheduled Maintenance"];
+                     const technicianMaintenanceItems = allMenus.maintenance.items.filter((item) => technicianAllowedLabels.includes(item.label));
+
+                     filteredModel = [
+                         allMenus.dashboard.items[0],
+                         {
+                             ...allMenus.maintenance,
+                             items: technicianMaintenanceItems
+                         }
+                     ];
+                } else if (role === "logistics") {
+                     const logisticsAllowedLabels = ["Work Orders", "Scheduled Maintenance"];
+                     const logisticsMaintenanceItems = allMenus.maintenance.items.filter((item) => logisticsAllowedLabels.includes(item.label));
+
+                     filteredModel = [
+                         allMenus.dashboard.items[0],
+                         {
+                             ...allMenus.maintenance,
+                             items: logisticsMaintenanceItems
+                         }
+                     ];
+                }
+
+                setModel(filteredModel);
             } catch (error) {
-                console.error("Failed to decode token or invalid token:", error);
+                console.error("Gagal mendekode token atau token tidak valid:", error);
+                setModel([]);
             }
+        } else {
+            setModel([]);
         }
     }, []);
-
-    const baseModel = [
-        {
-            label: "Dashboard",
-            items: [{
-                label: "Dashboard",
-                icon: "pi pi-fw pi-home",
-                to: userRole ? `/dashboard/${userRole}` : "/"
-            }]
-        },
-        {
-            label: "Maintenance",
-            icon: "pi pi-fw pi-cog",
-            items: [
-                { label: "Work Orders", icon: "pi pi-fw pi-file", to: "/maintenance/work-orders" },
-                { label: "Work Requests", icon: "pi pi-fw pi-file-edit", to: "/maintenance/work-orders/request" },
-                { label: "Scheduled Maintenance", icon: "pi pi-fw pi-calendar", to: "/maintenance/scheduled-maintenance" },
-                { label: "Active Work Order", icon: "pi pi-fw pi-home", to: "/maintenance/active-work-order" },
-                { label: "Closed Work Order", icon: "pi pi-fw pi-home", to: "/maintenance/closed-work-order" }
-            ]
-        },
-        {
-            label: "Assets",
-            icon: "pi pi-fw pi-box",
-            items: [{ label: "Asset Insights", icon: "pi pi-fw pi-box", to: "/assets/asset-insights" }]
-        },
-        {
-            label: "Supplies",
-            icon: "pi pi-fw pi-truck",
-            items: [{ label: "Parts Forecaster", icon: "pi pi-fw pi-truck", to: "/supplies/parts-forecaster" }]
-        },
-        {
-            label: "Analytics",
-            icon: "pi pi-fw pi-chart-pie",
-            items: [{ label: "Analytics", icon: "pi pi-fw pi-chart-pie", to: "/analytics" }]
-        }
-    ];
-
-    const model = userRole === "employee"
-        ? baseModel 
-        : [ 
-            ...baseModel,
-            {
-                label: "Users",
-                icon: "pi pi-fw pi-users",
-                items: [
-                    { label: "Users", icon: "pi pi-fw pi-user", to: "/users/admin" }
-                ]
-            }
-        ];
 
     const handleMenuToggle = (index) => {
         setActiveMenu(activeMenu === index ? null : index);
     };
 
-
     return (
         <MenuProvider>
-            <ul className="layout-menu">
+            <ul className="layout-menu" style={{ listStyle: "none" }}>
+    
                 {model.map((item, i) => {
+                    if (!item) return null;
+
                     if (item.separator) {
                         return <li className="menu-separator" key={`separator-${i}`}></li>;
                     }
 
                     const hasSubmenu = item.items && item.items.length > 0;
-                    const isActive = activeMenu === i;
 
-                    return (
-                        <li
-                            key={item.label}
-                            className={`relative ${hasSubmenu ? 'has-submenu' : ''}`}
-                        >
-                            <div
-                                className={`layout-menuitem-root ${isActive ? 'active-menuitem' : ''}`}
-                            >
-                                <div
-                                    className="flex align-items-center py-3 px-2 cursor-pointer"
-                                    onClick={() => hasSubmenu && handleMenuToggle(i)}
+                    // Render sebagai link langsung jika tidak ada submenu
+                    if (!hasSubmenu) {
+                        return (
+                            <li key={item.label}>
+                                <a
+                                    href={item.to}
+                                    className={classNames("p-ripple flex align-items-center py-3 px-2 cursor-pointer rounded-md transition-colors duration-150 text-color-secondary hover:bg-primary-50 hover:text-primary", {
+                                        "bg-primary-50 text-primary": pathname === item.to
+                                    })}
                                 >
+                                    {item.icon && <i className={classNames("layout-menuitem-icon mr-2", item.icon)}></i>}
+                                    <span className="layout-menuitem-root-text font-medium">{item.label}</span>
+                                </a>
+                            </li>
+                        );
+                    }
+
+                    // Render sebagai grup dropdown jika ada submenu
+                    const isActive = activeMenu === i;
+                    return (
+                        // FIX: Mengembalikan struktur dan kelas asli untuk dropdown
+                        <li key={item.label} className={`relative ${hasSubmenu ? "has-submenu" : ""}`}>
+                            <div className={`layout-menuitem-root ${isActive ? "active-menuitem" : ""}`}>
+                                <div className="flex align-items-center py-3 px-2 cursor-pointer" onClick={() => hasSubmenu && handleMenuToggle(i)}>
                                     {item.icon && <i className={`${item.icon} layout-menuitem-icon mr-2`}></i>}
                                     <span className="layout-menuitem-root-text">{item.label}</span>
-                                    {hasSubmenu && (
-                                        <i
-                                            className={`pi pi-chevron-down layout-submenu-toggler px-2 ml-auto ${isActive ? 'rotated' : ''}`}
-                                        />
-                                    )}
+                                    {hasSubmenu && <i className={`pi pi-chevron-down layout-submenu-toggler px-2 ml-auto ${isActive ? "rotated" : ""}`} />}
                                 </div>
                             </div>
-
-                            <div className={`layout-submenu ${isActive ? 'submenu-visible' : ''}`}>
+                            <div className={`layout-submenu ${isActive ? "submenu-visible" : ""}`} style={{ listStyle: "none" }}>
                                 {hasSubmenu && (
-                                    <ul>
-                                        {item.items.map((subItem, subIndex) => (
-                                            <li key={subItem.label}>
-                                                <a href={subItem.to} className="flex align-items-center py-2 px-4">
-                                                    {subItem.icon && <i className={`${subItem.icon} layout-menuitem-icon mr-2`}></i>}
-                                                    <span className="layout-menuitem-text">{subItem.label}</span>
-                                                </a>
-                                            </li>
-                                        ))}
+                                    <ul style={{ listStyle: "none", paddingLeft: 0 }}>
+                                        {item.items.map(
+                                            (subItem) =>
+                                                subItem && (
+                                                    <li key={subItem.label}>
+                                                        <a
+                                                            href={subItem.to}
+                                                            className={classNames("p-ripple flex align-items-center py-2 px-4 rounded-md transition-colors duration-150 text-color-secondary hover:bg-primary-50 hover:text-primary", {
+                                                                "bg-primary-50 text-primary": pathname === subItem.to
+                                                            })}
+                                                        >
+                                                            {subItem.icon && <i className={classNames("layout-menuitem-icon mr-2", subItem.icon)}></i>}
+                                                            <span className="layout-menuitem-text">{subItem.label}</span>
+                                                        </a>
+                                                    </li>
+                                                )
+                                        )}
                                     </ul>
                                 )}
                             </div>
@@ -149,48 +205,7 @@ const AppMenu = () => {
                 }}
                 style={{ width: "50vw" }}
             >
-                <TabView>
-                    <TabPanel className="text-xs" header="Settings">
-                        <div className="grid">
-                            <div className="col-12">
-                                <label htmlFor="">Schedule Name</label>
-                                <InputText className="w-full mt-3" placeholder="Active work orders dashboard" />
-                            </div>
-                            <div className="col-8">
-                                <label htmlFor="">Recurrence</label>
-                                <Dropdown className="w-full mt-3" />
-                            </div>
-                            <div className="col-4">
-                                <label htmlFor="">Time</label>
-                                <Dropdown className="w-full mt-3" />
-                            </div>
-                            <div className="col-12">
-                                <label htmlFor="">Destination</label>
-                                <Dropdown className="w-full mt-3" />
-                            </div>
-                            <div className="col-12">
-                                <label htmlFor="">Email Addresses</label>
-                                <InputText className="w-full mt-3" placeholder="Active work orders dashboard" />
-                            </div>
-                            <div className="col-12">
-                                <label htmlFor="">Format</label>
-                                <Dropdown className="w-full mt-3" />
-                            </div>
-                        </div>
-
-                        <div className="flex justify-content-between mt-5">
-                            <div>
-                                <Button label="Test Now" outlined />
-                            </div>
-                            <div className="flex gap-2">
-                                <Button label="Cancel" text />
-                                <Button label="Save" severity="success" />
-                            </div>
-                        </div>
-                    </TabPanel>
-                    <TabPanel className="text-xs" header="Filters"></TabPanel>
-                    <TabPanel className="text-xs" header="Advanced Options"></TabPanel>
-                </TabView>
+                {/* ... Konten Dialog ... */}
             </Dialog>
 
             <Button className={`${pathname !== "/analytics" ? "hidden" : ""} w-full mt-5`} label="Create Schedule" onClick={() => setVisible(true)} />

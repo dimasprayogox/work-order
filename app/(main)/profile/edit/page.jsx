@@ -1,344 +1,3 @@
-// app/(main)/profile/edit/page.jsx
-"use client";
-
-import React, { useState, useEffect, useRef } from 'react';
-import { Card } from 'primereact/card';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { Button } from 'primereact/button';
-import { Toast } from 'primereact/toast';
-import { ProgressSpinner } from 'primereact/progressspinner';
-import { Calendar } from 'primereact/calendar';
-import { Avatar } from 'primereact/avatar';
-import { FileUpload } from 'primereact/fileupload';
-import { useRouter } from 'next/navigation';
-
-function Page() {
-    const [profile, setProfile] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
-    const [selectedFile, setSelectedFile] = useState(null); 
-    const [previewUrl, setPreviewUrl] = useState(null); 
-    const toast = useRef(null);
-    const fileInputRef = useRef(null); 
-    const router = useRouter();
-
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const res = await fetch("http://localhost:3100/api/user-detail", {
-                    credentials: "include"
-                });
-
-                if (res.ok) {
-                    const result = await res.json();
-                    const fetchedProfile = {
-                        ...result.data,
-                        date_of_birth: result.data.date_of_birth ? new Date(result.data.date_of_birth) : null
-                    };
-                    setProfile(fetchedProfile);
-                    setPreviewUrl(fetchedProfile.profile_photo_url || null);
-                } else if (res.status === 401) {
-                    router.push("/auth/login");
-                } else {
-                    toast.current.show({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'Gagal memuat data profil.',
-                        life: 3000
-                    });
-                    setProfile({});
-                }
-            } catch (err) {
-                console.error("Gagal mengambil data profil:", err);
-                toast.current.show({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'Terjadi kesalahan jaringan saat memuat profil.',
-                    life: 3000
-                });
-                setProfile({});
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchProfile();
-
-        return () => {
-            if (previewUrl && previewUrl.startsWith('blob:')) {
-                URL.revokeObjectURL(previewUrl);
-            }
-        };
-    }, [router, previewUrl]);
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setProfile((prevProfile) => ({
-            ...prevProfile,
-            [name]: value,
-        }));
-    };
-
-    const handleDateChange = (e) => {
-        setProfile((prevProfile) => ({
-            ...prevProfile,
-            date_of_birth: e.value,
-        }));
-    };
-
-    const handleFileChange = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            setSelectedFile(file);
-            if (previewUrl && previewUrl.startsWith('blob:')) {
-                URL.revokeObjectURL(previewUrl);
-            }
-            setPreviewUrl(URL.createObjectURL(file));
-        } else {
-            setSelectedFile(null);
-            setPreviewUrl(profile?.profile_photo_url || null); 
-        }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsSaving(true);
-
-        try {
-            const formData = new FormData();
-
-            for (const key in profile) {
-                if (profile.hasOwnProperty(key)) {
-                    if (key === 'date_of_birth' && profile[key] instanceof Date) {
-                        formData.append(key, profile[key].toISOString().split('T')[0]); 
-                    } else if (key !== 'profile_photo_url') { 
-                        formData.append(key, profile[key]);
-                    }
-                }
-            }
-
-            if (selectedFile) {
-                formData.append('photo', selectedFile);
-            }
-
-            const res = await fetch("http://localhost:3100/api/user-detail", {
-                method: 'PATCH',
-                
-                body: formData,
-                credentials: "include"
-            });
-
-            if (res.ok) {
-                const updatedProfileData = await res.json(); 
-                setProfile(prev => ({
-                    ...prev,
-                    ...updatedProfileData.data, 
-                    date_of_birth: updatedProfileData.data.date_of_birth ? new Date(updatedProfileData.data.date_of_birth) : null
-                }));
-                setPreviewUrl(updatedProfileData.data.profile_photo_url || null);
-                setSelectedFile(null);
-                toast.current.show({
-                    severity: 'success',
-                    summary: 'Berhasil',
-                    detail: 'Profil berhasil diperbarui!',
-                    life: 3000
-                });
-                router.push("/dashboard/profile");
-            } else {
-                const errorData = await res.json();
-                toast.current.show({
-                    severity: 'error',
-                    summary: 'Gagal',
-                    detail: errorData.message || 'Gagal memperbarui profil.',
-                    life: 3000
-                });
-            }
-        } catch (err) {
-            console.error("Gagal memperbarui profil:", err);
-            toast.current.show({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'Terjadi kesalahan jaringan saat memperbarui profil.',
-                life: 3000
-            });
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    if (isLoading) {
-        return (
-            <div className="flex justify-content-center align-items-center min-h-screen">
-                <ProgressSpinner />
-                <p className="ml-3">Memuat data profil...</p>
-            </div>
-        );
-    }
-
-    if (!profile) {
-        return (
-            <div className="text-center p-5">
-                <Toast ref={toast} />
-                <p>Gagal memuat profil. Silakan coba lagi.</p>
-                <Button label="Kembali ke Profil" icon="pi pi-arrow-left" className="mt-4" onClick={() => router.push("/dashboard/profile")} />
-            </div>
-        );
-    }
-
-    return (
-        <div className="min-h-screen flex items-center justify-center p-4 md:p-6 font-sans">
-            <Toast ref={toast} />
-            <Card className="w-full md:w-30rem lg:w-40rem mx-auto">
-                <div className="flex justify-content-between align-items-center mb-6">
-                    <Button
-                        icon="pi pi-arrow-left"
-                        label="Kembali"
-                        className="p-button-text p-button-secondary"
-                        onClick={() => router.push("/dashboard/profile")}
-                    />
-                    <h1 className="text-2xl font-bold text-center flex-grow">Edit Profil</h1>
-                    <div style={{ width: '80px' }}></div>
-                </div>
-
-                <form onSubmit={handleSubmit} className="p-fluid">
-                    <div className="flex flex-column align-items-center mb-6">
-                        <Avatar
-                            image={previewUrl || "https://placehold.co/120x120/E0E0E0/808080?text=No+Image"}
-                            label={profile.full_name ? profile.full_name.charAt(0) : "U"}
-                            size="xlarge"
-                            shape="circle"
-                            className="mb-3"
-                            onImageError={(e) => {
-                                e.target.src = "https://placehold.co/120x120/E0E0E0/808080?text=No+Image";
-                            }}
-                        />
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            accept="image/*"
-                            style={{ display: 'none' }}
-                        />
-                        <Button
-                            label="Ubah Foto Profil"
-                            icon="pi pi-upload"
-                            className="p-button-outlined"
-                            onClick={() => fileInputRef.current.click()}
-                            type="button"
-                        />
-                        {selectedFile && (
-                            <small className="mt-2 text-gray-600">File dipilih: {selectedFile.name}</small>
-                        )}
-                    </div>
-
-                    <div className="field mb-4">
-                        <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-                        <InputText
-                            id="full_name"
-                            name="full_name"
-                            value={profile.full_name || ''}
-                            onChange={handleChange}
-                            className="w-full"
-                            required
-                        />
-                    </div>
-
-                    <div className="field mb-4">
-                        <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                        <InputText
-                            id="username"
-                            name="username"
-                            value={profile.username || ''}
-                            onChange={handleChange}
-                            className="w-full"
-                        />
-                    </div>
-
-                    <div className="field mb-4">
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <InputText
-                            id="email"
-                            name="email"
-                            type="email"
-                            value={profile.email || ''}
-                            onChange={handleChange}
-                            className="w-full"
-                            required
-                        />
-                    </div>
-
-                    <div className="field mb-4">
-                        <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 mb-1">Telepon</label>
-                        <InputText
-                            id="phone_number"
-                            name="phone_number"
-                            value={profile.phone_number || ''}
-                            onChange={handleChange}
-                            className="w-full"
-                        />
-                    </div>
-
-                    <div className="field mb-4">
-                        <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
-                        <InputTextarea
-                            id="address"
-                            name="address"
-                            rows={3}
-                            value={profile.address || ''}
-                            onChange={handleChange}
-                            className="w-full"
-                        />
-                    </div>
-
-                    <div className="field mb-4">
-                        <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">Kota</label>
-                        <InputText
-                            id="city"
-                            name="city"
-                            value={profile.city || ''}
-                            onChange={handleChange}
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="field mb-4">
-                        <label htmlFor="date_of_birth" className="block text-sm font-medium text-gray-700 mb-1">Tanggal Lahir</label>
-                        <Calendar
-                            id="date_of_birth"
-                            name="date_of_birth"
-                            value={profile.date_of_birth}
-                            onChange={handleDateChange}
-                            dateFormat="dd/mm/yy"
-                            showIcon
-                            className="w-full"
-                        />
-                    </div>
-
-                    <div className="field mb-4">
-                        <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                        <InputTextarea
-                            id="bio"
-                            name="bio"
-                            rows={4}
-                            value={profile.bio || ''}
-                            onChange={handleChange}
-                            className="w-full"
-                        />
-                    </div>
-
-                    <Button
-                        type="submit"
-                        label={isSaving ? "Menyimpan..." : "Simpan Perubahan"}
-                        icon={isSaving ? "pi pi-spin pi-spinner" : "pi pi-check"}
-                        className="w-full mt-4"
-                        disabled={isSaving}
-                    />
-                </form>
-            </Card>
-        </div>
-    );
-}
-
-export default Page;
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -353,18 +12,23 @@ import { Avatar } from "primereact/avatar";
 import { Divider } from "primereact/divider";
 import { useRouter } from "next/navigation";
 
-function Page() {
+function EditProfilePage() {
+    // State management
     const [profile, setProfile] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
+
+    // Refs and Hooks
     const toast = useRef(null);
     const fileInputRef = useRef(null);
     const router = useRouter();
 
+    // Fetch profile data on component mount
     useEffect(() => {
         const fetchProfile = async () => {
+            setIsLoading(true);
             try {
                 const res = await fetch("http://localhost:3100/api/user-detail", {
                     credentials: "include"
@@ -372,132 +36,117 @@ function Page() {
 
                 if (res.ok) {
                     const result = await res.json();
+                    // Convert date string to Date object for the Calendar component
                     const fetchedProfile = {
                         ...result.data,
                         date_of_birth: result.data.date_of_birth ? new Date(result.data.date_of_birth) : null
                     };
                     setProfile(fetchedProfile);
-                    setPreviewUrl(fetchedProfile.profile_photo_url || null);
+                    setPreviewUrl(fetchedProfile.profile_photo_url); // Set initial preview from fetched data
                 } else if (res.status === 401) {
+                    toast.current.show({ severity: "warn", summary: "Sesi Habis", detail: "Silakan login kembali.", life: 3000 });
                     router.push("/auth/login");
                 } else {
-                    toast.current.show({
-                        severity: "error",
-                        summary: "Error",
-                        detail: "Gagal memuat data profil.",
-                        life: 3000
-                    });
-                    setProfile({});
+                    throw new Error("Gagal memuat data profil.");
                 }
             } catch (err) {
                 console.error("Gagal mengambil data profil:", err);
-                toast.current.show({
-                    severity: "error",
-                    summary: "Error",
-                    detail: "Terjadi kesalahan jaringan saat memuat profil.",
-                    life: 3000
-                });
-                setProfile({});
+                toast.current.show({ severity: "error", summary: "Error", detail: err.message || "Terjadi kesalahan jaringan.", life: 3000 });
+                setProfile(null); // Set profile to null on error to show failure screen
             } finally {
                 setIsLoading(false);
             }
         };
+
         fetchProfile();
 
+        // Cleanup function to revoke blob URL on component unmount
         return () => {
             if (previewUrl && previewUrl.startsWith("blob:")) {
                 URL.revokeObjectURL(previewUrl);
             }
         };
-    }, [router, previewUrl]);
+        // CRITICAL FIX: The dependency array should be empty.
+        // Adding `previewUrl` here would cause an infinite loop of fetching.
+    }, []);
 
+    // Handlers for form input changes
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setProfile((prevProfile) => ({
-            ...prevProfile,
-            [name]: value
-        }));
+        setProfile((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleDateChange = (e) => {
-        setProfile((prevProfile) => ({
-            ...prevProfile,
-            date_of_birth: e.value
-        }));
+        setProfile((prev) => ({ ...prev, date_of_birth: e.value }));
     };
 
     const handleFileChange = (event) => {
         const file = event.target.files[0];
         if (file) {
             setSelectedFile(file);
+            // Create a new preview URL and revoke the old one if it exists
             if (previewUrl && previewUrl.startsWith("blob:")) {
                 URL.revokeObjectURL(previewUrl);
             }
             setPreviewUrl(URL.createObjectURL(file));
-        } else {
-            setSelectedFile(null);
-            setPreviewUrl(profile?.profile_photo_url || null);
         }
     };
 
+    // Form submission handler
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSaving(true);
 
+        const formData = new FormData();
+
+        // Append only the fields that should be updated
+        formData.append("full_name", profile.full_name || "");
+        formData.append("username", profile.username || "");
+        formData.append("email", profile.email || "");
+        formData.append("phone_number", profile.phone_number || "");
+        formData.append("address", profile.address || "");
+        formData.append("city", profile.city || "");
+        formData.append("bio", profile.bio || "");
+
+        // Format date to YYYY-MM-DD for the backend
+        if (profile.date_of_birth) {
+            formData.append("date_of_birth", profile.date_of_birth.toISOString().split("T")[0]);
+        }
+
+        // Append photo only if a new one is selected
+        if (selectedFile) {
+            formData.append("photo", selectedFile);
+        }
+
         try {
-            const formData = new FormData();
-
-            for (const key in profile) {
-                if (profile.hasOwnProperty(key)) {
-                    if (key === "date_of_birth" && profile[key] instanceof Date) {
-                        formData.append(key, profile[key].toISOString().split("T")[0]);
-                    } else if (key !== "profile_photo_url") {
-                        formData.append(key, profile[key]);
-                    }
-                }
-            }
-
-            if (selectedFile) {
-                formData.append("photo", selectedFile);
-            }
-
             const res = await fetch("http://localhost:3100/api/user-detail", {
-                method: "PATCH",
+                method: "PUT",
                 body: formData,
                 credentials: "include"
             });
 
+            const responseData = await res.json();
+
             if (res.ok) {
-                const updatedProfileData = await res.json();
-                setProfile((prev) => ({
-                    ...prev,
-                    ...updatedProfileData.data,
-                    date_of_birth: updatedProfileData.data.date_of_birth ? new Date(updatedProfileData.data.date_of_birth) : null
-                }));
-                setPreviewUrl(updatedProfileData.data.profile_photo_url || null);
-                setSelectedFile(null);
                 toast.current.show({
                     severity: "success",
                     summary: "Berhasil",
                     detail: "Profil berhasil diperbarui!",
-                    life: 3000
+                    life: 2000
                 });
-                router.push("/dashboard/profile");
+                // Navigate back to profile page after a short delay to let user see the toast
+                setTimeout(() => {
+                    router.push("/profile");
+                }, 1500);
             } else {
-                const errorData = await res.json();
-                toast.current.show({
-                    severity: "error",
-                    summary: "Gagal",
-                    detail: errorData.message || "Gagal memperbarui profil.",
-                    life: 3000
-                });
+                throw new Error(responseData.message || "Gagal memperbarui profil.");
             }
         } catch (err) {
             console.error("Gagal memperbarui profil:", err);
             toast.current.show({
                 severity: "error",
-                summary: "Error",
-                detail: "Terjadi kesalahan jaringan saat memperbarui profil.",
+                summary: "Gagal",
+                detail: err.message,
                 life: 3000
             });
         } finally {
@@ -505,133 +154,96 @@ function Page() {
         }
     };
 
+    // === RENDER LOGIC ===
+
     if (isLoading) {
         return (
-            <div className="flex justify-content-center align-items-center min-h-screen">
+            <div className="flex justify-content-center align-items-center" style={{ minHeight: "80vh" }}>
                 <ProgressSpinner />
-                <p className="ml-3">Memuat data profil...</p>
             </div>
         );
     }
 
     if (!profile) {
         return (
-            <div className="flex flex-column justify-content-center align-items-center min-h-screen gap-3">
+            <div className="flex flex-column justify-content-center align-items-center gap-3" style={{ minHeight: "80vh" }}>
                 <Toast ref={toast} />
-                <i className="pi pi-exclamation-circle text-6xl text-red-500"></i>
-                <h3 className="text-2xl font-medium">Gagal memuat profil</h3>
-                <p className="text-600">Silakan coba lagi nanti</p>
-                <Button label="Coba Lagi" icon="pi pi-refresh" className="p-button-text" onClick={() => window.location.reload()} />
+                <i className="pi pi-exclamation-triangle text-6xl text-orange-500"></i>
+                <h3 className="text-2xl font-medium">Gagal Memuat Profil</h3>
+                <p className="text-600">Tidak dapat mengambil data. Silakan coba lagi nanti.</p>
+                <Button label="Kembali" icon="pi pi-arrow-left" onClick={() => router.back()} />
             </div>
         );
     }
 
     return (
-        <div className="p-4 md:p-6 min-h-screen">
+        <div className="p-4 md:p-6">
             <Toast ref={toast} />
-            <Card className="w-full max-w-4xl mx-auto shadow-3 border-round-xl">
-                <div className="flex justify-content-between align-items-center mb-5">
-                    <Button icon="pi pi-arrow-left" label="Kembali" className="p-button-text" onClick={() => router.push("/dashboard/profile")} />
-                    <h1 className="text-2xl font-bold">Edit Profil</h1>
-                    <div style={{ width: "120px" }}></div> {/* Spacer for balance */}
+            <Card className="w-full max-w-4xl mx-auto shadow-2">
+                <div className="flex justify-content-between align-items-center mb-4">
+                    <h1 className="text-2xl md:text-3xl font-bold m-0">Edit Profil</h1>
+                    <Button label="Batal" icon="pi pi-times" className="p-button-text p-button-danger" onClick={() => router.push("/profile")} />
                 </div>
-
                 <Divider />
 
                 <form onSubmit={handleSubmit}>
                     {/* Profile Photo Section */}
-                    <div className="flex flex-column align-items-center mb-6">
-                        <div className="relative mb-4">
-                            <Avatar
-                                image={previewUrl || "https://placehold.co/150x150/E0E0E0/808080?text=No+Image"}
-                                size="xlarge"
-                                shape="circle"
-                                className="border-2 border-primary"
-                                style={{ width: "150px", height: "150px" }}
-                                onImageError={(e) => {
-                                    e.target.src = "https://placehold.co/150x150/E0E0E0/808080?text=No+Image";
-                                }}
-                            />
-                        </div>
+                    <div className="flex flex-column align-items-center my-5">
+                        <Avatar
+                            image={previewUrl}
+                            size="xlarge"
+                            shape="circle"
+                            className="mb-3"
+                            style={{ width: "120px", height: "120px" }}
+                            onImageError={(e) => {
+                                e.target.src = "https://placehold.co/120x120?text=No+Image";
+                            }}
+                        />
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: "none" }} />
-                        <Button label="Ubah Foto Profil" icon="pi pi-upload" className="p-button-outlined" onClick={() => fileInputRef.current.click()} type="button" />
-                        {selectedFile && <small className="mt-2 text-600">File dipilih: {selectedFile.name}</small>}
+                        <Button label="Ubah Foto" icon="pi pi-upload" className="p-button-outlined" onClick={() => fileInputRef.current.click()} type="button" />
+                        {selectedFile && <small className="mt-2 text-600">File baru: {selectedFile.name}</small>}
                     </div>
 
-                    <Divider />
-
-                    {/* Form Fields */}
-                    <div className="grid p-4">
-                        {/* Left Column */}
-                        <div className="col-12 md:col-6">
-                            <div className="field mb-5">
-                                <label htmlFor="full_name" className="block font-medium text-600 mb-2">
-                                    Nama Lengkap
-                                </label>
-                                <InputText id="full_name" name="full_name" value={profile.full_name || ""} onChange={handleChange} className="w-full" required />
-                            </div>
-
-                            <div className="field mb-5">
-                                <label htmlFor="username" className="block font-medium text-600 mb-2">
-                                    Username
-                                </label>
-                                <InputText id="username" name="username" value={profile.username || ""} onChange={handleChange} className="w-full" />
-                            </div>
-
-                            <div className="field mb-5">
-                                <label htmlFor="email" className="block font-medium text-600 mb-2">
-                                    Email
-                                </label>
-                                <InputText id="email" name="email" type="email" value={profile.email || ""} onChange={handleChange} className="w-full" required />
-                            </div>
+                    {/* Form Fields using a Grid Layout */}
+                    <div className="grid formgrid p-fluid p-3">
+                        <div className="field col-12 md:col-6">
+                            <label htmlFor="full_name">Nama Lengkap</label>
+                            <InputText id="full_name" name="full_name" value={profile.full_name || ""} onChange={handleChange} required />
                         </div>
-
-                        {/* Right Column */}
-                        <div className="col-12 md:col-6">
-                            <div className="field mb-5">
-                                <label htmlFor="phone_number" className="block font-medium text-600 mb-2">
-                                    Telepon
-                                </label>
-                                <InputText id="phone_number" name="phone_number" value={profile.phone_number || ""} onChange={handleChange} className="w-full" />
-                            </div>
-
-                            <div className="field mb-5">
-                                <label htmlFor="date_of_birth" className="block font-medium text-600 mb-2">
-                                    Tanggal Lahir
-                                </label>
-                                <Calendar id="date_of_birth" name="date_of_birth" value={profile.date_of_birth} onChange={handleDateChange} dateFormat="dd/mm/yy" showIcon className="w-full" />
-                            </div>
-
-                            <div className="field mb-5">
-                                <label htmlFor="city" className="block font-medium text-600 mb-2">
-                                    Kota
-                                </label>
-                                <InputText id="city" name="city" value={profile.city || ""} onChange={handleChange} className="w-full" />
-                            </div>
+                        <div className="field col-12 md:col-6">
+                            <label htmlFor="username">Username</label>
+                            <InputText id="username" name="username" value={profile.username || ""} onChange={handleChange} />
                         </div>
-                    </div>
-
-                    <div className="p-4">
-                        <div className="field mb-4">
-                            <label htmlFor="address" className="block font-medium text-600 mb-2">
-                                Alamat
-                            </label>
-                            <InputTextarea id="address" name="address" rows={3} value={profile.address || ""} onChange={handleChange} className="w-full" />
+                        <div className="field col-12 md:col-6">
+                            <label htmlFor="email">Email</label>
+                            <InputText id="email" name="email" type="email" value={profile.email || ""} onChange={handleChange} required />
                         </div>
-
-                        <div className="field mb-4">
-                            <label htmlFor="bio" className="block font-medium text-600 mb-2">
-                                Bio
-                            </label>
-                            <InputTextarea id="bio" name="bio" rows={4} value={profile.bio || ""} onChange={handleChange} className="w-full" />
+                        <div className="field col-12 md:col-6">
+                            <label htmlFor="phone_number">Telepon</label>
+                            <InputText id="phone_number" name="phone_number" value={profile.phone_number || ""} onChange={handleChange} />
+                        </div>
+                        <div className="field col-12 md:col-6">
+                            <label htmlFor="city">Kota</label>
+                            <InputText id="city" name="city" value={profile.city || ""} onChange={handleChange} />
+                        </div>
+                        <div className="field col-12 md:col-6">
+                            <label htmlFor="date_of_birth">Tanggal Lahir</label>
+                            <Calendar id="date_of_birth" name="date_of_birth" value={profile.date_of_birth} onChange={handleDateChange} dateFormat="dd/mm/yy" showIcon />
+                        </div>
+                        <div className="field col-12">
+                            <label htmlFor="address">Alamat</label>
+                            <InputTextarea id="address" name="address" rows={3} value={profile.address || ""} onChange={handleChange} />
+                        </div>
+                        <div className="field col-12">
+                            <label htmlFor="bio">Bio</label>
+                            <InputTextarea id="bio" name="bio" rows={4} value={profile.bio || ""} onChange={handleChange} />
                         </div>
                     </div>
 
                     <Divider />
 
-                    <div className="flex justify-content-end gap-3 p-4">
-                        <Button label="Batal" icon="pi pi-times" className="p-button-outlined p-button-secondary" onClick={() => router.push("/dashboard/profile")} type="button" />
-                        <Button type="submit" label={isSaving ? "Menyimpan..." : "Simpan Perubahan"} icon={isSaving ? "pi pi-spin pi-spinner" : "pi pi-check"} className="" disabled={isSaving} />
+                    <div className="flex justify-content-end mt-4">
+                        <Button type="submit" label={isSaving ? "Menyimpan..." : "Simpan Perubahan"} icon={isSaving ? "pi pi-spin pi-spinner" : "pi pi-check"} disabled={isSaving} />
                     </div>
                 </form>
             </Card>
@@ -639,4 +251,4 @@ function Page() {
     );
 }
 
-export default Page;
+export default EditProfilePage;

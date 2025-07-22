@@ -16,7 +16,7 @@ export const POST = async (request) => {
             nextResponse.cookies.set({
                 name: "authToken",
                 value: data.token,
-                httpOnly: true,
+                httpOnly: false,
                 path: "/",
                 maxAge: 60 * 60 * 24,
                 secure: process.env.NODE_ENV === "production",
