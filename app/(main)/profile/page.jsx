@@ -5,7 +5,9 @@ import { Button } from "primereact/button";
 import { Avatar } from "primereact/avatar";
 import { Divider } from "primereact/divider";
 import { Chip } from "primereact/chip";
+import { Skeleton } from "primereact/skeleton";
 import { useRouter } from "next/navigation";
+import { ProgressSpinner } from "primereact/progressspinner";
 
 const ProfilePage = () => {
     const [user, setUser] = useState(null);
@@ -15,9 +17,7 @@ const ProfilePage = () => {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                
                 const res = await fetch("http://localhost:3100/api/user-detail", {
-                    
                     credentials: "include"
                 });
 
@@ -25,14 +25,12 @@ const ProfilePage = () => {
                     const result = await res.json();
                     setUser(result.data);
                 } else {
-                    // Jika gagal (misal: 401 Unauthorized), redirect ke login
                     router.push("/auth/login");
                 }
             } catch (err) {
                 console.error("Gagal mengambil data profil:", err);
                 setUser(null);
             } finally {
-                // Hentikan loading terlepas dari berhasil atau gagal
                 setIsLoading(false);
             }
         };
@@ -40,17 +38,6 @@ const ProfilePage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Tampilan saat data sedang diambil
-    if (isLoading) {
-        return <div className="text-center p-5">Loading...</div>;
-    }
-
-    // Tampilan jika data gagal diambil setelah loading selesai
-    if (!user) {
-        return <div className="text-center p-5">Gagal memuat profil. Silakan coba lagi.</div>;
-    }
-
-    // Fungsi untuk memformat tanggal
     const formatDate = (dateString) => {
         if (!dateString) return "-";
         return new Date(dateString).toLocaleDateString("id-ID", {
@@ -60,65 +47,120 @@ const ProfilePage = () => {
         });
     };
 
-    const header = (
-        <div className="flex flex-column align-items-center gap-3 pt-5">
-            <Avatar image={user.profile_photo_url} label={user.full_name ? user.full_name.charAt(0) : "U"} size="xlarge" shape="circle" />
-            <div>
-                <h2 className="text-2xl font-bold mb-1">{user.full_name}</h2>
-                <div className="text-center">
-                    <Chip label={user.role} className="text-sm" />
-                </div>
+    if (isLoading) {
+        return (
+            <div className="flex justify-content-center align-items-center min-h-screen">
+                <ProgressSpinner animationDuration=".5s" />
             </div>
-        </div>
-    );
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="flex flex-column justify-content-center align-items-center min-h-screen gap-3">
+                <i className="pi pi-exclamation-circle text-6xl text-red-500"></i>
+                <h3 className="text-2xl font-medium">Gagal memuat profil</h3>
+                <p className="text-600">Silakan coba lagi nanti</p>
+                <Button label="Coba Lagi" icon="pi pi-refresh" className="p-button-text" onClick={() => window.location.reload()} />
+            </div>
+        );
+    }
 
     return (
-        <div className="p-4 md:p-6">
-            <Card header={header} className="w-full md:w-30rem lg:w-40rem mx-auto">
-                <Divider />
-                <div className="p-3">
-                    <h3 className="font-semibold text-lg mb-4">Informasi Kontak</h3>
-                    <ul className="list-none p-0 m-0">
-                        <li className="flex justify-content-between mb-3">
-                            <span className="font-medium text-600">Username</span>
-                            <span className="text-900">{user.username || "-"}</span>
-                        </li>
-                        <li className="flex justify-content-between mb-3">
-                            <span className="font-medium text-600">Email</span>
-                            <span className="text-900">{user.email || "-"}</span>
-                        </li>
-                        <li className="flex justify-content-between mb-3">
-                            <span className="font-medium text-600">Telepon</span>
-                            <span className="text-900">{user.phone_number || "-"}</span>
-                        </li>
-                    </ul>
+        <div className="flex justify-content-center p-3 md:p-5">
+            <Card className="w-full max-w-4xl shadow-3 border-round-xl">
+                {/* Header Section */}
+                <div className="flex flex-column md:flex-row align-items-center gap-5 p-5 pb-0">
+                    <div className="relative">
+                        <Avatar image={user.profile_photo_url} label={user.full_name?.charAt(0) || "U"} size="xlarge" shape="circle" className="border-2 border-primary" style={{ width: "120px", height: "120px", fontSize: "3rem" }} />
+                        <Chip label={user.role} className="absolute -bottom-2 left-50 transform -translate-x-50 shadow-2" style={{ minWidth: "80px" }} />
+                    </div>
+
+                    <div className="flex-1 text-center md:text-left">
+                        <h1 className="text-4xl font-bold mb-2 text-900">{user.full_name}</h1>
+                        {user.bio && <p className="text-700 italic border-left-3 border-primary pl-3">"{user.bio}"</p>}
+                    </div>
+
+                    <Button label="Edit Profil" icon="pi pi-user-edit" className="p-button-rounded p-button-outlined align-self-start md:align-self-center" onClick={() => router.push("/profile/edit")} />
                 </div>
-                <Divider />
-                <div className="p-3">
-                    <h3 className="font-semibold text-lg mb-4">Detail Pribadi</h3>
-                    <ul className="list-none p-0 m-0">
-                        <li className="flex justify-content-between mb-3">
-                            <span className="font-medium text-600">Alamat</span>
-                            <span className="text-900 text-right">{user.address || "-"}</span>
-                        </li>
-                        <li className="flex justify-content-between mb-3">
-                            <span className="font-medium text-600">Kota</span>
-                            <span className="text-900">{user.city || "-"}</span>
-                        </li>
-                        <li className="flex justify-content-between mb-3">
-                            <span className="font-medium text-600">Tanggal Lahir</span>
-                            <span className="text-900">{formatDate(user.date_of_birth)}</span>
-                        </li>
-                        <li className="flex flex-column mb-3">
-                            <span className="font-medium text-600 mb-2">Bio</span>
-                            <p className="text-900 m-0 text-sm">{user.bio || "Bio belum diisi."}</p>
-                        </li>
-                    </ul>
+
+                <Divider className="my-4" />
+
+                {/* Main Content */}
+                <div className="grid p-5 pt-0">
+                    {/* Contact Information */}
+                    <div className="col-12 md:col-6">
+                        <div className="surface-100 p-4 border-round-lg">
+                            <h3 className="text-xl font-semibold mb-4 flex align-items-center gap-2">
+                                <i className="pi pi-id-card text-primary"></i>
+                                <span>Informasi Kontak</span>
+                            </h3>
+
+                            <ul className="list-none p-0 m-0 space-y-4">
+                                <li className="flex align-items-center gap-3 mb-3">
+                                    <i className="pi pi-user text-600"></i>
+                                    <div className="flex-1">
+                                        <span className="block text-600 text-sm">Username</span>
+                                        <span className="font-medium">{user.username || "-"}</span>
+                                    </div>
+                                </li>
+
+                                <li className="flex align-items-center gap-3 mb-3">
+                                    <i className="pi pi-envelope text-600"></i>
+                                    <div className="flex-1">
+                                        <span className="block text-600 text-sm">Email</span>
+                                        <span className="font-medium">{user.email || "-"}</span>
+                                    </div>
+                                </li>
+
+                                <li className="flex align-items-center gap-3 mb-3">
+                                    <i className="pi pi-phone text-600"></i>
+                                    <div className="flex-1">
+                                        <span className="block text-600 text-sm">Telepon</span>
+                                        <span className="font-medium">{user.phone_number || "-"}</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    {/* Personal Details */}
+                    <div className="col-12 md:col-6 mt-4 md:mt-0">
+                        <div className="surface-100 p-4 border-round-lg">
+                            <h3 className="text-xl font-semibold mb-4 flex align-items-center gap-2">
+                                <i className="pi pi-info-circle text-primary"></i>
+                                <span>Detail Pribadi</span>
+                            </h3>
+
+                            <ul className="list-none p-0 m-0 space-y-4">
+                                <li className="flex align-items-center gap-3 mb-3">
+                                    <i className="pi pi-map-marker text-600"></i>
+                                    <div className="flex-1">
+                                        <span className="block text-600 text-sm">Alamat</span>
+                                        <span className="font-medium">{user.address || "-"}</span>
+                                    </div>
+                                </li>
+
+                                <li className="flex align-items-center gap-3 mb-3">
+                                    <i className="pi pi-building text-600"></i>
+                                    <div className="flex-1">
+                                        <span className="block text-600 text-sm">Kota</span>
+                                        <span className="font-medium">{user.city || "-"}</span>
+                                    </div>
+                                </li>
+
+                                <li className="flex align-items-center gap-3 mb-3">
+                                    <i className="pi pi-calendar text-600"></i>
+                                    <div className="flex-1">
+                                        <span className="block text-600 text-sm">Tanggal Lahir</span>
+                                        <span className="font-medium">{formatDate(user.date_of_birth)}</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <Divider />
-                <div className="p-3 text-center">
-                    <Button label="Edit Profil" icon="pi pi-user-edit" className="p-button-raised" onClick={() => router.push("/dashboard/profile/edit")} />
-                </div>
+
             </Card>
         </div>
     );
