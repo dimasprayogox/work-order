@@ -13,7 +13,7 @@ export const seed = async function(knex) {
   await knex("users").insert([
     {
       id: crypto.randomUUID(),
-      username: "Technician",
+      username: "technician",
       email: "technician@example.com",
       password: hashedPassword,
       role: "technician",
@@ -45,7 +45,7 @@ export const seed = async function(knex) {
     },
     {
       id: crypto.randomUUID(),
-      username: "Employee",
+      username: "employee",
       email: "employee@example.com",
       password: hashedPassword,
       role: "employee",
