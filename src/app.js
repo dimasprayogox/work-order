@@ -29,6 +29,7 @@ import technicianWorkOrderRoutes from './routes/technician/workOrder.routes.js';
 import technicianPartRequestRoutes from './routes/technician/partRequest.routes.js';
 
 // logistics
+import logisticsDashboardRoutes from './routes/logistics/dashboard.routes.js';
 import partRoutes from './routes/logistics/part.routes.js';
 import partRequestRoutes from './routes/logistics/part-request.routes.js';
 import partUsageRoutes from './routes/logistics/part-usage.routes.js';
@@ -97,6 +98,7 @@ app.use('/api/technician/work-orders', technicianWorkOrderRoutes);
 app.use('/api/technician/part-request', technicianPartRequestRoutes);
 
 // logistics
+app.use('/api/logistics/dashboard', logisticsDashboardRoutes);
 app.use('/api/logistics/parts', partRoutes);
 app.use('/api/logistics/part-requests', partRequestRoutes);
 app.use('/api/logistics/part-usage', partUsageRoutes);
