@@ -9,6 +9,8 @@ import { setResponseHeader } from "./middleware/set-headers.js";
 //auth
 import authRoutes from "./routes/auth.routes.js";
 
+import { imagesErrorHandler } from "./middleware/images-middleware.js";
+
 // user details all role can use
 import userDetailRoutes from './routes/user-details.routes.js';
 
@@ -74,6 +76,7 @@ app.use("/api/auth", authRoutes);
 
 //user details all role can use
 app.use("/api/user-detail", userDetailRoutes);
+app.use(imagesErrorHandler);
 
 //admin
 app.use('/api/admin/users', userRoutes);

@@ -8,6 +8,9 @@ import { updateProfileSchema } from "../schemas/userDetailSchema.js";
 import dotenv from "dotenv"
 dotenv.config()
 
+const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png"];
+
 export const show = async (req, res) => {
   try {
     const userId = req.user.userId; // dari JWT middleware
@@ -30,6 +33,21 @@ export const update = async (req, res) => {
         message: "Validasi gagal",
         errors: parsed.error.flatten().fieldErrors,
       });
+    }
+
+     if (req.file) {
+      if (req.file.size > MAX_FILE_SIZE) {
+        return res.status(400).json({
+          message: "Validasi gagal",
+          errors: { photo: ["Ukuran file maksimal adalah 1MB."] },
+        });
+      }
+      if (!ACCEPTED_IMAGE_TYPES.includes(req.file.mimetype)) {
+        return res.status(400).json({
+          message: "Validasi gagal",
+          errors: { photo: ["Hanya format .jpg dan .png yang didukung."] },
+        });
+      }
     }
 
     const body = parsed.data;
