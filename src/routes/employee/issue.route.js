@@ -11,5 +11,6 @@ router.use(authorizeRole('employee'));
 router.post("/", upload.single("photo"), IssueController.store);
 router.get("/", IssueController.getAll);
 router.get("/:id", IssueController.getById);
+router.patch("/:id", upload.single("photo"), IssueController.update);
 
 export default router;

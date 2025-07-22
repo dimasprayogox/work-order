@@ -53,7 +53,7 @@ app.use(
             "X-Timestamp",
             "X-Signature",
         ],
-        methods: ["GET", "POST", "PUT", "DELETE"],
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
         optionSuccessStatus: 200,
     })
 );
