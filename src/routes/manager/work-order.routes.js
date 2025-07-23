@@ -17,7 +17,7 @@ router.get('/:id', WorkOrderController.show);
 router.post('/', WorkOrderController.create);
 
 // Update existing work order
-router.put('/:id', WorkOrderController.update);
+router.patch('/:id', WorkOrderController.update);
 
 // Delete work order
 router.delete('/:id', WorkOrderController.delete);

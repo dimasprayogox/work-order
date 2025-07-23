@@ -43,7 +43,7 @@ export const WorkOrderController = {
      * @description Update status dan catatan work order milik teknisi
      * @route PATCH /technician/work-orders/:id
      */
-    async updateWorkOrder(req, res) {
+   async updateWorkOrder(req, res) {
         try {
             const id = req.params.id;
             const technicianId = req.user.userId;
@@ -55,7 +55,8 @@ export const WorkOrderController = {
                     errors: parsed.error.flatten().fieldErrors
                 });
             }
-            const { status, notes } = parsed.data;
+
+            const { status, description, started_at, completed_at } = parsed.data;
 
             const workOrder = await WorkOrder.query().findById(id);
             if (!workOrder) {
@@ -66,7 +67,15 @@ export const WorkOrderController = {
                 return res.status(403).json({ message: "Forbidden. You are not authorized to update this work order." });
             }
 
-            // **Cek part usage jika status ingin diubah ke 'completed'**
+            // Validasi waktu berdasarkan status
+            if (status === "in_progress" && !started_at) {
+                return res.status(400).json({ message: "started_at is required when status is 'in_progress'." });
+            }
+            if (status === "completed" && !completed_at) {
+                return res.status(400).json({ message: "completed_at is required when status is 'completed'." });
+            }
+
+            // Cek part usage jika status ingin diubah ke 'completed'
             if (status === "completed") {
                 const requests = await PartRequest.query()
                     .where("work_order_id", id)
@@ -92,7 +101,9 @@ export const WorkOrderController = {
 
             const updatedWorkOrder = await workOrder.$query().patchAndFetch({
                 status,
-                notes
+                description,
+                started_at: status === "in_progress" ? started_at : workOrder.started_at,
+                completed_at: status === "completed" ? completed_at : null,
             });
 
             if (status === "completed") {

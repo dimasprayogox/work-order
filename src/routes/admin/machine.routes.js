@@ -10,7 +10,7 @@ router.use(authorizeRole('admin'));
 router.get('/', MachineController.index);         // Get all machines
 router.get('/:id', MachineController.show);       // Get single machine
 router.post('/', MachineController.store);        // Create machine
-router.put('/:id', MachineController.update);     // Update machine
+router.patch('/:id', MachineController.update);     // Update machine
 router.delete('/:id', MachineController.destroy); // Delete machine
 
 export default router;
