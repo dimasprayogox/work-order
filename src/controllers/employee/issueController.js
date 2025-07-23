@@ -160,4 +160,35 @@ export const IssueController = {
             res.status(500).json({ message: "Failed to update issue", error: err.message });
         }
     },
+    
+    async delete(req, res) {
+        try {
+            const { id } = req.params;
+
+            const issue = await Issue.query().findById(id);
+            if (!issue) {
+                return res.status(404).json({ message: "Issue not found." });
+            }
+
+            if (issue.status !== "open") {
+                return res.status(400).json({ message: "Only issues with status 'open' can be deleted." });
+            }
+
+            // Hapus Work Order terkait dulu (jika ada)
+            await WorkOrder.query().delete().where("issue_id", id);
+
+            // Hapus issue
+            await Issue.query().deleteById(id);
+
+            // Update status mesin ke 'available'
+            if (issue.machine_id) {
+                await Machine.query().patchAndFetchById(issue.machine_id, { status: "available" });
+            }
+
+            res.status(200).json({ message: "Issue deleted successfully." });
+        } catch (err) {
+            console.error("Error deleting issue:", err);
+            res.status(500).json({ message: "Failed to delete issue", error: err.message });
+        }
+    }
 };
