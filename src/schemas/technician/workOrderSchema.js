@@ -6,5 +6,7 @@ export const updateWorkOrderSchema = z.object({
         required_error: "Status is required",
         invalid_type_error: "Status must be one of 'in_progress', or 'completed'",
     }),
-    notes: z.string(),
+    description: z.string(),
+    started_at: z.coerce.date().optional(),
+    completed_at: z.coerce.date().optional(),
 });

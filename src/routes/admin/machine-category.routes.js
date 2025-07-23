@@ -10,7 +10,7 @@ router.use(authorizeRole('admin')); // Ensure user has 'admin' role
 router.get('/', MachineCategoryController.index);         // Get all categories
 router.get('/:id', MachineCategoryController.show);       // Get single category
 router.post('/', MachineCategoryController.store);        // Create category
-router.put('/:id', MachineCategoryController.update);     // Update category
+router.patch('/:id', MachineCategoryController.update);     // Update category
 router.delete('/:id', MachineCategoryController.destroy); // Delete category
 
 export default router;
