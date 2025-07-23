@@ -9,6 +9,6 @@ router.use(authMiddleware);
 router.use(authorizeRole('logistics'));
 
 router.get('/', PartRequestController.index);
-router.put('/:id', PartRequestController.updateStatus);
+router.patch('/:id', PartRequestController.updateStatus);
 
 export default router;
