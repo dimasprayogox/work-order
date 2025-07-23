@@ -1,6 +1,6 @@
 import { Part } from "../../models/Part.js";
 import { v4 as uuidv4 } from "uuid";
-import { createPartSchema, updatePartSchema } from "../../schemas/logistics/partSchema.js";
+import { createPartSchema, updatePartSchema } from "../../schemas/logistic/partSchema.js";
 
 export const PartController = {
     async index(req, res) {

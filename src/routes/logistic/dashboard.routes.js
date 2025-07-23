@@ -1,5 +1,5 @@
 import express from 'express';
-import { LogisticsDashboardController } from '../../controllers/logistics/DashboardController.js';
+import { LogisticsDashboardController } from '../../controllers/logistic/DashboardController.js';
 import { authMiddleware } from '../../middleware/auth-middleware.js';
 import { authorizeRole } from '../../middleware/role-middleware.js';
 
