@@ -2,6 +2,7 @@ import { BaseModel } from './BaseModel.js';
 import { User } from './User.js';
 import { WorkOrder } from './WorkOrder.js';
 import { PartRequestItem } from './PartRequestItem.js';
+import { PartUsage } from './PartUsage.js';
 
 export class PartRequest extends BaseModel {
     static get tableName() {
@@ -34,6 +35,14 @@ export class PartRequest extends BaseModel {
                     to: 'part_request_items.part_request_id',
                 },
             },
+            partUsages: {
+                relation: BaseModel.HasManyRelation,
+                modelClass: PartUsage,
+                join: {
+                    from: 'part_request_items.part_id',
+                    to: 'part_usages.part_id'
+                }
+            }
         };
     }
 }

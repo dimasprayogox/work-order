@@ -7,12 +7,15 @@ const router = express.Router();
 
 // Semua endpoint memerlukan autentikasi
 router.use(authMiddleware);
+router.use(authorizeRole("technician"));
 
 // Teknisi: buat Part Request untuk Work Order
-router.post("/", authorizeRole("technician"), PartRequestController.create);
-
+router.post("/", PartRequestController.create);
+// Ambil semua Part Request milik teknisi yang login
+router.get("/", PartRequestController.getMyPartRequests);
 // Teknisi: lihat semua Part Request untuk Work Order tertentu
-router.get("/:id", authorizeRole("technician"), PartRequestController.getByWorkOrder);
-
+router.get("/:workOrderId", PartRequestController.getByWorkOrder);
+// Teknisi: delete Part Request jika status masih pending
+router.delete("/:id", PartRequestController.delete);
 
 export default router;

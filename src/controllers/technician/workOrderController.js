@@ -1,6 +1,8 @@
 import { WorkOrder } from "../../models/WorkOrder.js";
 import { Issue } from "../../models/Issue.js";
 import { Machine } from "../../models/Machine.js";
+import { PartRequest } from "../../models/PartRequest.js";
+import { PartUsage } from "../../models/PartUsage.js";
 import { updateWorkOrderSchema } from "../../schemas/technician/workOrderSchema.js";
 
 export const WorkOrderController = {
@@ -46,7 +48,6 @@ export const WorkOrderController = {
             const id = req.params.id;
             const technicianId = req.user.userId;
 
-            // 1. Validasi input
             const parsed = updateWorkOrderSchema.safeParse(req.body);
             if (!parsed.success) {
                 return res.status(400).json({
@@ -56,37 +57,50 @@ export const WorkOrderController = {
             }
             const { status, notes } = parsed.data;
 
-            // 2. Cari work order
             const workOrder = await WorkOrder.query().findById(id);
             if (!workOrder) {
                 return res.status(404).json({ message: "Work Order not found." });
             }
 
-            // 3. Cek otorisasi teknisi
             if (workOrder.assigned_to_id !== technicianId) {
-                return res.status(403).json({
-                    message: "Forbidden. You are not authorized to update this work order. or work order have not assigned to you."
-                });
+                return res.status(403).json({ message: "Forbidden. You are not authorized to update this work order." });
             }
 
-            // 4. Update WO
+            // **Cek part usage jika status ingin diubah ke 'completed'**
+            if (status === "completed") {
+                const requests = await PartRequest.query()
+                    .where("work_order_id", id)
+                    .whereIn("status", ["approved", "fulfilled"])
+                    .withGraphFetched("items");
+
+                for (const request of requests) {
+                    for (const item of request.items) {
+                        const totalUsed = await PartUsage.query()
+                            .where("work_order_id", id)
+                            .andWhere("part_id", item.part_id)
+                            .sum("quantity_used as total")
+                            .first();
+
+                        if ((totalUsed.total || 0) < (item.quantity_approved || 0)) {
+                            return res.status(400).json({
+                                message: `Cannot complete work order. Approved part (ID: ${item.part_id}) has not been fully used.`
+                            });
+                        }
+                    }
+                }
+            }
+
             const updatedWorkOrder = await workOrder.$query().patchAndFetch({
                 status,
                 notes
             });
 
-            // 5. Jika WO selesai, update issue & mesin
             if (status === "completed") {
                 if (workOrder.issue_id) {
-                    await Issue.query().patchAndFetchById(workOrder.issue_id, {
-                        status: "resolved"
-                    });
+                    await Issue.query().patchAndFetchById(workOrder.issue_id, { status: "resolved" });
                 }
-
                 if (workOrder.machine_id) {
-                    await Machine.query().patchAndFetchById(workOrder.machine_id, {
-                        status: "available"
-                    });
+                    await Machine.query().patchAndFetchById(workOrder.machine_id, { status: "available" });
                 }
             }
 
@@ -96,10 +110,7 @@ export const WorkOrderController = {
             });
         } catch (err) {
             console.error("Error updating work order:", err);
-            res.status(500).json({
-                message: "Failed to update work order",
-                error: err.message
-            });
+            res.status(500).json({ message: "Failed to update work order", error: err.message });
         }
     },
 
