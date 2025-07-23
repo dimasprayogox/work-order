@@ -12,5 +12,6 @@ router.post("/", upload.single("photo"), IssueController.store);
 router.get("/", IssueController.getAll);
 router.get("/:id", IssueController.getById);
 router.patch("/:id", upload.single("photo"), IssueController.update);
+router.delete("/:id", IssueController.delete);
 
 export default router;
