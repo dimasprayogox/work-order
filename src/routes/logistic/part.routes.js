@@ -11,7 +11,7 @@ router.use(authorizeRole('logistics'));
 router.get('/', PartController.index);
 router.get('/:id', PartController.show);
 router.post('/', PartController.store);
-router.put('/:id', PartController.update);
+router.patch('/:id', PartController.update);
 router.delete('/:id', PartController.destroy);
 
 export default router;
