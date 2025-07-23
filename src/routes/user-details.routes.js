@@ -10,6 +10,6 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get("/", authMiddleware, show);
-router.patch("/", upload.single("photo"), authMiddleware, update);
+router.put("/", upload.single("photo"), authMiddleware, update);
 
 export default router;

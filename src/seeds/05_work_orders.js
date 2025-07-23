@@ -57,7 +57,7 @@ export async function seed(knex) {
       created_by_id: userAdmin.id,
       issue_id: null, // Contoh work order tanpa issue terkait
       priority: "medium",
-      status: "open",
+      status: "completed",
       scheduled_date: new Date(new Date().setDate(new Date().getDate() + 3)), // 3 hari dari sekarang
       created_at: new Date(),
       updated_at: new Date(),

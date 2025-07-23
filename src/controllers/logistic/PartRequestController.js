@@ -1,6 +1,6 @@
 import { PartRequest } from "../../models/PartRequest.js";
 import { PartRequestItem } from "../../models/PartRequestItem.js";
-import { updatePartRequestStatusSchema } from "../../schemas/logistics/partRequestSchema.js";
+import { updatePartRequestStatusSchema } from "../../schemas/logistic/partRequestSchema.js";
 import { Part } from "../../models/Part.js";
 
 export const PartRequestController = {

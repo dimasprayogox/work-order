@@ -9,6 +9,8 @@ import { setResponseHeader } from "./middleware/set-headers.js";
 //auth
 import authRoutes from "./routes/auth.routes.js";
 
+import { imagesErrorHandler } from "./middleware/images-middleware.js";
+
 // user details all role can use
 import userDetailRoutes from './routes/user-details.routes.js';
 
@@ -29,10 +31,10 @@ import technicianWorkOrderRoutes from './routes/technician/workOrder.routes.js';
 import technicianPartRequestRoutes from './routes/technician/partRequest.routes.js';
 
 // logistics
-import logisticsDashboardRoutes from './routes/logistics/dashboard.routes.js';
-import partRoutes from './routes/logistics/part.routes.js';
-import partRequestRoutes from './routes/logistics/part-request.routes.js';
-import partUsageRoutes from './routes/logistics/part-usage.routes.js';
+import logisticsDashboardRoutes from './routes/logistic/dashboard.routes.js';
+import partRoutes from './routes/logistic/part.routes.js';
+import partRequestRoutes from './routes/logistic/part-request.routes.js';
+import partUsageRoutes from './routes/logistic/part-usage.routes.js';
 
 //manager
 import managerDashboardRoutes from './routes/manager/dashboard.routes.js';
@@ -80,6 +82,7 @@ app.use("/api/auth", authRoutes);
 
 //user details all role can use
 app.use("/api/user-detail", userDetailRoutes);
+app.use(imagesErrorHandler);
 
 //admin
 app.use('/api/admin/users', userRoutes);
