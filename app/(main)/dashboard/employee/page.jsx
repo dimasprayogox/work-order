@@ -1,521 +1,264 @@
 /* eslint-disable @next/next/no-img-element */
-
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Card } from "primereact/card";
-import { Button } from "primereact/button";
-import { Dialog } from "primereact/dialog";
-import { InputText } from "primereact/inputtext";
-import { InputTextarea } from "primereact/inputtextarea";
-import { Dropdown } from "primereact/dropdown";
-import { Message } from "primereact/message";
-import { Toast } from "primereact/toast";
-import { Panel } from "primereact/panel";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Tag } from "primereact/tag";
 import { ProgressSpinner } from "primereact/progressspinner";
-import { Tooltip } from "primereact/tooltip";
-import { AnimatePresence, motion } from "framer-motion";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { motion } from "framer-motion";
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Skeleton } from "primereact/skeleton";
 
-const EmployeeDashboardPage = () => {
-    const toast = useRef(null);
-    const [parent] = useAutoAnimate({ duration: 300 });
+// Ganti dengan URL API Anda
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
 
-    const [dashboardData, setDashboardData] = useState(null);
-    const [loadingDashboard, setLoadingDashboard] = useState(true);
-    const [loadingSubmitIssue, setLoadingSubmitIssue] = useState(false);
-    const [isIssueDialogVisible, setIsIssueDialogVisible] = useState(false);
-    const [machines, setMachines] = useState([]);
-    const [issueFormData, setIssueFormData] = useState({
-        machine_id: null,
-        title: "",
-        description: "",
-        photo: null
-    });
-    const [formErrors, setFormErrors] = useState({});
-    const fileInputRef = useRef(null);
+// Warna tema
+const themeColors = {
+    primary: "#3B82F6",
+    secondary: "#6366F1",
+    danger: "#EF4444",
+    success: "#22C55E",
+    warning: "#F59E0B",
+    info: "#06B6D4"
+};
 
-    const [myWorkRequests, setMyWorkRequests] = useState([]);
-    const [loadingWorkRequests, setLoadingWorkRequests] = useState(true);
-
-    const [isImagePreviewVisible, setIsImagePreviewVisible] = useState(false);
-    const [currentImagePreviewUrl, setCurrentImagePreviewUrl] = useState("");
-    const [isHovering, setIsHovering] = useState(false);
-
-    const API_BASE_URL = "http://localhost:3100/api";
-
-    const showToast = useCallback((severity, summary, detail) => {
-        toast.current.show({
-            severity,
-            summary,
-            detail,
-            life: 3000,
-            style: {
-                borderRadius: "12px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
-            }
-        });
-    }, []);
-
-    const resetIssueForm = useCallback(() => {
-        setIssueFormData({
-            machine_id: null,
-            title: "",
-            description: "",
-            photo: null
-        });
-        setFormErrors({});
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
-    }, []);
-
-    const getStatusSeverity = (status) => {
-        switch (status) {
-            case "pending":
-                return "warn";
-            case "in_progress":
-                return "info";
-            case "completed":
-                return "success";
-            case "rejected":
-                return "danger";
-            case "open":
-                return "danger";
-            case "active":
-                return "success";
-            case "idle":
-                return "info";
-            case "maintenance":
-                return "warn";
-            case "broken":
-                return "danger";
-            default:
-                return "secondary";
-        }
-    };
-
-    const fetchDashboardData = useCallback(async () => {
-        setLoadingDashboard(true);
-        try {
-            const response = await fetch(`${API_BASE_URL}/employee/dashboard/my-overview`, {
-                method: "GET",
-                credentials: "include"
-            });
-            const result = await response.json();
-
-            if (!response.ok) {
-                const errorDetail = result.message || JSON.stringify(result.errors) || "Terjadi kesalahan saat memuat data.";
-                throw new Error(`Gagal memuat data dashboard: ${errorDetail}`);
-            }
-            setDashboardData(result.data);
-        } catch (error) {
-            console.error("Error fetching dashboard data:", error);
-            showToast("error", "Error", `${error.message}`);
-        } finally {
-            setLoadingDashboard(false);
-        }
-    }, [showToast]);
-
-    const fetchMachines = useCallback(async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/employee/machines/available`, {
-                method: "GET",
-                credentials: "include"
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || "Gagal memuat daftar mesin dari endpoint employee.");
-            }
-            const result = await response.json();
-            setMachines(result.data.map((machine) => ({ label: machine.name, value: machine.id })));
-        } catch (error) {
-            console.error("Error fetching machines:", error);
-            if (error instanceof SyntaxError && error.message.includes("Unexpected token '<'")) {
-                showToast("error", "Error", "Gagal memuat daftar mesin. Server mengembalikan halaman error (404 Not Found) alih-alih data.");
-            } else {
-                showToast("error", "Error", `Gagal memuat daftar mesin: ${error.message}`);
-            }
-        }
-    }, [showToast]);
-
-    const fetchMyWorkRequests = useCallback(async () => {
-        setLoadingWorkRequests(true);
-        try {
-            const response = await fetch(`${API_BASE_URL}/employee/issues`, {
-                method: "GET",
-                credentials: "include"
-            });
-            const result = await response.json();
-
-            console.log("Response from /employee/issues (for my work requests):", result);
-
-            if (!response.ok) {
-                const errorDetail = result.message || JSON.stringify(result.errors) || "Terjadi kesalahan saat memuat permintaan kerja.";
-                throw new Error(`Gagal memuat permintaan kerja: ${errorDetail}`);
-            }
-            setMyWorkRequests(Array.isArray(result.data) ? result.data : []);
-        } catch (error) {
-            console.error("Error fetching my work requests:", error);
-            showToast("error", "Error", `${error.message}`);
-            setMyWorkRequests([]);
-        } finally {
-            setLoadingWorkRequests(false);
-        }
-    }, [showToast]);
-
-    const validateIssueForm = useCallback(() => {
-        const errors = {};
-        if (!issueFormData.machine_id) errors.machine_id = "Mesin harus dipilih.";
-        if (!issueFormData.title.trim()) errors.title = "Judul tidak boleh kosong.";
-        else if (issueFormData.title.trim().length < 3) errors.title = "Judul minimal 3 karakter.";
-        if (!issueFormData.description.trim()) errors.description = "Deskripsi tidak boleh kosong.";
-        else if (issueFormData.description.trim().length < 10) errors.description = "Deskripsi minimal 10 karakter.";
-        setFormErrors(errors);
-        return Object.keys(errors).length === 0;
-    }, [issueFormData]);
-
-    const handleIssueFormChange = useCallback((e, field) => {
-        const value = e.target ? e.target.value : e.value;
-        setIssueFormData((prev) => ({ ...prev, [field]: value }));
-        setFormErrors((prev) => ({ ...prev, [field]: undefined }));
-    }, []);
-
-    const handleFileChange = useCallback((e) => {
-        if (e.target.files[0]) {
-            setIssueFormData((prev) => ({ ...prev, photo: e.target.files[0] }));
-        } else {
-            setIssueFormData((prev) => ({ ...prev, photo: null }));
-        }
-    }, []);
-
-    const submitIssue = async () => {
-        if (!validateIssueForm()) {
-            showToast("error", "Validasi Gagal", "Mohon lengkapi semua bidang yang diperlukan.");
-            return;
-        }
-
-        setLoadingSubmitIssue(true);
-        const formData = new FormData();
-        formData.append("machine_id", issueFormData.machine_id);
-        formData.append("title", issueFormData.title);
-        formData.append("description", issueFormData.description);
-        if (issueFormData.photo) {
-            formData.append("photo", issueFormData.photo);
-        }
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/employee/issues`, {
-                method: "POST",
-                body: formData,
-                credentials: "include"
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || "Gagal melaporkan isu.");
-            }
-
-            const result = await response.json();
-            showToast("success", "Berhasil!", result.message || "Isu berhasil dilaporkan.");
-            setIsIssueDialogVisible(false);
-            resetIssueForm();
-
-            fetchDashboardData();
-            fetchMyWorkRequests();
-        } catch (error) {
-            console.error("Error submitting issue:", error);
-            showToast("error", "Gagal!", error.message || "Terjadi kesalahan saat melaporkan isu.");
-        } finally {
-            setLoadingSubmitIssue(false);
-        }
-    };
-
-    const renderIssueDialogFooter = useCallback(
-        () => (
-            <div className="flex justify-content-end gap-2">
-                <Button
-                    label="Batal"
-                    icon="pi pi-times"
-                    outlined
-                    onClick={() => {
-                        setIsIssueDialogVisible(false);
-                        resetIssueForm();
-                    }}
-                    className="hover:scale-105 transition-all"
-                />
-                <Button label="Laporkan" icon="pi pi-check" onClick={submitIssue} loading={loadingSubmitIssue} className="hover:scale-105 transition-all" />
+// Komponen untuk kartu statistik dengan animasi lebih kaya
+const StatCard = ({ title, value, icon, color }) => (
+    <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} whileHover={{ y: -5, scale: 1.02 }} className="h-full">
+        <Card className={`shadow-lg hover:shadow-xl transition-all duration-300 h-full border-l-4 border-${color}-500`}>
+            <div className="flex justify-between items-center">
+                <div>
+                    <span className="block text-gray-500 font-medium text-sm uppercase tracking-wider">{title}</span>
+                    <span className="text-3xl font-bold text-gray-800 mt-2">{value}</span>
+                    <div className="mt-3 h-2 w-full bg-gray-200 rounded-full">
+                        <motion.div className={`h-full rounded-full bg-${color}-500`} initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 1, delay: 0.3 }} />
+                    </div>
+                </div>
+                <div className={`flex items-center justify-center w-14 h-14 rounded-lg bg-gradient-to-br from-${color}-500 to-${color}-600 shadow-md`}>
+                    <i className={`pi ${icon} text-2xl text-white`}></i>
+                </div>
             </div>
-        ),
-        [resetIssueForm, submitIssue, loadingSubmitIssue]
-    );
+        </Card>
+    </motion.div>
+);
 
-    const statusBodyTemplate = useCallback((rowData) => {
-        const formattedStatus = rowData.status ? rowData.status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) : "";
-        return (
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
-                <Tag value={formattedStatus} severity={getStatusSeverity(rowData.status)} className="font-medium" />
-            </motion.div>
-        );
-    }, []);
+// Template untuk kolom status di tabel dengan desain lebih baik
+const statusBodyTemplate = (rowData) => {
+    const statusConfig = {
+        open: { label: "Pending", color: "red", icon: "pi-clock" },
+        in_progress: { label: "In Progress", color: "blue", icon: "pi-spinner pi-spin" },
+        resolved: { label: "Completed", color: "green", icon: "pi-check" }
+    };
 
-    const handleImageClick = useCallback((url) => {
-        setCurrentImagePreviewUrl(url);
-        setIsImagePreviewVisible(true);
-    }, []);
+    const config = statusConfig[rowData.status] || { label: rowData.status, color: "gray" };
 
-    const photoBodyTemplate = useCallback(
-        (rowData) => {
-            if (rowData.photo_url) {
-                return (
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <img
-                            src={rowData.photo_url}
-                            alt="Pratinjau Foto Isu"
-                            style={{ width: "50px", height: "50px", objectFit: "cover", cursor: "pointer" }}
-                            className="shadow-lg border-round transition-all hover:shadow-xl"
-                            onClick={() => handleImageClick(rowData.photo_url)}
-                            onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = "https://placehold.co/50x50/cccccc/000000?text=No+Image";
-                                console.error("Gagal memuat gambar:", rowData.photo_url);
-                            }}
-                        />
-                    </motion.div>
-                );
+    return <Tag value={config.label} severity={config.color} icon={config.icon} className="flex items-center gap-2 px-3 py-1 rounded-full" />;
+};
+
+const EmployeeDashboard = () => {
+    const [issues, setIssues] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({ total: 0, pending: 0, resolved: 0, inProgress: 0 });
+    const [chartData, setChartData] = useState([]);
+    const [trendData, setTrendData] = useState([]);
+
+    const fetchMyIssues = useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/employee/issues/my-issues`, {
+                method: "GET",
+                credentials: "include"
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || "Gagal memuat data laporan.");
             }
-            return <img src="https://placehold.co/50x50/cccccc/000000?text=No+Image" alt="Tidak ada foto" style={{ width: "50px", height: "50px", objectFit: "cover" }} className="shadow-lg border-round" />;
-        },
-        [handleImageClick]
-    );
 
-    const dateBodyTemplate = useCallback((rowData) => {
-        return rowData.created_at ? new Date(rowData.created_at).toLocaleString("id-ID") : "N/A";
+            const data = Array.isArray(result.data) ? result.data : [];
+            setIssues(data);
+
+            // Kalkulasi statistik dari data yang didapat
+            const total = data.length;
+            const pending = data.filter((i) => i.status === "open").length;
+            const resolved = data.filter((i) => i.status === "resolved").length;
+            const inProgress = data.filter((i) => i.status === "in_progress").length;
+            setStats({ total, pending, resolved, inProgress });
+
+            // Menyiapkan data untuk pie chart
+            setChartData([
+                { name: "Pending", value: pending, color: themeColors.danger },
+                { name: "In Progress", value: inProgress, color: themeColors.primary },
+                { name: "Completed", value: resolved, color: themeColors.success }
+            ]);
+
+            // Data untuk trend chart (contoh data bulanan)
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+            setTrendData(
+                months.map((month) => ({
+                    name: month,
+                    issues: Math.floor(Math.random() * 10) + 2, // Simulasi data
+                    resolved: Math.floor(Math.random() * 8) + 1
+                }))
+            );
+        } catch (error) {
+            console.error("Error fetching issues:", error);
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
     useEffect(() => {
-        fetchDashboardData();
-        fetchMachines();
-        fetchMyWorkRequests();
-    }, [fetchDashboardData, fetchMachines, fetchMyWorkRequests]);
+        fetchMyIssues();
+    }, [fetchMyIssues]);
+
+    const recentIssues = issues.slice(0, 5); // Ambil 5 data terbaru
 
     return (
-        <div className="p-4 dashboard-employee" ref={parent}>
-            <Toast ref={toast} position="top-right" className="opacity-90" />
-
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-800">Dashboard Karyawan</h1>
-                <p className="text-gray-600">Pantau dan kelola permintaan kerja Anda</p>
+        <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mb-8">
+                <div className="flex items-center gap-4 mb-4">
+                    <div className="p-3 rounded-lg bg-white shadow-md">
+                        <i className="pi pi-user text-2xl text-blue-500"></i>
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-800">Dasbor Karyawan</h1>
+                        <p className="text-gray-600">Selamat datang! Berikut adalah ringkasan laporan Anda.</p>
+                    </div>
+                </div>
             </motion.div>
 
-            <div className="grid">
-                <div className="col-12 md:col-9">
-                    <motion.div whileHover={{ y: -3 }} className="h-full">
-                        <Card className="border-round-xl shadow-md bg-gradient-to-r from-blue-50 to-purple-50 p-2" style={{ height: "70px" }}>
-                            <div className="flex align-items-center justify-content-between h-full">
-                                <div className="flex flex-column justify-content-center h-full pl-3 -mt-6" style={{ paddingTop: "4px" }}>
-                                    <span className="block text-500 font-bold" style={{ fontSize: "0.75rem", letterSpacing: "1px" }}>
-                                        TOTAL ISU DILAPORKAN
-                                    </span>
-                                    <div className="text-900 font-bold text-2xl">{dashboardData?.myReportedIssuesCount || 0}</div>
+            {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    {[1, 2, 3].map((i) => (
+                        <Card key={i} className="shadow-md h-full">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <Skeleton width="120px" height="20px" className="mb-2" />
+                                    <Skeleton width="80px" height="30px" className="mb-3" />
+                                    <Skeleton width="100%" height="8px" borderRadius="16px" />
                                 </div>
-                                <div className="flex align-items-center justify-content-center bg-gradient-to-r from-blue-100 to-purple-100 border-round mr-2" style={{ width: "2.5rem", height: "2.5rem" }}>
-                                    <i className="pi pi-exclamation-triangle text-lg text-blue-600 -mt-6" />
-                                </div>
+                                <Skeleton shape="circle" width="56px" height="56px" />
                             </div>
                         </Card>
-                    </motion.div>
+                    ))}
                 </div>
-
-                <div className="col-12 md:col-3">
-                    <motion.div whileHover={{ y: -3 }} className="h-full">
-                        <Button
-                            label="Laporkan Isu Baru"
-                            icon="pi pi-plus-circle"
-                            severity="danger"
-                            onClick={() => setIsIssueDialogVisible(true)}
-                            className="p-button-raised w-full h-full border-round-xl shadow-md flex align-items-center justify-content-center"
-                            style={{
-                                background: "linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%)",
-                                border: "none",
-                                height: "70px",
-                                fontSize: "0.85rem",
-                                padding: "0.35rem 0.75rem",
-                                minWidth: "120px"
-                            }}
-                        />
-                    </motion.div>
-                </div>
-            </div>
-
-            <Dialog
-                header="Laporkan Isu Mesin"
-                visible={isIssueDialogVisible}
-                style={{ width: "min(90vw, 600px)", borderRadius: "16px" }}
-                modal
-                className="p-fluid shadow-2xl"
-                onHide={() => {
-                    setIsIssueDialogVisible(false);
-                    resetIssueForm();
-                }}
-                footer={renderIssueDialogFooter()}
-            >
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-                    <div className="field mb-4">
-                        <label htmlFor="machine_id" className="font-bold mb-2 block">
-                            Mesin
-                        </label>
-                        <Dropdown
-                            id="machine_id"
-                            name="machine_id"
-                            value={issueFormData.machine_id}
-                            options={machines}
-                            onChange={(e) => handleIssueFormChange(e, "machine_id")}
-                            placeholder="Pilih Mesin"
-                            className={`w-full ${formErrors.machine_id ? "p-invalid" : ""}`}
-                            panelClassName="shadow-lg border-round-lg"
-                        />
-                        {formErrors.machine_id && (
-                            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
-                                <Message severity="error" text={formErrors.machine_id} />
-                            </motion.div>
-                        )}
+            ) : (
+                <>
+                    {/* Grid untuk Kartu Statistik */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <StatCard title="Total Laporan" value={stats.total} icon="pi-inbox" color="blue" />
+                        <StatCard title="Pending" value={stats.pending} icon="pi-exclamation-circle" color="red" />
+                        <StatCard title="In Progress" value={stats.inProgress} icon="pi-spinner" color="info" />
+                        <StatCard title="Completed" value={stats.resolved} icon="pi-check-circle" color="green" />
                     </div>
 
-                    <div className="field mb-4">
-                        <label htmlFor="title" className="font-bold mb-2 block">
-                            Judul Isu
-                        </label>
-                        <InputText id="title" name="title" value={issueFormData.title} onChange={(e) => handleIssueFormChange(e, "title")} className={`w-full ${formErrors.title ? "p-invalid" : ""}`} placeholder="Masukkan judul isu" />
-                        {formErrors.title && (
-                            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
-                                <Message severity="error" text={formErrors.title} />
-                            </motion.div>
-                        )}
-                    </div>
+                    {/* Grid untuk Chart dan Tabel */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                        <motion.div className="lg:col-span-1" initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
+                            <Card title="Status Laporan" className="shadow-lg h-full border-t-4 border-blue-500" headerClassName="border-b-0">
+                                {chartData.every((d) => d.value === 0) ? (
+                                    <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8" style={{ minHeight: "300px" }}>
+                                        <i className="pi pi-chart-pie text-4xl mb-4 text-gray-300"></i>
+                                        <p>Belum ada data untuk ditampilkan</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col h-full">
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <PieChart>
+                                                <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
+                                                    {chartData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip formatter={(value) => [`${value} laporan`, "Jumlah"]} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                        <div className="flex justify-center gap-4 mt-4">
+                                            {chartData.map((entry, index) => (
+                                                <div key={`legend-${index}`} className="flex items-center">
+                                                    <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: entry.color }} />
+                                                    <span className="text-sm text-gray-600">{entry.name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </Card>
+                        </motion.div>
 
-                    <div className="field mb-4">
-                        <label htmlFor="description" className="font-bold mb-2 block">
-                            Deskripsi
-                        </label>
-                        <InputTextarea
-                            id="description"
-                            name="description"
-                            rows={5}
-                            value={issueFormData.description}
-                            onChange={(e) => handleIssueFormChange(e, "description")}
-                            className={`w-full ${formErrors.description ? "p-invalid" : ""}`}
-                            placeholder="Jelaskan isu secara detail..."
-                            autoResize
-                        />
-                        {formErrors.description && (
-                            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
-                                <Message severity="error" text={formErrors.description} />
-                            </motion.div>
-                        )}
-                    </div>
-
-                    <div className="field mb-4">
-                        <label htmlFor="photo" className="font-bold mb-2 block">
-                            Foto (Opsional)
-                        </label>
-                        <motion.div
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="border-2 border-dashed border-gray-300 border-round-lg p-3 text-center cursor-pointer hover:border-blue-500 transition-all"
-                            onClick={() => fileInputRef.current.click()}
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
-                        >
-                            <input type="file" id="photo" name="photo" accept="image/*" onChange={handleFileChange} ref={fileInputRef} className="hidden" />
-                            <i className={`pi pi-cloud-upload text-3xl mb-2 ${isHovering ? "text-blue-500" : "text-gray-500"}`} />
-                            <p className={`mb-0 ${isHovering ? "text-blue-500" : "text-gray-600"}`}>{issueFormData.photo ? issueFormData.photo.name : "Klik untuk mengunggah foto"}</p>
+                        <motion.div className="lg:col-span-2" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.4 }}>
+                            <Card title="Trend Laporan 6 Bulan Terakhir" className="shadow-lg h-full border-t-4 border-purple-500" headerClassName="border-b-0">
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={trendData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis dataKey="name" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Bar dataKey="issues" name="Laporan Dibuat" fill={themeColors.secondary} radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="resolved" name="Laporan Selesai" fill={themeColors.success} radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </Card>
                         </motion.div>
                     </div>
-                </motion.div>
-            </Dialog>
+                </>
+            )}
 
-            <Dialog
-                header="Pratinjau Foto"
-                visible={isImagePreviewVisible}
-                style={{ width: "min(90vw, 700px)", borderRadius: "16px" }}
-                modal
-                onHide={() => setIsImagePreviewVisible(false)}
-                headerClassName="border-bottom-1 surface-border"
-                contentClassName="p-0"
-            >
-                {currentImagePreviewUrl && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-                        <img src={currentImagePreviewUrl} alt="Pratinjau Foto Isu" className="w-full border-round-bottom" style={{ maxHeight: "70vh", objectFit: "contain" }} />
-                    </motion.div>
-                )}
-            </Dialog>
-
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-6">
-                <Panel header={<span className="font-bold text-xl">PERMINTAAN KERJA SAYA</span>} className="shadow-sm border-round-xl overflow-hidden">
-                    {loadingWorkRequests ? (
-                        <div className="flex justify-content-center py-6">
-                            <ProgressSpinner />
+            {/* Tabel Laporan Terbaru */}
+            <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}>
+                <Card title="Laporan Terbaru Anda" className="shadow-lg border-t-4 border-green-500" headerClassName="border-b-0">
+                    {loading ? (
+                        <div className="space-y-4">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <div key={i} className="flex items-center justify-between p-4 border-b border-gray-200">
+                                    <Skeleton width="30%" height="20px" />
+                                    <Skeleton width="20%" height="20px" />
+                                    <Skeleton width="15%" height="20px" />
+                                </div>
+                            ))}
                         </div>
                     ) : (
                         <DataTable
-                            value={myWorkRequests}
-                            paginator
-                            rows={10}
-                            dataKey="id"
-                            loading={loadingWorkRequests}
-                            emptyMessage="Anda belum mengajukan permintaan kerja."
-                            className="border-round-lg"
-                            rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
-                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                            currentPageReportTemplate="Menampilkan {first} sampai {last} dari {totalRecords} permintaan"
-                            rowsPerPageOptions={[5, 10, 25]}
+                            value={recentIssues}
+                            emptyMessage={
+                                <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                                    <i className="pi pi-inbox text-4xl mb-4 text-gray-300"></i>
+                                    <p>Anda belum membuat laporan</p>
+                                </div>
+                            }
+                            responsiveLayout="scroll"
+                            className="p-datatable-sm"
+                            rowClassName={() => "hover:bg-gray-50 cursor-pointer"}
                         >
                             <Column
                                 field="title"
-                                header="Judul Isu"
-                                style={{ width: "200px" }}
+                                header="Judul"
                                 body={(rowData) => (
-                                    <motion.div whileHover={{ x: 5 }} className="font-medium text-blue-600">
-                                        {rowData.title}
-                                    </motion.div>
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-2 h-2 rounded-full ${rowData.status === "open" ? "bg-red-500" : rowData.status === "in_progress" ? "bg-blue-500" : "bg-green-500"}`}></div>
+                                        <span className="font-semibold">{rowData.title}</span>
+                                    </div>
                                 )}
-                            />
-                            <Column
-                                field="description"
-                                header="Deskripsi"
-                                body={(rowData) => (
-                                    <>
-                                        <Tooltip target=".description-tooltip" position="bottom" />
-                                        <span
-                                            className="description-tooltip"
-                                            data-pr-tooltip={rowData.description}
-                                            style={{
-                                                whiteSpace: "nowrap",
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                display: "block",
-                                                maxWidth: "200px"
-                                            }}
-                                        >
-                                            {rowData.description}
-                                        </span>
-                                    </>
-                                )}
-                            />
-                            <Column field="machine.name" header="Mesin" body={(rowData) => <Tag value={rowData.machine?.name} className="bg-gray-100 text-gray-800 font-medium" />} />
-                            <Column field="status" header="Status" body={statusBodyTemplate} />
-                            <Column header="Foto" body={photoBodyTemplate} />
-                            <Column field="created_at" header="Diajukan" body={dateBodyTemplate} sortable />
+                            ></Column>
+                            <Column field="machine.name" header="Mesin" body={(rowData) => <Tag value={rowData.machine?.name || "N/A"} severity="info" className="bg-blue-100 text-blue-800" />}></Column>
+                            <Column field="createdAt" header="Tanggal" body={(rowData) => new Date(rowData.createdAt).toLocaleDateString()}></Column>
+                            <Column field="status" header="Status" body={statusBodyTemplate} align="right"></Column>
                         </DataTable>
                     )}
-                </Panel>
+                    {issues.length > 5 && (
+                        <div className="flex justify-end mt-4">
+                            <button className="flex items-center gap-2 text-blue-500 hover:text-blue-700 font-medium">
+                                Lihat Semua Laporan <i className="pi pi-arrow-right"></i>
+                            </button>
+                        </div>
+                    )}
+                </Card>
             </motion.div>
         </div>
     );
 };
 
-export default EmployeeDashboardPage;
+export default EmployeeDashboard;

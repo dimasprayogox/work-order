@@ -13,6 +13,7 @@ import { Dropdown } from "primereact/dropdown";
 import { jwtDecode } from "jwt-decode";
 import Cookies from "js-cookie";
 import { classNames } from "primereact/utils";
+import { all } from "axios";
 
 const AppMenu = () => {
     const { layoutConfig } = useContext(LayoutContext);
@@ -76,7 +77,7 @@ const AppMenu = () => {
                 } else if (role === "employee") {
                     filteredModel = [
                         allMenus.dashboard.items[0],
-                        allMenus.maintenance.items[0] // Mengambil "Work Orders"
+                        allMenus.maintenance.items[1] 
                     ];
                 } else if (role === "manager") {
                     const managerAllowedLabels = ["Work Orders", "Scheduled Maintenance"];
