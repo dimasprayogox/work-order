@@ -3,6 +3,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Toast } from "primereact/toast";
 import { Button } from "primereact/button";
+import { ConfirmDialog } from "primereact/confirmdialog";
+import { Divider } from "primereact/divider";
 import { API_ENDPOINTS } from "../../../api/api";
 import PartTable from "./components/PartTable";
 import PartFormDialog from "./components/PartFormDialog";
@@ -12,6 +14,7 @@ const PartPage = () => {
     const [parts, setParts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedPart, setSelectedPart] = useState(null);
+    const [selectedParts, setSelectedParts] = useState([]);
     const [isDialogOpen, setDialogOpen] = useState(false);
     const [isDeleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const toast = useRef(null);
@@ -23,10 +26,14 @@ const PartPage = () => {
             const data = await res.json();
             setParts(data.data || []);
         } catch (err) {
-            toast.current.show({ severity: "error", summary: "Error", detail: "Gagal mengambil data part" });
+            showToast("error", "Error", "Gagal mengambil data part");
         } finally {
             setLoading(false);
         }
+    };
+
+    const showToast = (severity, summary, detail) => {
+        toast.current.show({ severity, summary, detail });
     };
 
     const handleAdd = () => {
@@ -39,9 +46,29 @@ const PartPage = () => {
         setDialogOpen(true);
     };
 
-    const handleDelete = (part) => {
-        setSelectedPart(part);
-        setDeleteConfirmOpen(true);
+   const handleDelete = (part) => {
+       setSelectedPart(part);
+       setDeleteConfirmOpen(true);
+   };
+
+    const handleSelectionChange = (selectedItems) => {
+        setSelectedParts(selectedItems);
+    };
+
+    const handleDeleteSelected = () => {
+            confirmDialog({
+                message: `Are you sure you want to delete ${selectedRequests.length} selected ${selectedRequests.length > 1 ? "parts" : "part"}?`,
+                header: "Confirm Deletion",
+                icon: "pi pi-exclamation-triangle",
+                acceptClassName: "p-button-danger",
+                accept: deleteSelectedRequests, // FIXED: Call the new function
+                reject: () => {}
+            });
+        };
+
+    const handleRefresh = () => {
+        fetchParts();
+        setSelectedParts([]);
     };
 
     useEffect(() => {
@@ -49,39 +76,41 @@ const PartPage = () => {
     }, []);
 
     return (
-        <div className="p-5">
-            <Toast ref={toast} />
+        <div className="p-4">
+            <Toast ref={toast} position="top-right" className="opacity-90" />
+            <ConfirmDialog />
 
-            <div className="flex justify-between items-start mb-4">
-                <div>
-                    <h2 className="text-2xl font-semibold">Manajemen Parts</h2>
-                    <p className="text-sm text-gray-500">Kelola data part untuk kebutuhan logistik</p>
+            <div className="card">
+                <h3 className="mb-4">Manajemen Parts</h3>
+
+                <div className="flex flex-row gap-2 mb-4">
+                    <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
+                    <Button size="small" label="New" icon="pi pi-plus" outlined severity="success" onClick={handleAdd} />
+                    <Divider layout="vertical" />
+                    <Button size="small" label="Import" icon="pi pi-file-import" outlined />
+                    <Button size="small" label="Export" icon="pi pi-file-export" outlined />
+                    <Button size="small" label="Print" icon="pi pi-print" outlined />
+                    <Divider layout="vertical" />
+                    {/* <Button size="small" label={`Delete ${selectedPart.length > 0 ? `(${selectedPart.length})` : ""}`} icon="pi pi-trash" outlined severity="danger" onClick={handleDelete} disabled={selectedPart.length === 0} /> */}
+                    <Divider layout="vertical" />
+                    <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={handleRefresh} />
                 </div>
-                <Button label="Tambah Part" icon="pi pi-plus" onClick={handleAdd} />
+
+                <PartTable parts={parts} loading={loading} onEdit={handleEdit} onDelete={handleDelete} />
+
+                <PartFormDialog visible={isDialogOpen} onHide={() => setDialogOpen(false)} part={selectedPart} fetchParts={fetchParts} showToast={showToast} />
+
+                <ConfirmDeleteDialog
+                    visible={isDeleteConfirmOpen}
+                    part={selectedPart}
+                    onHide={() => {
+                        setDeleteConfirmOpen(false);
+                        setSelectedPart(null);
+                    }}
+                    fetchParts={fetchParts}
+                    showToast={showToast}
+                />
             </div>
-
-            <PartTable
-                parts={parts}
-                loading={loading}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-            />
-
-            <PartFormDialog
-                visible={isDialogOpen}
-                onHide={() => setDialogOpen(false)}
-                part={selectedPart}
-                fetchParts={fetchParts}
-                showToast={(type, title, msg) => toast.current.show({ severity: type, summary: title, detail: msg })}
-            />
-
-            <ConfirmDeleteDialog
-                visible={isDeleteConfirmOpen}
-                part={selectedPart}
-                onHide={() => setDeleteConfirmOpen(false)}
-                fetchParts={fetchParts}
-                showToast={(type, title, msg) => toast.current.show({ severity: type, summary: title, detail: msg })}
-            />
         </div>
     );
 };
