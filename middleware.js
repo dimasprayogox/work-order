@@ -10,12 +10,12 @@ export function middleware(request) {
     console.log(`[Middleware Check] AuthToken Exists: ${!!authToken}`);
 
     const publicPaths = [
-        '/auth/login',         
-        '/auth/register',      
-        '/access-denied',      
-        '/api/auth/login',     
-        '/api/auth/logout',    
-        '/api/auth/refresh',   
+        '/auth/login',
+        '/auth/register',
+        '/access-denied',
+        '/api/auth/login',
+        '/api/auth/logout',
+        '/api/auth/refresh',
     ];
 
     const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
@@ -45,10 +45,12 @@ export function middleware(request) {
         "/api/employee/issues": ["employee"],
         "/api/employee/machines/available": ["employee"],
         "/api/employee/work-orders/my-requests": ["employee"],
-        "/api/technician/dashboard": ["technician"],
-        "/api/technician/work-orders": ["technician"], 
-        "/api/technician/work-orders/my-requests": ["technician"], 
-        "/api/technician/work-orders/:id/update-status": ["technician"], 
+
+        // technician
+        "/technician/dashboard": ["technician"],
+        "/technician/work-orders": ["technician"],
+        "/technician/part-request": ["technician"],
+
         "/api/manager/dashboard": ["manager"],
         "/api/manager/work-orders": ["manager"],
         "/api/manager/schedules": ["manager"],
@@ -116,7 +118,7 @@ export function middleware(request) {
         console.log(`[Middleware Decision] No specific role rule for '${pathname}'. Allowing by default.`);
     }
 
-    return NextResponse.next(); 
+    return NextResponse.next();
 }
 
 export const config = {

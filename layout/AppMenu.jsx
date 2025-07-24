@@ -91,26 +91,29 @@ const AppMenu = () => {
                         }
                     ];
                 } else if (role === "technician") {
-                     const technicianAllowedLabels = ["Work Orders", "Scheduled Maintenance"];
-                     const technicianMaintenanceItems = allMenus.maintenance.items.filter((item) => technicianAllowedLabels.includes(item.label));
-
                      filteredModel = [
                          allMenus.dashboard.items[0],
                          {
-                             ...allMenus.maintenance,
-                             items: technicianMaintenanceItems
-                         }
+                            label: "work-orders",
+                            icon: "pi pi-fw pi-wrench",
+                            to: "/technician/work-orders"
+                         },
+                            {
+                                label: "Part Request",
+                                icon: "pi pi-fw pi-wrench",
+                                to: "/technician/part-request"
+                            }
                      ];
-} else if (role === "logistics") {
-    filteredModel = [
-        allMenus.dashboard.items[0],
-        {
-            label: "Parts",
-            icon: "pi pi-fw pi-wrench",
-            to: "/logistics/parts"
-        }
-    ];
-}
+                } else if (role === "logistics") {
+                    filteredModel = [
+                        allMenus.dashboard.items[0],
+                        {
+                            label: "Parts",
+                            icon: "pi pi-fw pi-wrench",
+                            to: "/logistics/parts"
+                        }
+                    ];
+                }
 
 
                 setModel(filteredModel);
