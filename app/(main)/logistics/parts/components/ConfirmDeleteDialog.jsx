@@ -19,9 +19,13 @@ const ConfirmDeleteDialog = ({ visible, onHide, part, fetchParts, showToast }) =
         
         setLoading(true);
         try {
-            const res = await fetch(`${API_ENDPOINTS.PARTS}/${part.id}`, {
-                method: "DELETE",
-                credentials: "include"
+            const res = await fetch(`${API_ENDPOINTS.PARTS}/delete-many`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include",
+                body: JSON.stringify({ ids: idsToDelete })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
