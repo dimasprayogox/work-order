@@ -55,17 +55,6 @@ const PartPage = () => {
         setSelectedParts(selectedItems);
     };
 
-    const handleDeleteSelected = () => {
-            confirmDialog({
-                message: `Are you sure you want to delete ${selectedRequests.length} selected ${selectedRequests.length > 1 ? "parts" : "part"}?`,
-                header: "Confirm Deletion",
-                icon: "pi pi-exclamation-triangle",
-                acceptClassName: "p-button-danger",
-                accept: deleteSelectedRequests, // FIXED: Call the new function
-                reject: () => {}
-            });
-        };
-
     const handleRefresh = () => {
         fetchParts();
         setSelectedParts([]);
