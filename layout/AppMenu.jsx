@@ -75,10 +75,7 @@ const AppMenu = () => {
                 if (role === "admin") {
                     filteredModel = [allMenus.dashboard, allMenus.maintenance, allMenus.assets, allMenus.supplies, allMenus.users];
                 } else if (role === "employee") {
-                    filteredModel = [
-                        allMenus.dashboard.items[0],
-                        allMenus.maintenance.items[1]
-                    ];
+                    filteredModel = [allMenus.dashboard.items[0], allMenus.maintenance.items[1]];
                 } else if (role === "manager") {
                     const managerAllowedLabels = ["Work Orders", "Scheduled Maintenance"];
                     const managerMaintenanceItems = allMenus.maintenance.items.filter((item) => managerAllowedLabels.includes(item.label));
@@ -91,27 +88,41 @@ const AppMenu = () => {
                         }
                     ];
                 } else if (role === "technician") {
-                     const technicianAllowedLabels = ["Work Orders", "Scheduled Maintenance"];
-                     const technicianMaintenanceItems = allMenus.maintenance.items.filter((item) => technicianAllowedLabels.includes(item.label));
+                    const technicianAllowedLabels = ["Work Orders", "Scheduled Maintenance"];
+                    const technicianMaintenanceItems = allMenus.maintenance.items.filter((item) => technicianAllowedLabels.includes(item.label));
 
-                     filteredModel = [
-                         allMenus.dashboard.items[0],
-                         {
-                             ...allMenus.maintenance,
-                             items: technicianMaintenanceItems
-                         }
-                     ];
-} else if (role === "logistics") {
-    filteredModel = [
-        allMenus.dashboard.items[0],
-        {
-            label: "Parts",
-            icon: "pi pi-fw pi-wrench",
-            to: "/logistics/parts"
-        }
-    ];
-}
-
+                    filteredModel = [
+                        allMenus.dashboard.items[0],
+                        {
+                            ...allMenus.maintenance,
+                            items: technicianMaintenanceItems
+                        }
+                    ];
+                } else if (role === "logistics") {
+                    filteredModel = [
+                        allMenus.dashboard.items[0],
+                        {
+                            label: "Dashboard",
+                            icon: "pi pi-fw pi-home",
+                            to: "/dashboard/logistics"
+                        },
+                        {
+                            label: "Parts",
+                            icon: "pi pi-fw pi-wrench",
+                            to: "/logistics/parts"
+                        },
+                        {
+                            label: "Part Requests",
+                            icon: "pi pi-fw pi-inbox",
+                            to: "/logistics/part-requests"
+                        },
+                        {
+                            label: "Part Usage",
+                            icon: "pi pi-fw pi-chart-bar",
+                            to: "/logistics/part-usage"
+                        }
+                    ];
+                }
 
                 setModel(filteredModel);
             } catch (error) {
@@ -130,7 +141,6 @@ const AppMenu = () => {
     return (
         <MenuProvider>
             <ul className="layout-menu" style={{ listStyle: "none" }}>
-
                 {model.map((item, i) => {
                     if (!item) return null;
 
