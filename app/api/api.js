@@ -21,7 +21,15 @@ export const API_ENDPOINTS = {
     // Parts forecaster
     GETALLPARTSFORECASTER: `${API_URL}/parts-forecaster`,
 
+    //logistics
+    // Dashboard
+    LOGISTICS_DASHBOARD: `${API_URL}/logistics/dashboard`,
     // Parts
     PARTS: `${API_URL}/logistics/parts`,
+    // Part Requests
+    PART_REQUESTS: `${API_URL}/logistics/part-requests`,
+    // Part Usage
+    TOP_USED_PARTS: `${API_URL}/logistics/part-usage/top-used`,
+    USAGE_LOG: `${API_URL}/logistics/part-usage/log`,
 };
 
