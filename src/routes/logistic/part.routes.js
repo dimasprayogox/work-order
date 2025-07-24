@@ -13,5 +13,6 @@ router.get('/:id', PartController.show);
 router.post('/', PartController.store);
 router.patch('/:id', PartController.update);
 router.delete('/:id', PartController.destroy);
+router.post('/delete-many', PartController.deleteMany)
 
 export default router;
