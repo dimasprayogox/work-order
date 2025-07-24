@@ -77,7 +77,7 @@ const AppMenu = () => {
                 } else if (role === "employee") {
                     filteredModel = [
                         allMenus.dashboard.items[0],
-                        allMenus.maintenance.items[1] 
+                        allMenus.maintenance.items[1]
                     ];
                 } else if (role === "manager") {
                     const managerAllowedLabels = ["Work Orders", "Scheduled Maintenance"];
@@ -101,18 +101,17 @@ const AppMenu = () => {
                              items: technicianMaintenanceItems
                          }
                      ];
-                } else if (role === "logistics") {
-                     const logisticsAllowedLabels = ["Work Orders", "Scheduled Maintenance"];
-                     const logisticsMaintenanceItems = allMenus.maintenance.items.filter((item) => logisticsAllowedLabels.includes(item.label));
+} else if (role === "logistics") {
+    filteredModel = [
+        allMenus.dashboard.items[0],
+        {
+            label: "Parts",
+            icon: "pi pi-fw pi-wrench",
+            to: "/logistics/parts"
+        }
+    ];
+}
 
-                     filteredModel = [
-                         allMenus.dashboard.items[0],
-                         {
-                             ...allMenus.maintenance,
-                             items: logisticsMaintenanceItems
-                         }
-                     ];
-                }
 
                 setModel(filteredModel);
             } catch (error) {
@@ -131,7 +130,7 @@ const AppMenu = () => {
     return (
         <MenuProvider>
             <ul className="layout-menu" style={{ listStyle: "none" }}>
-    
+
                 {model.map((item, i) => {
                     if (!item) return null;
 

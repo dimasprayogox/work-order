@@ -2,7 +2,7 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL || "localhost:3100";
 
 export const API_ENDPOINTS = {
 
-    // Auth 
+    // Auth
     LOGINUSERS: `${API_URL}/auth/login`,
     LOGOUT: `${API_URL}/auth/logout`,
 
@@ -19,6 +19,9 @@ export const API_ENDPOINTS = {
     GETALLCONTINENT: `${API_URL}/continent`,
 
     // Parts forecaster
-    GETALLPARTSFORECASTER: `${API_URL}/parts-forecaster`
+    GETALLPARTSFORECASTER: `${API_URL}/parts-forecaster`,
+
+    // Parts
+    PARTS: `${API_URL}/logistics/parts`,
 };
 
