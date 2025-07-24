@@ -10,255 +10,349 @@ import { ProgressSpinner } from "primereact/progressspinner";
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Skeleton } from "primereact/skeleton";
+import { InputText } from "primereact/inputtext";
+import { Dropdown } from "primereact/dropdown";
 
-// Ganti dengan URL API Anda
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
 
-// Warna tema
-const themeColors = {
-    primary: "#3B82F6",
-    secondary: "#6366F1",
-    danger: "#EF4444",
-    success: "#22C55E",
-    warning: "#F59E0B",
-    info: "#06B6D4"
-};
-
-// Komponen untuk kartu statistik dengan animasi lebih kaya
-const StatCard = ({ title, value, icon, color }) => (
-    <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} whileHover={{ y: -5, scale: 1.02 }} className="h-full">
-        <Card className={`shadow-lg hover:shadow-xl transition-all duration-300 h-full border-l-4 border-${color}-500`}>
-            <div className="flex justify-between items-center">
-                <div>
-                    <span className="block text-gray-500 font-medium text-sm uppercase tracking-wider">{title}</span>
-                    <span className="text-3xl font-bold text-gray-800 mt-2">{value}</span>
-                    <div className="mt-3 h-2 w-full bg-gray-200 rounded-full">
-                        <motion.div className={`h-full rounded-full bg-${color}-500`} initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 1, delay: 0.3 }} />
-                    </div>
-                </div>
-                <div className={`flex items-center justify-center w-14 h-14 rounded-lg bg-gradient-to-br from-${color}-500 to-${color}-600 shadow-md`}>
-                    <i className={`pi ${icon} text-2xl text-white`}></i>
-                </div>
-            </div>
-        </Card>
-    </motion.div>
-);
-
-// Template untuk kolom status di tabel dengan desain lebih baik
-const statusBodyTemplate = (rowData) => {
-    const statusConfig = {
-        open: { label: "Pending", color: "red", icon: "pi-clock" },
-        in_progress: { label: "In Progress", color: "blue", icon: "pi-spinner pi-spin" },
-        resolved: { label: "Completed", color: "green", icon: "pi-check" }
-    };
-
-    const config = statusConfig[rowData.status] || { label: rowData.status, color: "gray" };
-
-    return <Tag value={config.label} severity={config.color} icon={config.icon} className="flex items-center gap-2 px-3 py-1 rounded-full" />;
-};
+const statusOptions = [
+    { label: "All Status", value: "" },
+    { label: "Pending", value: "open" },
+    { label: "In Progress", value: "in_progress" },
+    { label: "Completed", value: "resolved" }
+];
 
 const EmployeeDashboard = () => {
     const [issues, setIssues] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({ total: 0, pending: 0, resolved: 0, inProgress: 0 });
+    const [stats, setStats] = useState({
+        total: 0,
+        pending: 0,
+        resolved: 0,
+        inProgress: 0
+    });
     const [chartData, setChartData] = useState([]);
     const [trendData, setTrendData] = useState([]);
+    const [statusFilter, setStatusFilter] = useState("");
+    const [searchText, setSearchText] = useState("");
 
-    const fetchMyIssues = useCallback(async () => {
+    const fetchWorkRequests = useCallback(async () => {
         setLoading(true);
         try {
             const response = await fetch(`${API_BASE_URL}/employee/issues/my-issues`, {
                 method: "GET",
-                credentials: "include"
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json"
+                }
             });
-            const result = await response.json();
+
             if (!response.ok) {
-                throw new Error(result.message || "Gagal memuat data laporan.");
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const data = Array.isArray(result.data) ? result.data : [];
-            setIssues(data);
+            const result = await response.json();
 
-            // Kalkulasi statistik dari data yang didapat
-            const total = data.length;
-            const pending = data.filter((i) => i.status === "open").length;
-            const resolved = data.filter((i) => i.status === "resolved").length;
-            const inProgress = data.filter((i) => i.status === "in_progress").length;
+            if (!result.data || !Array.isArray(result.data)) {
+                throw new Error("Invalid data format from API");
+            }
+
+            const workRequests = result.data;
+            setIssues(workRequests);
+
+            // Calculate statistics
+            const total = workRequests.length;
+            const pending = workRequests.filter((req) => req.status === "open").length;
+            const resolved = workRequests.filter((req) => req.status === "resolved").length;
+            const inProgress = workRequests.filter((req) => req.status === "in_progress").length;
+
             setStats({ total, pending, resolved, inProgress });
 
-            // Menyiapkan data untuk pie chart
+            // Prepare chart data
             setChartData([
-                { name: "Pending", value: pending, color: themeColors.danger },
-                { name: "In Progress", value: inProgress, color: themeColors.primary },
-                { name: "Completed", value: resolved, color: themeColors.success }
+                { name: "Pending", value: pending, color: "#ef4444" },
+                { name: "In Progress", value: inProgress, color: "#06b6d4" },
+                { name: "Completed", value: resolved, color: "#10b981" }
             ]);
 
-            // Data untuk trend chart (contoh data bulanan)
-            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+            // Prepare trend data
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             setTrendData(
-                months.map((month) => ({
-                    name: month,
-                    issues: Math.floor(Math.random() * 10) + 2, // Simulasi data
-                    resolved: Math.floor(Math.random() * 8) + 1
-                }))
+                months.map((month, index) => {
+                    const monthRequests = workRequests.filter((req) => {
+                        const reqDate = new Date(req.created_at);
+                        return reqDate.getMonth() === index && reqDate.getFullYear() === new Date().getFullYear();
+                    });
+
+                    return {
+                        name: month,
+                        issues: monthRequests.length,
+                        resolved: monthRequests.filter((req) => req.status === "resolved").length
+                    };
+                })
             );
         } catch (error) {
-            console.error("Error fetching issues:", error);
+            console.error("Error fetching work requests:", error);
+            setIssues([]);
+            setStats({ total: 0, pending: 0, resolved: 0, inProgress: 0 });
         } finally {
             setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchMyIssues();
-    }, [fetchMyIssues]);
+        fetchWorkRequests();
+    }, [fetchWorkRequests]);
 
-    const recentIssues = issues.slice(0, 5); // Ambil 5 data terbaru
+    const statusBodyTemplate = (rowData) => {
+        const statusConfig = {
+            open: {
+                label: "Pending",
+                color: "#ef4444",
+                bgColor: "bg-red-100",
+                textColor: "text-red-800",
+                icon: "pi-clock"
+            },
+            in_progress: {
+                label: "In Progress",
+                color: "#3b82f6",
+                bgColor: "bg-blue-100",
+                textColor: "text-blue-800",
+                icon: "pi-spinner pi-spin"
+            },
+            resolved: {
+                label: "Completed",
+                color: "#10b981",
+                bgColor: "bg-green-100",
+                textColor: "text-green-800",
+                icon: "pi-check"
+            }
+        };
 
-    return (
-        <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mb-8">
-                <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 rounded-lg bg-white shadow-md">
-                        <i className="pi pi-user text-2xl text-blue-500"></i>
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-800">Dasbor Karyawan</h1>
-                        <p className="text-gray-600">Selamat datang! Berikut adalah ringkasan laporan Anda.</p>
-                    </div>
+        const config = statusConfig[rowData.status] || {
+            label: rowData.status,
+            color: "gray",
+            bgColor: "bg-gray-100",
+            textColor: "text-gray-800",
+            icon: "pi-question"
+        };
+        return (
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                    <i className={`pi ${config.icon}`}></i>
+                    <span className="font-medium">{config.label}</span>
                 </div>
             </motion.div>
+        );
+    };
 
-            {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                    {[1, 2, 3].map((i) => (
-                        <Card key={i} className="shadow-md h-full">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <Skeleton width="120px" height="20px" className="mb-2" />
-                                    <Skeleton width="80px" height="30px" className="mb-3" />
-                                    <Skeleton width="100%" height="8px" borderRadius="16px" />
-                                </div>
-                                <Skeleton shape="circle" width="56px" height="56px" />
-                            </div>
-                        </Card>
-                    ))}
-                </div>
-            ) : (
-                <>
-                    {/* Grid untuk Kartu Statistik */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <StatCard title="Total Laporan" value={stats.total} icon="pi-inbox" color="blue" />
-                        <StatCard title="Pending" value={stats.pending} icon="pi-exclamation-circle" color="red" />
-                        <StatCard title="In Progress" value={stats.inProgress} icon="pi-spinner" color="info" />
-                        <StatCard title="Completed" value={stats.resolved} icon="pi-check-circle" color="green" />
+    const dateBodyTemplate = (rowData) => {
+        return rowData.created_at ? new Date(rowData.created_at).toLocaleString("id-ID") : "N/A";
+    };
+
+    const machineBodyTemplate = (rowData) => {
+        return <Tag value={rowData.machine?.name || "N/A"} className="bg-gray-100 text-gray-800 font-medium" />;
+    };
+
+    const filteredData = issues.filter((request) => {
+        const matchesStatus = !statusFilter || request.status === statusFilter;
+        const matchesSearch = !searchText || request.title.toLowerCase().includes(searchText.toLowerCase()) || (request.description && request.description.toLowerCase().includes(searchText.toLowerCase()));
+        return matchesStatus && matchesSearch;
+    });
+
+    return (
+        <div className="card">
+            <h2 className="font-semibold text-2xl mb-4">Dashboard</h2>
+
+            {/* Top Stats Cards */}
+            <div className="grid">
+                {/* Card 1 - Total Request */}
+                <div className="col-6 md:col-3">
+                    <div
+                        className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden"
+                        style={{
+                            height: "180px",
+                            background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+                            borderRadius: "12px",
+                            boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
+                        }}
+                    >
+                        <div className="text-center w-full">
+                            <i className="pi pi-inbox text-white opacity-80" style={{ fontSize: "2rem" }}></i>
+                            <h6 className="font-bold text-white mt-3 mb-1">TOTAL REQUEST</h6>
+                        </div>
+                        <h3 className="text-4xl font-bold text-white my-2">{stats.total}</h3>
+                        <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
+                            <div className="bg-white h-2 rounded-full" style={{ width: "100%" }}></div>
+                        </div>
                     </div>
+                </div>
 
-                    {/* Grid untuk Chart dan Tabel */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                        <motion.div className="lg:col-span-1" initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
-                            <Card title="Status Laporan" className="shadow-lg h-full border-t-4 border-blue-500" headerClassName="border-b-0">
-                                {chartData.every((d) => d.value === 0) ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8" style={{ minHeight: "300px" }}>
-                                        <i className="pi pi-chart-pie text-4xl mb-4 text-gray-300"></i>
-                                        <p>Belum ada data untuk ditampilkan</p>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col h-full">
-                                        <ResponsiveContainer width="100%" height={250}>
-                                            <PieChart>
-                                                <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
-                                                    {chartData.map((entry, index) => (
-                                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                                    ))}
-                                                </Pie>
-                                                <Tooltip formatter={(value) => [`${value} laporan`, "Jumlah"]} />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                        <div className="flex justify-center gap-4 mt-4">
+                {/* Card 2 - Pending Request */}
+                <div className="col-6 md:col-3">
+                    <div
+                        className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden"
+                        style={{
+                            height: "180px",
+                            background: "linear-gradient(135deg, #ef4444 0%, #f97316 100%)",
+                            borderRadius: "12px",
+                            boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
+                        }}
+                    >
+                        <div className="text-center w-full">
+                            <i className="pi pi-clock text-white opacity-80" style={{ fontSize: "2rem" }}></i>
+                            <h6 className="font-bold text-white mt-3 mb-1">PENDING</h6>
+                        </div>
+                        <h3 className="text-4xl font-bold text-white my-2">{stats.pending}</h3>
+                        <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
+                            <div className="bg-white h-2 rounded-full" style={{ width: `${(stats.pending / stats.total) * 100}%` }}></div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Card 3 - In Progress */}
+                <div className="col-6 md:col-3">
+                    <div
+                        className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden"
+                        style={{
+                            height: "180px",
+                            background: "linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%)",
+                            borderRadius: "12px",
+                            boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
+                        }}
+                    >
+                        <div className="text-center w-full">
+                            <i className="pi pi-spinner text-white opacity-80" style={{ fontSize: "2rem" }}></i>
+                            <h6 className="font-bold text-white mt-3 mb-1">IN PROGRESS</h6>
+                        </div>
+                        <h3 className="text-4xl font-bold text-white my-2">{stats.inProgress}</h3>
+                        <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
+                            <div className="bg-white h-2 rounded-full" style={{ width: `${(stats.inProgress / stats.total) * 100}%` }}></div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Card 4 - Completed */}
+                <div className="col-6 md:col-3">
+                    <div
+                        className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden"
+                        style={{
+                            height: "180px",
+                            background: "linear-gradient(135deg, #10b981 0%, #22c55e 100%)",
+                            borderRadius: "12px",
+                            boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
+                        }}
+                    >
+                        <div className="text-center w-full">
+                            <i className="pi pi-check-circle text-white opacity-80" style={{ fontSize: "2rem" }}></i>
+                            <h6 className="font-bold text-white mt-3 mb-1">COMPLETED</h6>
+                        </div>
+                        <h3 className="text-4xl font-bold text-white my-2">{stats.resolved}</h3>
+                        <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
+                            <div className="bg-white h-2 rounded-full" style={{ width: `${(stats.resolved / stats.total) * 100}%` }}></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Charts Section */}
+            <div className="grid mt-4">
+                <div className="col-12 md:col-6">
+                    <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ minHeight: "400px", flexDirection: "column", padding: "2rem" }}>
+                        <h5 className="font-bold mb-4 self-start">Work Request Status Distribution</h5>
+                        {loading ? (
+                            <ProgressSpinner />
+                        ) : (
+                            <div style={{ width: "100%", height: "350px" }}>
+                                <ResponsiveContainer>
+                                    <PieChart>
+                                        <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value">
                                             {chartData.map((entry, index) => (
-                                                <div key={`legend-${index}`} className="flex items-center">
-                                                    <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: entry.color }} />
-                                                    <span className="text-sm text-gray-600">{entry.name}</span>
-                                                </div>
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
                                             ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </Card>
-                        </motion.div>
+                                        </Pie>
+                                        <Tooltip />
+                                        <Legend />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
-                        <motion.div className="lg:col-span-2" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.4 }}>
-                            <Card title="Trend Laporan 6 Bulan Terakhir" className="shadow-lg h-full border-t-4 border-purple-500" headerClassName="border-b-0">
-                                <ResponsiveContainer width="100%" height={300}>
+                <div className="col-12 md:col-6">
+                    <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ minHeight: "400px", flexDirection: "column", padding: "2rem" }}>
+                        <h5 className="font-bold mb-4 self-start">Monthly Work Request Trend</h5>
+                        {loading ? (
+                            <ProgressSpinner />
+                        ) : (
+                            <div style={{ width: "100%", height: "350px" }}>
+                                <ResponsiveContainer>
                                     <BarChart data={trendData}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                         <XAxis dataKey="name" />
                                         <YAxis />
                                         <Tooltip />
                                         <Legend />
-                                        <Bar dataKey="issues" name="Laporan Dibuat" fill={themeColors.secondary} radius={[4, 4, 0, 0]} />
-                                        <Bar dataKey="resolved" name="Laporan Selesai" fill={themeColors.success} radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="issues" name="Request" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="resolved" name="Completed" fill="#22C55E" radius={[4, 4, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
-                            </Card>
-                        </motion.div>
+                            </div>
+                        )}
                     </div>
-                </>
-            )}
+                </div>
+            </div>
 
-            {/* Tabel Laporan Terbaru */}
-            <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}>
-                <Card title="Laporan Terbaru Anda" className="shadow-lg border-t-4 border-green-500" headerClassName="border-b-0">
-                    {loading ? (
-                        <div className="space-y-4">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                                <div key={i} className="flex items-center justify-between p-4 border-b border-gray-200">
-                                    <Skeleton width="30%" height="20px" />
-                                    <Skeleton width="20%" height="20px" />
-                                    <Skeleton width="15%" height="20px" />
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <DataTable
-                            value={recentIssues}
-                            emptyMessage={
-                                <div className="flex flex-col items-center justify-center py-8 text-gray-500">
-                                    <i className="pi pi-inbox text-4xl mb-4 text-gray-300"></i>
-                                    <p>Anda belum membuat laporan</p>
-                                </div>
-                            }
-                            responsiveLayout="scroll"
-                            className="p-datatable-sm"
-                            rowClassName={() => "hover:bg-gray-50 cursor-pointer"}
-                        >
-                            <Column
-                                field="title"
-                                header="Judul"
-                                body={(rowData) => (
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-2 h-2 rounded-full ${rowData.status === "open" ? "bg-red-500" : rowData.status === "in_progress" ? "bg-blue-500" : "bg-green-500"}`}></div>
-                                        <span className="font-semibold">{rowData.title}</span>
+            {/* Recent Work Orders Table */}
+            <div className="grid mt-4">
+                <div className="col-12">
+                    <div className="card overflow-hidden">
+                        <h5 className="font-bold mb-4">Recent Work Orders</h5>
+                        {loading ? (
+                            <div className="flex justify-center p-4">
+                                <ProgressSpinner />
+                            </div>
+                        ) : (
+                            <DataTable
+                                value={filteredData.slice(0, 5)}
+                                className="border-round-lg"
+                                rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
+                                paginator
+                                rows={5}
+                                rowsPerPageOptions={[5, 10, 25]}
+                                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
+                                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} requests"
+                                emptyMessage="No work orders found"
+                                header={
+                                    <div className="flex align-items-center justify-content-between gap-2">
+                                        <div>
+                                            <span className="text-xl font-bold mr-3">Work Requests</span>
+                                            <Dropdown placeholder="Filter Status" value={statusFilter} options={statusOptions} onChange={(e) => setStatusFilter(e.value)} className="w-10rem" />
+                                        </div>
+                                        <InputText placeholder="Search" value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-15rem" />
                                     </div>
-                                )}
-                            ></Column>
-                            <Column field="machine.name" header="Mesin" body={(rowData) => <Tag value={rowData.machine?.name || "N/A"} severity="info" className="bg-blue-100 text-blue-800" />}></Column>
-                            <Column field="createdAt" header="Tanggal" body={(rowData) => new Date(rowData.createdAt).toLocaleDateString()}></Column>
-                            <Column field="status" header="Status" body={statusBodyTemplate} align="right"></Column>
-                        </DataTable>
-                    )}
-                    {issues.length > 5 && (
-                        <div className="flex justify-end mt-4">
-                            <button className="flex items-center gap-2 text-blue-500 hover:text-blue-700 font-medium">
-                                Lihat Semua Laporan <i className="pi pi-arrow-right"></i>
-                            </button>
-                        </div>
-                    )}
-                </Card>
-            </motion.div>
+                                }
+                            >
+                                <Column
+                                    field="title"
+                                    header="Title"
+                                    sortable
+                                    body={(rowData) => (
+                                        <motion.div whileHover={{ x: 5 }} className="font-medium text-blue-600">
+                                            {rowData.title}
+                                        </motion.div>
+                                    )}
+                                />
+                                <Column field="machine.name" header="Machine" body={machineBodyTemplate} sortable sortField="machine.name" />
+                                <Column field="created_at" header="Reported Date" body={dateBodyTemplate} sortable />
+                                <Column field="status" header="Status" body={statusBodyTemplate} sortable />
+                            </DataTable>
+                        )}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
-
 export default EmployeeDashboard;
