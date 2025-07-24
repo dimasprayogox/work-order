@@ -16,6 +16,12 @@ export function middleware(request) {
         '/api/auth/login',
         '/api/auth/logout',
         '/api/auth/refresh',
+        '/auth/login',
+        '/auth/register',
+        '/access-denied',
+        '/api/auth/login',
+        '/api/auth/logout',
+        '/api/auth/refresh',
     ];
 
     const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
@@ -34,7 +40,7 @@ export function middleware(request) {
         "/dashboard/employee": ["employee"],
         "/dashboard/technician": ["technician"],
         "/dashboard/manager": ["manager"],
-        "logistics": ["logistics"],
+        "/dashboard/logistics": ["logistics"],
         "/master": ["admin", "manager"],
         "/monitor": ["admin", "technician", "manager"],
         "/profile": ["admin", "employee", "technician", "manager", "logistics"],
@@ -119,6 +125,7 @@ export function middleware(request) {
     }
 
     return NextResponse.next();
+    return NextResponse.next();
 }
 
 export const config = {
@@ -126,3 +133,4 @@ export const config = {
       '/((?!api|auth|access-denied|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.webp$|.*\\.svg$|.*\\.css$|.*\\.js$|.*\\.woff$|.*\\.woff2$|.*\\.ttf$|.*\\.eot$).*)',
     ],
 };
+
