@@ -13,9 +13,10 @@ router.use(authorizeRole("technician"));
 router.post("/", PartRequestController.create);
 // Ambil semua Part Request milik teknisi yang login
 router.get("/", PartRequestController.getMyPartRequests);
+// teknisi get semua part
+router.get("/part", PartRequestController.getAllParts);
 // Teknisi: lihat semua Part Request untuk Work Order tertentu
 router.get("/:workOrderId", PartRequestController.getByWorkOrder);
 // Teknisi: delete Part Request jika status masih pending
 router.delete("/:id", PartRequestController.delete);
-
 export default router;

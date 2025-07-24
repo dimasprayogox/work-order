@@ -1,6 +1,7 @@
 import { PartRequest } from "../../models/PartRequest.js";
 import { PartRequestItem } from "../../models/PartRequestItem.js";
 import { WorkOrder } from "../../models/WorkOrder.js";
+import { Part } from "../../models/Part.js";
 import { v4 as uuidv4 } from "uuid";
 import { createPartRequestSchema } from "../../schemas/technician/partRequestSchema.js";
 
@@ -150,6 +151,19 @@ export const PartRequestController = {
             });
         } catch (err) {
             console.error("Error deleting part request:", err);
+            res.status(500).json({ message: err.message });
+        }
+    },
+    
+    async getAllParts(req, res) {
+        try {
+            const parts = await Part.query();
+            res.status(200).json({
+                message: "All parts fetched successfully.",
+                data: parts
+            });
+        } catch (err) {
+            console.error("Error fetching parts:", err);
             res.status(500).json({ message: err.message });
         }
     }
