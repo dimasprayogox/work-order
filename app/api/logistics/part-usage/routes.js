@@ -1,14 +1,14 @@
-import express from "express";
-import { PartUsageController } from "../../../controllers/logistic/PartUsageController.js";
-import { authMiddleware } from "../../../middleware/auth-middleware.js";
-import { authorizeRole } from "../../../middleware/role-middleware.js";
+import axios from "axios";
+import { API_ENDPOINTS } from "../../api";
 
-const router = express.Router();
-
-router.use(authMiddleware);
-router.use(authorizeRole('logistics'));
-
-router.get("/top-used", PartUsageController.topUsedParts);
-router.get("/log", PartUsageController.usageLog);
-
-export default router;
+export const getLogisticsPartsUsage = async () => {
+    try {
+        const res = await axios.get(API_ENDPOINTS.TOP_USED_PARTS, {
+            withCredentials: true
+        });
+        return res.data?.data;
+    } catch (err) {
+        console.error("Failed to fetch logistics dashboard:", err);
+        throw err;
+    }
+};
