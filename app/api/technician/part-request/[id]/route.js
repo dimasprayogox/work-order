@@ -9,6 +9,7 @@ import { isAxiosError } from "axios";
  * @param {{ params: { id: string } }} { params }
  */
 export const GET = async (request, { params }) => {
+    // FIX: Nama parameter harus 'id' sesuai dengan nama folder '[id]'
     const { id } = params;
     const token = request.cookies.get("authToken")?.value;
 
@@ -17,6 +18,7 @@ export const GET = async (request, { params }) => {
     }
 
     try {
+        // FIX: Gunakan 'id' yang didapat dari params
         const response = await Axios.get(API_ENDPOINTS.TECHNICIAN_PART_REQUEST_BY_ID(id), {
             headers: { Authorization: `Bearer ${token}` }
         });

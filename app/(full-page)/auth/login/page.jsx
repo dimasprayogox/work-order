@@ -9,7 +9,7 @@ import { Password } from "primereact/password";
 import { LayoutContext } from "../../../../layout/context/layoutcontext";
 import { InputText } from "primereact/inputtext";
 import { classNames } from "primereact/utils";
-import { Toast } from 'primereact/toast'; 
+import { Toast } from 'primereact/toast';
 
 const LoginPage = () => {
     // --- STATE ---
@@ -17,7 +17,7 @@ const LoginPage = () => {
     const [password, setPassword] = useState("");
     const [checked, setChecked] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [errorMsg, setErrorMsg] = useState(""); 
+    const [errorMsg, setErrorMsg] = useState("");
 
     // --- HOOKS ---
     const router = useRouter();
@@ -59,7 +59,7 @@ const LoginPage = () => {
                         redirectPath = `${dashboardBasePath}/employee`; // Akan menjadi /dashboard/employee
                         break;
                     case "technician":
-                        redirectPath = `${dashboardBasePath}/technician`; // Akan menjadi /dashboard/technician
+                        redirectPath = `/technician${dashboardBasePath}`; // Akan menjadi /dashboard/technician
                         break;
                     case "manager":
                         redirectPath = `${dashboardBasePath}/manager`; // Akan menjadi /dashboard/manager
@@ -73,7 +73,7 @@ const LoginPage = () => {
                 }
                 router.push(redirectPath);
 
-           
+
             } else {
                toastRef.current?.show({ severity: "error", summary: "Gagal", detail: result.message || "Email atau Password salah.", life: 3000 });
             }
