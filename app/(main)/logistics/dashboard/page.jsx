@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getLogisticsDashboard } from "@/app/api/logistics/dashboard/routes";
+import { getLogisticsDashboard } from "../../../api/logistics/dashboard/routes";
 import PartSummary from "./components/PartSummary";
 import PartRequestSummary from "./components/PartRequestSummary";
 import TopUsedParts from "./components/TopUsedParts";
@@ -15,6 +15,8 @@ const LogisticsDashboardPage = () => {
         const fetchData = async () => {
             try {
                 const dashboardData = await getLogisticsDashboard();
+                console.log("Data yang diterima di dalam komponen:", dashboardData);
+
                 setData(dashboardData);
             } catch (error) {
                 console.error("Error loading dashboard:", error);
@@ -29,7 +31,9 @@ const LogisticsDashboardPage = () => {
     if (loading) {
         return <div className="flex justify-center items-center h-64"><ProgressSpinner /></div>;
     }
-
+    if (!data) {
+        return <div className="text-center p-4">Gagal memuat data. Silakan coba lagi nanti.</div>;
+    }
     return (
         <div className="p-4 space-y-4">
             <h2 className="text-2xl font-bold mb-4">Logistics Dashboard</h2>

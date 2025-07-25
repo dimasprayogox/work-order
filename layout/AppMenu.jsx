@@ -103,7 +103,7 @@ const AppMenu = () => {
                         {
                             label: "Dashboard",
                             icon: "pi pi-fw pi-home",
-                            to: "/dashboard/logistics"
+                            to: "/logistics/dashboard"
                         },
                         {
                             label: "Parts",
