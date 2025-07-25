@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { getLogisticsDashboard } from "../../../api/logistics/dashboard/routes";
+import { ProgressSpinner } from "primereact/progressspinner";
 import PartSummary from "./components/PartSummary";
 import PartRequestSummary from "./components/PartRequestSummary";
 import TopUsedParts from "./components/TopUsedParts";
-import { ProgressSpinner } from "primereact/progressspinner";
+import RecentRequests from "./components/RecentRequests";
 
 const LogisticsDashboardPage = () => {
     const [data, setData] = useState(null);
@@ -15,8 +16,6 @@ const LogisticsDashboardPage = () => {
         const fetchData = async () => {
             try {
                 const dashboardData = await getLogisticsDashboard();
-                console.log("Data yang diterima di dalam komponen:", dashboardData);
-
                 setData(dashboardData);
             } catch (error) {
                 console.error("Error loading dashboard:", error);
@@ -29,17 +28,36 @@ const LogisticsDashboardPage = () => {
     }, []);
 
     if (loading) {
-        return <div className="flex justify-center items-center h-64"><ProgressSpinner /></div>;
+        return (
+            <div className="flex justify-center items-center h-64">
+                <ProgressSpinner />
+                <span className="ml-2">Loading dashboard...</span>
+            </div>
+        );
     }
+
     if (!data) {
-        return <div className="text-center p-4">Gagal memuat data. Silakan coba lagi nanti.</div>;
+        return <div className="flex justify-center items-center h-64 text-red-500">Failed to load dashboard data</div>;
     }
+
     return (
-        <div className="p-4 space-y-4">
-            <h2 className="text-2xl font-bold mb-4">Logistics Dashboard</h2>
-            <PartSummary data={data.part_summary} />
-            <PartRequestSummary data={data.part_requests} />
-            <TopUsedParts data={data.top_used_parts} />
+        <div className="card">
+            <h2 className="font-semibold text-2xl mb-4">Dashboard</h2>
+
+            <div className="grid">
+                <PartSummary title="TOTAL PARTS" value={data.part_summary.total_parts} icon="total" color="total" />
+                <PartSummary title="LOW STOCK" value={data.part_summary.low_stock} icon="low" color="low" />
+                <PartSummary title="OUT OF STOCK" value={data.part_summary.out_of_stock || 0} icon="out" color="out" />
+                <PartSummary title="CRITICAL PARTS" value="ini belum bisa" icon="critical" color="critical" />
+            </div>
+            <div className="grid mt-6">
+                <PartRequestSummary data={data.part_requests} />
+                <RecentRequests data={data.recent_requests} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <TopUsedParts data={data.top_used_parts} />
+            </div>
         </div>
     );
 };
