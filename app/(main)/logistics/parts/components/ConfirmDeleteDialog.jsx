@@ -5,27 +5,39 @@ import { Button } from "primereact/button";
 import { API_ENDPOINTS } from "../../../../api/api";
 import { useState } from "react";
 
-const ConfirmDeleteDialog = ({ visible, onHide, part, fetchParts, showToast }) => {
+const ConfirmDeleteDialog = ({ visible, onHide, part, selectedParts = [], fetchParts, showToast }) => {
     const [loading, setLoading] = useState(false);
 
-    const handleDelete = async () => {
+    const isBulkDelete = !part && selectedParts.length > 0;
 
-        if (!part) {
-            showToast("error", "Error", "Part yang akan dihapus tidak ditemukan.");
-            setLoading(false);
-            onHide(); // Tutup dialog jika terjadi error
-            return;
-        }
-        
+    const handleDelete = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_ENDPOINTS.PARTS}/${part.id}`, {
-                method: "DELETE",
-                credentials: "include"
-            });
+            let res;
+            if (isBulkDelete) {
+                res = await fetch(`${API_ENDPOINTS.PARTS}/delete-many`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        ids: selectedParts.map((p) => p.id)
+                    })
+                });
+            } else {
+                res = await fetch(`${API_ENDPOINTS.PARTS}/${part.id}`, {
+                    method: "DELETE",
+                    credentials: "include"
+                });
+            }
+
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
-            showToast("success", "Berhasil", "Part berhasil dihapus");
+
+            const successMessage = isBulkDelete ? `${selectedParts.length} part berhasil dihapus` : "Part berhasil dihapus";
+
+            showToast("success", "Berhasil", successMessage);
             fetchParts();
             onHide();
         } catch (error) {
@@ -43,21 +55,20 @@ const ConfirmDeleteDialog = ({ visible, onHide, part, fetchParts, showToast }) =
     );
 
     return (
-        <Dialog
-            header="Konfirmasi Hapus"
-            visible={visible}
-            onHide={onHide}
-            modal
-            style={{ width: "25rem" }}
-            footer={footerContent} 
-        >
+        <Dialog header="Konfirmasi Hapus" visible={visible} onHide={onHide} modal style={{ width: "25rem" }} footer={footerContent}>
             <div className="flex flex-column align-items-center text-center gap-4 py-4">
                 <i className="pi pi-exclamation-triangle text-red-500 text-6xl" />
-                
+
                 <div>
-                    <h3 className="font-bold mb-2">Hapus Part Ini?</h3>
+                    <h3 className="font-bold mb-2">{isBulkDelete ? `Hapus ${selectedParts.length} Part?` : "Hapus Part Ini?"}</h3>
                     <p className="text-color-secondary">
-                        Anda akan menghapus <strong>{part?.name ?? "part yang dipilih"}</strong>.
+                        {isBulkDelete ? (
+                            `Anda akan menghapus ${selectedParts.length} part yang dipilih.`
+                        ) : (
+                            <>
+                                Anda akan menghapus <strong>{part?.name ?? "part yang dipilih"}</strong>.
+                            </>
+                        )}
                         <br />
                         Tindakan ini tidak dapat diurungkan.
                     </p>
