@@ -67,6 +67,7 @@ export const WorkOrderController = {
                 return res.status(403).json({ message: "Forbidden. You are not authorized to update this work order." });
             }
 
+            // Pastikan ada part request dengan status fulfilled
             const hasFulfilled = await PartRequest.query()
                 .where("work_order_id", id)
                 .where("status", "fulfilled")
@@ -76,7 +77,7 @@ export const WorkOrderController = {
                 return res.status(400).json({
                     message: "Cannot update work order. No fulfilled part requests found."
                 });
-}
+            }
 
             // Validasi waktu berdasarkan status
             if (status === "in_progress" && !started_at) {
@@ -117,13 +118,18 @@ export const WorkOrderController = {
                 completed_at: status === "completed" ? completed_at : null,
             });
 
-            if (status === "completed") {
-                if (workOrder.issue_id) {
+            // Update status issue sesuai status work order
+            if (workOrder.issue_id) {
+                if (status === "in_progress") {
+                    await Issue.query().patchAndFetchById(workOrder.issue_id, { status: "in_progress" });
+                } else if (status === "completed") {
                     await Issue.query().patchAndFetchById(workOrder.issue_id, { status: "resolved" });
                 }
-                if (workOrder.machine_id) {
-                    await Machine.query().patchAndFetchById(workOrder.machine_id, { status: "available" });
-                }
+            }
+
+            // Jika work order selesai, update status mesin ke 'operational'
+            if (status === "completed" && workOrder.machine_id) {
+                await Machine.query().patchAndFetchById(workOrder.machine_id, { status: "operational" });
             }
 
             res.status(200).json({

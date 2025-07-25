@@ -90,7 +90,7 @@ export const IssueController = {
             });
 
             await Machine.query().patchAndFetchById(machine_id, {
-                status: "maintenance",
+                status: "down",
             });
 
             const workOrder = await WorkOrder.query().insert({
