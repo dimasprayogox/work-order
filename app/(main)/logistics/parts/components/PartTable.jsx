@@ -53,7 +53,6 @@ const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSel
                             onGlobalFilterChange(e.target.value);
                         }}
                         placeholder="Search"
-                        className="w-full md:w-20rem"
                     />
                 </span>
             </div>

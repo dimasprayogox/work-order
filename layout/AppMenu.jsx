@@ -100,7 +100,6 @@ const AppMenu = () => {
                     ];
                 } else if (role === "logistics") {
                     filteredModel = [
-                        allMenus.dashboard.items[0],
                         {
                             label: "Dashboard",
                             icon: "pi pi-fw pi-home",
