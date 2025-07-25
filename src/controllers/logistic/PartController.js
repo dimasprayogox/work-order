@@ -46,5 +46,45 @@ export const PartController = {
             return res.status(404).json({ success: false, message: "Part not found" });
         }
         res.json({ success: true, message: "Part deleted", data: { id: req.params.id } });
+    },
+
+    async deleteMany(req, res) {
+    try {
+        const { ids } = req.body;
+
+        // Validate input
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid input: 'ids' must be a non-empty array of part IDs."
+            });
+        }
+
+        // Delete the parts
+        const deletedCount = await Part.query().delete().whereIn('id', ids);
+
+        if (deletedCount === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No parts found with the provided IDs."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `Successfully deleted ${deletedCount} parts`,
+            data: {
+                deletedCount,
+                deletedIds: ids
+            }
+        });
+    } catch (err) {
+        console.error("Error in deleteMany:", err);
+        res.status(500).json({
+            success: false,
+            message: "Failed to delete parts",
+            error: process.env.NODE_ENV === "development" ? err.message : undefined
+        });
     }
+},
 };
