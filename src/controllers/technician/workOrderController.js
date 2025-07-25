@@ -67,6 +67,17 @@ export const WorkOrderController = {
                 return res.status(403).json({ message: "Forbidden. You are not authorized to update this work order." });
             }
 
+            const hasFulfilled = await PartRequest.query()
+                .where("work_order_id", id)
+                .where("status", "fulfilled")
+                .resultSize();
+
+            if (hasFulfilled === 0) {
+                return res.status(400).json({
+                    message: "Cannot update work order. No fulfilled part requests found."
+                });
+}
+
             // Validasi waktu berdasarkan status
             if (status === "in_progress" && !started_at) {
                 return res.status(400).json({ message: "started_at is required when status is 'in_progress'." });
