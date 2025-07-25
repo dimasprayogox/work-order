@@ -51,9 +51,13 @@ const PartPage = () => {
        setDeleteConfirmOpen(true);
    };
 
-    const handleSelectionChange = (selectedItems) => {
-        setSelectedParts(selectedItems);
-    };
+   const handleDeleteSelected = () => {
+    if (selectedParts.length === 0) {
+        showToast("warn", "Warning", "Tidak ada part yang dipilih");
+        return;
+    }
+       setDeleteConfirmOpen(true);
+   };
 
     const handleRefresh = () => {
         fetchParts();
@@ -80,18 +84,19 @@ const PartPage = () => {
                     <Button size="small" label="Export" icon="pi pi-file-export" outlined />
                     <Button size="small" label="Print" icon="pi pi-print" outlined />
                     <Divider layout="vertical" />
-                    {/* <Button size="small" label={`Delete ${selectedPart.length > 0 ? `(${selectedPart.length})` : ""}`} icon="pi pi-trash" outlined severity="danger" onClick={handleDelete} disabled={selectedPart.length === 0} /> */}
+                    <Button size="small" label={`Delete ${selectedParts.length > 0 ? `(${selectedParts.length})` : ""}`} icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedParts.length === 0} />
                     <Divider layout="vertical" />
                     <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={handleRefresh} />
                 </div>
 
-                <PartTable parts={parts} loading={loading} onEdit={handleEdit} onDelete={handleDelete} />
+                <PartTable parts={parts} loading={loading} onEdit={handleEdit} onDelete={handleDelete} selectedParts={selectedParts} onSelectionChange={setSelectedParts} />
 
                 <PartFormDialog visible={isDialogOpen} onHide={() => setDialogOpen(false)} part={selectedPart} fetchParts={fetchParts} showToast={showToast} />
 
                 <ConfirmDeleteDialog
                     visible={isDeleteConfirmOpen}
                     part={selectedPart}
+                    selectedParts={selectedParts}
                     onHide={() => {
                         setDeleteConfirmOpen(false);
                         setSelectedPart(null);
