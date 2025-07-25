@@ -40,7 +40,7 @@ const PartUsagePage = () => {
                 <TopUsedPartsTable data={topUsedParts} loading={loading} />
             </Card>
 
-            <Card title="Log Penggunaan Part">
+            <Card title="Log Penggunaan Part" className="mt-6">
                 <UsageLogTable data={usageLogs} loading={loading} />
             </Card>
         </div>
