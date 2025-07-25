@@ -13,7 +13,8 @@ const statusSeverity = {
     pending: "info",
     approved: "success",
     rejected: "danger",
-    fulfilled: "success"
+    fulfilled: "success",
+    false: "success" // Add false as a success status
 };
 
 const statusOptions = [
@@ -21,7 +22,8 @@ const statusOptions = [
     { label: "Pending", value: "pending" },
     { label: "Approved", value: "approved" },
     { label: "Rejected", value: "rejected" },
-    { label: "Fulfilled", value: "fulfilled" }
+    { label: "Fulfilled", value: "fulfilled" },
+    { label: "Completed", value: "false" } // Changed label to "Completed"
 ];
 
 const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchText }) => {
@@ -30,7 +32,6 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
         status: { value: null, matchMode: FilterMatchMode.EQUALS }
     });
     const [statusFilter, setStatusFilter] = useState("");
-
 
     useEffect(() => {
         setFilters({
@@ -46,12 +47,10 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
         onSearch(value);
     };
 
-    const statusTemplate = (rowData) => <Tag value={rowData.status} severity={statusSeverity[rowData.status]} />;
-
-    const requestedByTemplate = (rowData) => rowData.requestedBy?.name || "-";
+    const requestedByTemplate = (rowData) => rowData.requestedBy?.full_name || "-";
 
     const itemsTemplate = (rowData) => (
-        <ul className="list-disc">
+        <ul className="list-disc ">
             {rowData.items.map((item) => (
                 <li key={item.id}>
                     {item.part?.name} ({item.quantity_requested}){item.quantity_approved != null && ` → Disetujui: ${item.quantity_approved}`}
@@ -60,17 +59,34 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
         </ul>
     );
 
-    const actionTemplate = (rowData) => <Button label="Update Status" icon="pi pi-pencil" onClick={() => onUpdateStatus(rowData)} className="p-button-sm" />;
+    const statusTemplate = (rowData) => {
+        if (rowData.status === "false") {
+            return (
+                <div className="flex align-items-center gap-2">
+                    <i className="pi pi-check-circle text-green-500" style={{ fontSize: "1.25rem" }}></i>
+                    <span className="font-medium text-green-600">Completed</span>
+                </div>
+            );
+        }
+        return <Tag value={rowData.status} severity={statusSeverity[rowData.status]} />;
+    };
+
+    const actionTemplate = (rowData) => {
+        if (rowData.status === "approved" || rowData.status === "false") {
+            return null;
+        }
+        return <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onUpdateStatus(rowData)} tooltip="Edit" />;
+    };
 
     const header = (
         <div className="flex align-items-center justify-content-between">
-            <div>
-                <span className="text-xl font-bold mr-3">Parts Request List</span>
-                <Dropdown placeholder="Filter Status" value={statusFilter} options={statusOptions} onChange={(e) => setStatusFilter(e.value)} />
+            <div className="flex align-items-center gap-3">
+                <span className="text-xl font-bold">Parts Request List</span>
+                <Dropdown placeholder="Filter Status" value={statusFilter} options={statusOptions} onChange={(e) => setStatusFilter(e.value)} className="w-10rem" />
             </div>
             <span className="p-input-icon-left">
                 <i className="pi pi-search" />
-                <InputText value={searchText} onChange={(e) => onGlobalFilterChange(e.target.value)} placeholder="Search" />
+                <InputText value={searchText} onChange={(e) => onGlobalFilterChange(e.target.value)} placeholder="Search" className="w-20rem" />
             </span>
         </div>
     );
@@ -92,11 +108,11 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
             rowsPerPageOptions={[5, 10, 25]}
             header={header}
         >
-            <Column header="Dibuat Oleh" body={requestedByTemplate} sortable sortField="requestedBy.name" style={{ width: "15%", minWidth: "150px" }} />
+            <Column header="Teknisi" body={requestedByTemplate} sortable sortField="requestedBy.name" style={{ width: "15%", minWidth: "150px" }} />
             <Column field="note" header="Catatan" sortable style={{ width: "20%", minWidth: "200px" }} />
             <Column header="Items" body={itemsTemplate} style={{ width: "35%", minWidth: "300px" }} />
-            <Column header="Status" body={statusTemplate} sortable sortField="status" style={{ width: "15%", minWidth: "120px" }} />
-            <Column header="Aksi" body={actionTemplate} style={{ width: "15%", minWidth: "150px" }} />
+            <Column header="Status" body={statusTemplate} sortable sortField="status" bodyClassName={(rowData) => (rowData.status === "false" ? "font-bold" : "")} style={{ width: "15%", minWidth: "120px" }} />
+            <Column header="Aksi" body={actionTemplate}  />
         </DataTable>
     );
 };
