@@ -33,7 +33,7 @@ export const API_ENDPOINTS = {
         GET_TECHNICIAN_WORK_ORDERS: `${API_URL}/technician/work-orders`,
         TECHNICIAN_WORK_ORDER_BY_ID: (id) => `${API_URL}/technician/work-orders/${id}`,
         TECHNICIAN_PART_REQUEST_BASE: `${API_URL}/technician/part-request`,
-        TECHNICIAN_PART_REQUEST_BY_ID: (id) => `${API_URL}/technician/part-request/${id}`,
+        TECHNICIAN_PART_REQUEST_BY_ID: (workOrderId) => `${API_URL}/technician/part-request/${workOrderId}`,
         TECHNICIAN_PART_BASE: `${API_URL}/technician/part-request/part`,
     // Part Requests
     PART_REQUESTS: `${API_URL}/logistics/part-requests`,

@@ -1,35 +1,41 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 import { Dropdown } from "primereact/dropdown";
 import { InputTextarea } from "primereact/inputtextarea";
 import { Calendar } from "primereact/calendar";
-import { InputNumber } from "primereact/inputnumber";
 import { Message } from "primereact/message";
 import { motion } from "framer-motion";
 
+// Helper for default form state
+const getDefaultFormData = () => ({
+    status: "",
+    description: "",
+    started_at: null,
+    completed_at: null,
+});
+
 export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetchWorkOrders, showToast }) {
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState({
-        status: "",
-        description: "",
-        started_at: null,
-        completed_at: null,
-        actual_labor: null,
-    });
+    const [formData, setFormData] = useState(getDefaultFormData());
     const [formErrors, setFormErrors] = useState({});
 
-    // Menentukan apakah form bisa diedit berdasarkan status
-    const isEditable = workOrder?.status === 'open' || workOrder?.status === 'in_progress';
+    // Determine if the form is editable based on the work order's current status
+    const isEditable = workOrder?.status === 'pending' || workOrder?.status === 'in_progress';
 
-    // Mengisi form dengan data work order yang ada saat dialog muncul
+    // Options for the status dropdown
+    const statusOptions = [
+        { label: "In Progress", value: "in_progress" },
+        { label: "Completed", value: "completed" },
+    ];
+
+    // Populate the form when the workOrder prop changes
     useEffect(() => {
         if (workOrder) {
-            // Secara otomatis mengatur status ke tahap berikutnya
             let nextStatus = workOrder.status;
-            if (workOrder.status === 'open') {
+            if (workOrder.status === 'pending') {
                 nextStatus = 'in_progress';
             } else if (workOrder.status === 'in_progress') {
                 nextStatus = 'completed';
@@ -38,49 +44,82 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
             setFormData({
                 status: nextStatus,
                 description: workOrder.description || "",
-                started_at: workOrder.started_at ? new Date(workOrder.started_at) : new Date(), // Default ke waktu sekarang jika mulai
-                completed_at: workOrder.completed_at ? new Date(workOrder.completed_at) : null,
-                actual_labor: workOrder.actual_labor || null,
+                // Set default start/completion time to now if not already set
+                started_at: workOrder.started_at ? new Date(workOrder.started_at) : (nextStatus === 'in_progress' ? new Date() : null),
+                completed_at: workOrder.completed_at ? new Date(workOrder.completed_at) : (nextStatus === 'completed' ? new Date() : null),
             });
+            setFormErrors({}); // Reset errors on pending
         }
-        setFormErrors({});
-    }, [workOrder]);
+    }, [workOrder, visible]);
 
-    const validateForm = useCallback(() => {
+    // Validation logic
+    const validateForm = () => {
         const errors = {};
-        if (!formData.status) {
-            errors.status = "Status harus dipilih.";
-        }
-        // Validasi: Jika status diubah ke 'in_progress', tanggal mulai harus ada
         if (formData.status === 'in_progress' && !formData.started_at) {
-            errors.started_at = "Tanggal mulai harus diisi saat status 'In Progress'.";
+            errors.started_at = "Start date is required for 'In Progress' status.";
         }
-        // Validasi: Jika status diubah ke 'completed', tanggal selesai harus ada
         if (formData.status === 'completed' && !formData.completed_at) {
-            errors.completed_at = "Tanggal selesai harus diisi saat status 'Completed'.";
+            errors.completed_at = "Completion date is required for 'Completed' status.";
+        }
+        if (formData.status === 'completed' && !formData.description) {
+            errors.description = "Work description cannot be empty when completing a work order.";
         }
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
-    }, [formData]);
+    };
 
-    const handleChange = useCallback((e, field) => {
-        const value = e.target ? e.target.value : e.value;
-        setFormData((prev) => ({ ...prev, [field]: value }));
-    }, []);
+    // Function to check if part requests are fulfilled before completing a work order
+    const checkPartRequestEligibility = async () => {
+        try {
+            // FIX: Use a GET request with a query parameter. No body.
+            const response = await fetch(`/api/technician/part-request/${workOrder.id}`);
+
+            // FIX: Properly check if the response is not OK (e.g., 404, 500)
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.message || 'Failed to check part request status.');
+            }
+
+            const result = await response.json();
+            const allFulfilled = result.data.every(request => request.status === 'fulfilled');
+            console.log("Part request eligibility result:", result.data[0].status);
+            // Assuming the API returns { eligible: boolean, message: string }
+            if (!allFulfilled) {
+                showToast('error', 'Update Failed', result.message || 'Not all part requests for this work order have been fulfilled.');
+                return false; // Not eligible
+            }
+            return true; // Eligible
+        } catch (error) {
+            showToast('error', 'Check Error', error.message);
+            return false;
+        }
+    };
+
 
     const handleSubmit = async () => {
         if (!validateForm()) {
-            showToast("error", "Validation Failed", "Harap periksa kembali isian form.");
+            showToast("warn", "Validation Failed", "Please check the form for errors.");
             return;
         }
 
         setLoading(true);
+
+        // If moving to 'completed', first check part request status
+        if (formData.status === 'completed' || formData.status === 'in_progress') {
+            const isEligible = await checkPartRequestEligibility();
+            if (!isEligible) {
+                setLoading(false);
+                return; // Stop execution if not eligible
+            }
+        }
+
         try {
             const payload = {
-              status: formData.status,
-              description: formData.description,
-              ...(formData.started_at && { started_at: formData.started_at.toISOString() }),
-              ...(formData.completed_at && { completed_at: formData.completed_at.toISOString() }),
+                status: formData.status,
+                description: formData.description,
+                // Conditionally add dates to payload only if they exist
+                ...(formData.status === 'in_progress' && { started_at: formData.started_at.toISOString() }),
+                ...(formData.status === 'completed' && { completed_at: formData.completed_at.toISOString() }),
             };
 
             const response = await fetch(`/api/technician/work-orders/${workOrder.id}`, {
@@ -91,10 +130,10 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
 
             const result = await response.json();
             if (!response.ok) {
-                throw new Error(result.message || "Gagal memperbarui work order");
+                throw new Error(result.message || "Failed to update work order.");
             }
 
-            showToast("success", "Success", result.message || "Work order berhasil diperbarui");
+            showToast("success", "Success", "Work order updated successfully.");
             fetchWorkOrders();
             onHide();
         } catch (error) {
@@ -104,19 +143,19 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
         }
     };
 
+    // Determine which status options to show based on the original status
+    const getFilteredStatusOptions = () => {
+        if (workOrder?.status === 'pending') return statusOptions.filter(opt => opt.value === 'in_progress');
+        if (workOrder?.status === 'in_progress') return statusOptions.filter(opt => opt.value === 'completed');
+        return [];
+    };
+
     const renderFooter = isEditable ? (
         <div className="flex justify-content-end gap-2">
-            <Button label="Batal" icon="pi pi-times" outlined onClick={onHide} />
+            <Button label="Cancel" icon="pi pi-times" outlined onClick={onHide} />
             <Button label="Update" icon="pi pi-check" onClick={handleSubmit} loading={loading} />
         </div>
     ) : null;
-
-    // Menentukan opsi dropdown berdasarkan status awal
-    const getStatusOptions = () => {
-        if (workOrder?.status === 'open') return ['in_progress'];
-        if (workOrder?.status === 'in_progress') return ['completed'];
-        return [workOrder?.status]; // Tampilkan status saat ini jika tidak bisa diubah
-    };
 
     return (
         <Dialog
@@ -128,45 +167,42 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
             footer={renderFooter}
         >
             {isEditable ? (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-                    {/* --- KONDISI: STATUS AWAL 'OPEN' --- */}
-                    {workOrder?.status === 'open' && (
-                        <>
-                            <div className="field mb-4">
-                                <label htmlFor="status" className="font-bold mb-2 block">Update Status Ke</label>
-                                <Dropdown id="status" value={formData.status} options={getStatusOptions()} onChange={(e) => handleChange(e, "status")} />
-                            </div>
-                            <div className="field mb-4">
-                                <label htmlFor="started_at" className="font-bold mb-2 block">Tanggal Mulai</label>
-                                <Calendar id="started_at" value={formData.started_at} onChange={(e) => handleChange(e, "started_at")} showIcon showTime hourFormat="24" className={formErrors.started_at ? "p-invalid" : ""} />
-                                {formErrors.started_at && <Message severity="error" text={formErrors.started_at} className="mt-2" />}
-                            </div>
-                        </>
-                    )}
-
-                    {/* --- KONDISI: STATUS AWAL 'IN_PROGRESS' --- */}
-                    {workOrder?.status === 'in_progress' && (
-                        <>
-                            <div className="field mb-4">
-                                <label htmlFor="status" className="font-bold mb-2 block">Update Status Ke</label>
-                                <Dropdown id="status" value={formData.status} options={getStatusOptions()} onChange={(e) => handleChange(e, "status")} />
-                            </div>
-                            <div className="field mb-4">
-                                <label htmlFor="completed_at" className="font-bold mb-2 block">Tanggal Selesai</label>
-                                <Calendar id="completed_at" value={formData.completed_at} onChange={(e) => handleChange(e, "completed_at")} showIcon showTime hourFormat="24" className={formErrors.completed_at ? "p-invalid" : ""} />
-                                {formErrors.completed_at && <Message severity="error" text={formErrors.completed_at} className="mt-2" />}
-                            </div>
-                        </>
-                    )}
-
-                    {/* Field yang selalu ada */}
+                <motion.div className="p-fluid" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                     <div className="field mb-4">
-                        <label htmlFor="description" className="font-bold mb-2 block">Catatan Pengerjaan</label>
-                        <InputTextarea id="description" rows={5} value={formData.description} onChange={(e) => handleChange(e, "description")} autoResize />
+                        <label htmlFor="status" className="font-bold mb-2 block">Update Status To</label>
+                        <Dropdown
+                            id="status"
+                            value={formData.status}
+                            options={getFilteredStatusOptions()}
+                            onChange={(e) => setFormData(prev => ({ ...prev, status: e.value }))}
+                        />
+                    </div>
+
+                    {/* SIMPLIFIED: Show date fields based on selected form status */}
+                    {formData.status === 'in_progress' && (
+                        <div className="field mb-4">
+                            <label htmlFor="started_at" className="font-bold mb-2 block">Start Date</label>
+                            <Calendar id="started_at" value={formData.started_at} onChange={(e) => setFormData(prev => ({...prev, started_at: e.value}))} showIcon showTime hourFormat="24" className={formErrors.started_at ? "p-invalid" : ""} />
+                            {formErrors.started_at && <Message severity="error" text={formErrors.started_at} className="mt-2" />}
+                        </div>
+                    )}
+
+                    {formData.status === 'completed' && (
+                         <div className="field mb-4">
+                            <label htmlFor="completed_at" className="font-bold mb-2 block">Completion Date</label>
+                            <Calendar id="completed_at" value={formData.completed_at} onChange={(e) => setFormData(prev => ({...prev, completed_at: e.value}))} showIcon showTime hourFormat="24" className={formErrors.completed_at ? "p-invalid" : ""} />
+                            {formErrors.completed_at && <Message severity="error" text={formErrors.completed_at} className="mt-2" />}
+                        </div>
+                    )}
+
+                    <div className="field mb-4">
+                        <label htmlFor="description" className="font-bold mb-2 block">Work description</label>
+                        <InputTextarea id="description" rows={5} value={formData.description} onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))} autoResize className={formErrors.description ? "p-invalid" : ""} />
+                        {formErrors.description && <Message severity="error" text={formErrors.description} className="mt-2" />}
                     </div>
                 </motion.div>
             ) : (
-                <p>Work order ini tidak dapat diupdate lagi karena statusnya sudah '{workOrder?.status}'.</p>
+                <Message severity="info" text={`This work order cannot be updated because its status is '${workOrder?.status}'.`} />
             )}
         </Dialog>
     );

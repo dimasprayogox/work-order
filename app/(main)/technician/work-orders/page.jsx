@@ -11,6 +11,9 @@ import { Panel } from "primereact/panel";
 import { motion } from "framer-motion";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
+import { Divider } from "primereact/divider";
+import { Image } from "primereact/image"; // Impor komponen Image
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import UpdateWorkOrderDialog from "./components/UpdateWorkOrderDialog";
 
 // Opsi untuk filter status
@@ -42,15 +45,38 @@ const dateBodyTemplate = (dateString) => {
     });
 };
 
+// Template untuk menampilkan foto
+const photoBodyTemplate = (rowData) => {
+    // Gunakan optional chaining (?) untuk mengakses properti secara aman
+    const photoUrl = rowData.issue?.photo_url;
+
+    if (photoUrl) {
+        return (
+            <Image
+                src={photoUrl}
+                alt="Issue Photo"
+                width="60"
+                height="60"
+                preview // Memungkinkan gambar diperbesar saat diklik
+                imageClassName="rounded-md object-cover"
+            />
+        );
+    }
+    // Tampilkan placeholder jika tidak ada foto
+    return <div className="flex items-center justify-center h-[60px] w-[60px] bg-gray-100 rounded-md text-gray-400 text-xs">No Photo</div>;
+};
+
+
 export default function TechnicianWorkOrderPage() {
     const [workOrders, setWorkOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const toast = useRef(null);
     const router = useRouter();
 
-    // State untuk dialog dan filter
+    // State untuk dialog, filter, dan item terpilih
     const [isUpdateDialogOpen, setUpdateDialogOpen] = useState(false);
     const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
+    const [selectedWorkOrders, setSelectedWorkOrders] = useState([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
 
@@ -68,7 +94,8 @@ export default function TechnicianWorkOrderPage() {
                 throw new Error(errorData.message || "Gagal mengambil data.");
             }
             const result = await res.json();
-            const data = Array.isArray(result) ? result : result.data || [];
+            // Mengambil data dari properti 'data' di dalam JSON response
+            const data = result.data || [];
             setWorkOrders(data);
         } catch (err) {
             showToast("error", "Error", err.message);
@@ -86,6 +113,28 @@ export default function TechnicianWorkOrderPage() {
     const handleUpdate = (workOrder) => {
         setSelectedWorkOrder(workOrder);
         setUpdateDialogOpen(true);
+    };
+
+    // Fungsi untuk menghapus item yang dipilih
+    const handleDeleteSelected = async () => {
+        // Implementasi logika hapus di sini
+        showToast('success', 'Success', `${selectedWorkOrders.length} work order(s) deleted.`);
+        // Contoh: panggil API untuk hapus, lalu fetch ulang data
+        // await fetch('/api/technician/work-orders/delete', { ... });
+        fetchWorkOrders();
+        setSelectedWorkOrders([]);
+    };
+
+    // Fungsi untuk menampilkan dialog konfirmasi sebelum menghapus
+    const confirmDeleteSelected = () => {
+        confirmDialog({
+            message: 'Apakah Anda yakin ingin menghapus item yang dipilih?',
+            header: 'Konfirmasi Hapus',
+            icon: 'pi pi-exclamation-triangle',
+            acceptClassName: 'p-button-danger',
+            accept: handleDeleteSelected,
+            reject: () => {}
+        });
     };
 
     const actionBodyTemplate = (rowData) => (
@@ -134,6 +183,7 @@ export default function TechnicianWorkOrderPage() {
     return (
         <div className="p-4">
             <Toast ref={toast} />
+            <ConfirmDialog />
             <div className="card">
                 <div className="flex justify-content-between items-start mb-4">
                     <div>
@@ -142,12 +192,16 @@ export default function TechnicianWorkOrderPage() {
                             Lihat dan perbarui tugas yang diberikan kepada Anda.
                         </p>
                     </div>
-                    <Button
-                        label="Refresh"
-                        icon="pi pi-refresh"
-                        onClick={fetchWorkOrders}
-                        disabled={loading}
-                    />
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-4">
+                    <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
+                    <Divider layout="vertical" />
+                    <Button size="small" label="Import" icon="pi pi-file-import" outlined />
+                    <Button size="small" label="Export" icon="pi pi-file-export" outlined />
+                    <Button size="small" label="Print" icon="pi pi-print" outlined />
+                    <Divider layout="vertical" />
+                    <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={fetchWorkOrders} disabled={loading} />
                 </div>
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
@@ -159,7 +213,11 @@ export default function TechnicianWorkOrderPage() {
                             paginator rows={10}
                             header={header}
                             emptyMessage="No work orders found."
+                            selection={selectedWorkOrders}
+                            onSelectionChange={(e) => setSelectedWorkOrders(e.value)}
+                            selectionMode="multiple"
                         >
+                            <Column header="Photo" body={photoBodyTemplate} style={{ width: '100px' }} />
                             <Column field="title" header="Title" sortable />
                             <Column field="description" header="Description" style={{ minWidth: '200px' }} />
                             <Column field="priority" header="Priority" body={(rowData) => <Tag value={rowData.priority} />} sortable />
@@ -167,7 +225,7 @@ export default function TechnicianWorkOrderPage() {
                             <Column field="created_at" header="Schedule" body={(rowData) => dateBodyTemplate(rowData.created_at)} sortable />
                             <Column field="started_at" header="Started At" body={(rowData) => dateBodyTemplate(rowData.started_at)} sortable />
                             <Column field="completed_at" header="Completed At" body={(rowData) => dateBodyTemplate(rowData.completed_at)} sortable />
-                            <Column field="work_instructions" header="Notes" style={{ maxWidth: '200px' }} />
+                            <Column field="notes" header="Notes" style={{ maxWidth: '200px' }} />
                             <Column header="Actions" body={actionBodyTemplate} />
                         </DataTable>
                     </Panel>

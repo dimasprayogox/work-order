@@ -88,14 +88,22 @@ const AppMenu = () => {
                         }
                     ];
                 } else if (role === "technician") {
-                    const technicianAllowedLabels = ["Work Orders", "Scheduled Maintenance"];
-                    const technicianMaintenanceItems = allMenus.maintenance.items.filter((item) => technicianAllowedLabels.includes(item.label));
-
                     filteredModel = [
-                        allMenus.dashboard.items[0],
+
                         {
-                            ...allMenus.maintenance,
-                            items: technicianMaintenanceItems
+                            label: "Dashboard",
+                            icon: "pi pi-fw pi-home",
+                            to: "/technician/dashboard"
+                        },
+                        {
+                            label: "Work Orders",
+                            icon: "pi pi-fw pi-file",
+                            to: "/technician/work-orders"
+                        },
+                        {
+                            label: "Parts Requests",
+                            icon: "pi pi-fw pi-inbox",
+                            to: "/technician/part-request"
                         }
                     ];
                 } else if (role === "logistics") {
