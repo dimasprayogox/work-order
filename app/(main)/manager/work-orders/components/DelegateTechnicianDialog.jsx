@@ -1,0 +1,200 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Dialog } from "primereact/dialog";
+import { Dropdown } from "primereact/dropdown";
+import { Button } from "primereact/button";
+import { Calendar } from "primereact/calendar";
+import { InputTextarea } from "primereact/inputtextarea";
+import { Message } from "primereact/message";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
+
+export default function DelegateTechnicianDialog({
+    visible,
+    onHide,
+    workOrder,
+    fetchWorkOrders,
+    showToast,
+    onTechnicianAssigned
+}) {
+    const [technicians, setTechnicians] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        assigned_to_id: "",
+        scheduled_date: null,
+        notes: ""
+    });
+    const [formErrors, setFormErrors] = useState({});
+
+    useEffect(() => {
+        if (visible) {
+            fetchTechnicians();
+            setFormData({
+                assigned_to_id: workOrder?.assigned_to_id || "",
+                scheduled_date: workOrder?.scheduled_date ? new Date(workOrder.scheduled_date) : null,
+                notes: workOrder?.notes || ""
+            });
+            setFormErrors({});
+        }
+    }, [visible, workOrder]);
+
+    const fetchTechnicians = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/manager/technicians/available`, {
+                credentials: "include"
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setTechnicians(result.data);
+            } else {
+                throw new Error(result.message || "Failed to fetch available technicians");
+            }
+        } catch (error) {
+            showToast("error", "Error", error.message);
+        }
+    };
+
+    const validateForm = () => {
+        const errors = {};
+        if (!formData.assigned_to_id) errors.assigned_to_id = "Technician is required";
+        if (!formData.scheduled_date) errors.scheduled_date = "Schedule date is required";
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    const handleSubmit = async () => {
+        if (!validateForm()) return;
+
+        setLoading(true);
+        try {
+            const payload = {
+                assigned_to_id: formData.assigned_to_id,
+                scheduled_date: formData.scheduled_date.toISOString(),
+                notes: formData.notes,
+                status: "assigned"
+            };
+
+            const response = await fetch(`${API_BASE_URL}/manager/work-orders/${workOrder.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+                credentials: "include"
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || "Failed to assign technician");
+            }
+
+            if (onTechnicianAssigned) {
+                onTechnicianAssigned();
+            }
+
+            onHide();
+        } catch (error) {
+            showToast("error", "Error", error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const technicianOptionTemplate = (option) => {
+        const isAssigned = option.value === workOrder?.assigned_to_id;
+        return (
+            <div className="flex align-items-center">
+                {isAssigned && <i className="pi pi-check mr-2 text-green-500" />}
+                <span>{option.label}</span>
+            </div>
+        );
+    };
+
+    const selectedTechnicianTemplate = (option, props) => {
+        if (option) {
+            const isAssigned = option.value === workOrder?.assigned_to_id;
+            return (
+                <div className="flex align-items-center">
+                    {isAssigned && <i className="pi pi-check mr-2 text-green-500" />}
+                    <span>{option.label}</span>
+                </div>
+            );
+        }
+        return props.placeholder;
+    };
+
+    return (
+        <Dialog
+            header={`Assign Technician for: ${workOrder?.title || ""}`}
+            visible={visible}
+            style={{ width: "min(90vw, 500px)" }}
+            modal
+            onHide={onHide}
+            footer={
+                <div className="flex justify-content-end gap-2">
+                    <Button label="Cancel" icon="pi pi-times" outlined onClick={onHide} />
+                    <Button
+                        label="Assign"
+                        icon="pi pi-check"
+                        onClick={handleSubmit}
+                        loading={loading}
+                    />
+                </div>
+            }
+        >
+            <div className="p-fluid">
+                <div className="field mb-4">
+                    <label htmlFor="technician" className="font-bold mb-2 block">
+                        Select Technician
+                    </label>
+                    <Dropdown
+                        id="technician"
+                        value={formData.assigned_to_id}
+                        options={technicians.map(tech => ({
+                            label: tech.name,
+                            value: tech.id
+                        }))}
+                        onChange={(e) => setFormData({ ...formData, assigned_to_id: e.value })}
+                        placeholder="Select a technician"
+                        className={formErrors.assigned_to_id ? "p-invalid" : ""}
+                        itemTemplate={technicianOptionTemplate}
+                        valueTemplate={selectedTechnicianTemplate}
+                    />
+                    {formErrors.assigned_to_id && (
+                        <Message severity="error" text={formErrors.assigned_to_id} />
+                    )}
+                </div>
+
+                <div className="field mb-4">
+                    <label htmlFor="scheduled_date" className="font-bold mb-2 block">
+                        Scheduled Date
+                    </label>
+                    <Calendar
+                        id="scheduled_date"
+                        value={formData.scheduled_date}
+                        onChange={(e) => setFormData({ ...formData, scheduled_date: e.value })}
+                        showTime
+                        hourFormat="24"
+                        minDate={new Date()}
+                        className={formErrors.scheduled_date ? "p-invalid" : ""}
+                    />
+                    {formErrors.scheduled_date && (
+                        <Message severity="error" text={formErrors.scheduled_date} />
+                    )}
+                </div>
+
+                <div className="field mb-4">
+                    <label htmlFor="notes" className="font-bold mb-2 block">
+                        Additional Notes
+                    </label>
+                    <InputTextarea
+                        id="notes"
+                        rows={3}
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        autoResize
+                    />
+                </div>
+            </div>
+        </Dialog>
+    );
+}

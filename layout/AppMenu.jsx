@@ -76,17 +76,6 @@ const AppMenu = () => {
                     filteredModel = [allMenus.dashboard, allMenus.maintenance, allMenus.assets, allMenus.supplies, allMenus.users];
                 } else if (role === "employee") {
                     filteredModel = [allMenus.dashboard.items[0], allMenus.maintenance.items[1]];
-                } else if (role === "manager") {
-                    const managerAllowedLabels = ["Work Orders", "Scheduled Maintenance"];
-                    const managerMaintenanceItems = allMenus.maintenance.items.filter((item) => managerAllowedLabels.includes(item.label));
-
-                    filteredModel = [
-                        allMenus.dashboard.items[0],
-                        {
-                            ...allMenus.maintenance,
-                            items: managerMaintenanceItems
-                        }
-                    ];
                 } else if (role === "technician") {
                     filteredModel = [
 
@@ -129,7 +118,27 @@ const AppMenu = () => {
                             to: "/logistics/part-usage"
                         }
                     ];
+                } else if (role === "manager") {
+                    filteredModel = [
+                        {
+                            label: "Dashboard",
+                            icon: "pi pi-fw pi-home",
+                            to: "/manager/dashboard"
+                        },
+                        {
+                            label: "Work Orders",
+                            icon: "pi pi-fw pi-file",
+                            to: "/manager/work-orders"
+                        },
+                        {
+                            label: "Schedules",
+                            icon: "pi pi-fw pi-calendar",
+                            to: "/manager/schedules"
+                        }
+                    ];
                 }
+
+                
 
                 setModel(filteredModel);
             } catch (error) {

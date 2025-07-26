@@ -38,36 +38,33 @@ const LoginPage = () => {
 
             if (res.ok && result.status === "00") {
                 toastRef.current?.show({severity:'success', summary: 'Success', detail: result.message});
-                console.log("Login sukses:", result.message);
 
                 const userRole = result.role; 
-
-                const dashboardBasePath = "/dashboard"; 
 
                 let redirectPath;
 
                 switch (userRole) {
                     case "admin":
-                        redirectPath = `${dashboardBasePath}/admin`;
+                        redirectPath = "/dashboard/admin";
                         break;
                     case "employee":
-                        redirectPath = `${dashboardBasePath}/employee`; 
+                        redirectPath = "/dashboard/employee";
                         break;
                     case "technician":
-                        redirectPath = `/technician${dashboardBasePath}`; 
+                        redirectPath = "/technician/dashboard";
                         break;
                     case "manager":
-                        redirectPath = `/manager${dashboardBasePath}`; 
+                        redirectPath = "/manager/dashboard";
                         break;
                     case "logistics":
-                        redirectPath = `/logistics${dashboardBasePath}`;           
+                        redirectPath = "/logistics/dashboard";
                         break;
                     default:
-                        redirectPath = dashboardBasePath; 
+                        redirectPath = "/dashboard";
                         break;
                 }
+                
                 router.push(redirectPath);
-
 
             } else {
                 toastRef.current?.show({ severity: "error", summary: "Gagal", detail: result.message || "Email atau Password salah.", life: 3000 });
