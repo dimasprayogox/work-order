@@ -50,7 +50,6 @@ export const WorkOrderController = {
                 created_by_id: req.user.userId,
             });
 
-            // Jika issue_id dikirim, update tabel issues
             if (data.issue_id) {
                 await Issue.query()
                     .patch({ work_order_id: newWOId })
@@ -78,12 +77,6 @@ export const WorkOrderController = {
                 return res.status(404).json({ success: false, message: "Work Order not found" });
             }
 
-            // 1. Cek kalau assigned_to_id sudah ada, tidak bisa diganti
-            if (existingWO.assigned_to_id && data.assigned_to_id && data.assigned_to_id !== existingWO.assigned_to_id) {
-                return res.status(400).json({ success: false, message: "Assigned technician cannot be changed once set." });
-            }
-
-            // 2. Kalau status = rejected, pastikan status sebelumnya pending dan notes diisi
             if (data.status === 'rejected') {
                 if (existingWO.status !== 'pending') {
                     return res.status(400).json({ success: false, message: "Only pending work orders can be rejected." });
@@ -93,24 +86,28 @@ export const WorkOrderController = {
                 }
             }
 
-            // 3. Tidak boleh mengganti scheduled_date kurang dari 3 hari dari tanggal sebelumnya
-            if (data.scheduled_date && existingWO.scheduled_date) {
-                const oldDate = new Date(existingWO.scheduled_date);
+            if (data.scheduled_date) {
                 const newDate = new Date(data.scheduled_date);
+                const now = new Date();
+                now.setHours(0, 0, 0, 0);
 
-                const diffDays = (newDate - oldDate) / (1000 * 60 * 60 * 24);
-                if (diffDays < 3) {
+                if (newDate < now) {
                     return res.status(400).json({
                         success: false,
-                        message: "Scheduled date must be at least 3 days later than the current scheduled date."
+                        message: "Scheduled date cannot be in the past."
                     });
                 }
             }
 
-            const updatedWO = await WorkOrder.query().patchAndFetchById(id, data);
+            await WorkOrder.query().patchAndFetchById(id, data);
 
-            res.json({ success: true, data: updatedWO });
+            const updatedWOWithRelations = await WorkOrder.query()
+                .findById(id)
+                .withGraphFetched('[machine, assignedTo, createdBy]');
+
+            res.json({ success: true, data: updatedWOWithRelations });
         } catch (err) {
+            console.error("Error updating work order:", err);
             res.status(500).json({ success: false, message: err.message });
         }
     },
@@ -118,20 +115,16 @@ export const WorkOrderController = {
     async delete(req, res) {
         try {
             const { id } = req.params;
-
-            // Ambil Work Order dulu
             const existingWO = await WorkOrder.query().findById(id);
             if (!existingWO) {
                 return res.status(404).json({ success: false, message: "Work Order not found." });
             }
 
-            // Hanya bisa hapus kalau status = pending
             if (existingWO.status !== "pending") {
                 return res.status(400).json({ success: false, message: "Only pending Work Orders can be deleted." });
             }
 
             await WorkOrder.query().deleteById(id);
-
             res.json({ success: true, message: "Work Order deleted successfully." });
         } catch (err) {
             res.status(500).json({ success: false, message: err.message });
