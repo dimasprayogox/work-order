@@ -72,7 +72,7 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
     };
 
     const actionTemplate = (rowData) => {
-        if (rowData.status === "approved" || rowData.status === "false") {
+        if (rowData.status === "fulfilled" || rowData.status === "false") {
             return null;
         }
         return <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onUpdateStatus(rowData)} tooltip="Edit" />;
