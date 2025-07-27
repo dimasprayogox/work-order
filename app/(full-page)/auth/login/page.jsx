@@ -48,7 +48,7 @@ const LoginPage = () => {
                         redirectPath = "/dashboard/admin";
                         break;
                     case "employee":
-                        redirectPath = "/dashboard/employee";
+                        redirectPath = "/employee/dashboard";
                         break;
                     case "technician":
                         redirectPath = "/technician/dashboard";

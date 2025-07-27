@@ -18,7 +18,7 @@ export function middleware(request) {
 
     const roleDashboards = {
         "admin": "/dashboard/admin",
-        "employee": "/dashboard/employee",
+        "employee": "/employee/dashboard",
         "technician": "/technician/dashboard",
         "manager": "/manager/dashboard",
         "logistics": "/logistics/dashboard",
@@ -26,7 +26,7 @@ export function middleware(request) {
 
     const allowedRolesForPaths = {
         "/dashboard/admin": ["admin"],
-        "/dashboard/employee": ["employee"],
+        "/employee/dashboard": ["employee"],
         "/technician/dashboard": ["technician"],
         "/manager/dashboard": ["manager"],
         "/logistics/dashboard": ["logistics"],

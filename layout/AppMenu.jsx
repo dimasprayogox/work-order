@@ -85,7 +85,19 @@ const AppMenu = () => {
                 if (role === "admin") {
                     filteredModel = [allMenus.dashboard, allMenus.maintenance, allMenus.assets, allMenus.supplies, allMenus.machineCategories, allMenus.machines, allMenus.users, ];
                 } else if (role === "employee") {
-                    filteredModel = [allMenus.dashboard.items[0], allMenus.maintenance.items[1]];
+                    filteredModel = [
+
+                        {
+                            label: "Dashboard",
+                            icon: "pi pi-fw pi-home",
+                            to: "/employee/dashboard"
+                        },
+                        {
+                            label: "Work Orders",
+                            icon: "pi pi-fw pi-file",
+                            to: "/employee/work-orders"
+                        },
+                    ];
                 } else if (role === "technician") {
                     filteredModel = [
 
