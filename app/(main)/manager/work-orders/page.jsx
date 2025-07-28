@@ -54,7 +54,7 @@ export default function WorkOrderPage() {
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.message || "Failed to fetch work orders");
+                throw new Error(result.message || "Gagal mengambil daftar Work Order");
             }
 
             setWorkOrders(result.data || []);
@@ -66,11 +66,26 @@ export default function WorkOrderPage() {
         }
     }, [showToast]);
 
-    const handleTechnicianAssigned = () => {
-        showToast("success", "Success", "Technician assigned successfully.");
+    const handleTechnicianAssigned = useCallback((updatedWorkOrder) => {
+        showToast("success", "Berhasil", "Teknisi berhasil ditugaskan.");
         setAssignDialogVisible(false);
-        fetchWorkOrders();
-    };
+        
+        setWorkOrders(prevOrders =>
+            prevOrders.map(order =>
+                order.id === updatedWorkOrder.id
+                    ? {
+                        ...order,
+                        status: updatedWorkOrder.status,
+                        assigned_to_id: updatedWorkOrder.assigned_to_id,
+                        assigned_to: updatedWorkOrder.assigned_to || order.assigned_to,
+                        scheduled_date: updatedWorkOrder.scheduled_date,
+                        notes: updatedWorkOrder.notes
+                    }
+                    : order
+            )
+        );
+        setSelectedWorkOrders([]);
+    }, [showToast]);
 
     const handleDeleteSelected = () => {
         if (selectedWorkOrders.length === 0) return;
@@ -87,10 +102,10 @@ export default function WorkOrderPage() {
 
             if (!response.ok) {
                 const result = await response.json();
-                throw new Error(result.message || "Failed to delete work order");
+                throw new Error(result.message || "Gagal menghapus Work Order");
             }
 
-            showToast("success", "Success", "Work order deleted successfully");
+            showToast("success", "Berhasil", "Work Order berhasil dihapus");
             fetchWorkOrders();
             setDeleteDialogVisible(false);
             setSelectedWorkOrders([]);
@@ -152,7 +167,7 @@ export default function WorkOrderPage() {
                         onClick={fetchWorkOrders}
                     />
                     <Button
-                        label="Delete Selected"
+                        label="Hapus Terpilih"
                         icon="pi pi-trash"
                         severity="danger"
                         onClick={handleDeleteSelected}
@@ -162,27 +177,27 @@ export default function WorkOrderPage() {
                     <Dropdown
                         value={statusFilter}
                         options={[
-                            { label: "All Status", value: "" },
+                            { label: "Semua Status", value: "" },
                             { label: "Pending", value: "pending" },
-                            { label: "Assigned", value: "assigned" },
-                            { label: "In Progress", value: "in_progress" },
-                            { label: "Completed", value: "completed" },
-                            { label: "Rejected", value: "rejected" }
+                            { label: "Ditugaskan", value: "assigned" },
+                            { label: "Dalam Proses", value: "in_progress" },
+                            { label: "Selesai", value: "completed" },
+                            { label: "Ditolak", value: "rejected" }
                         ]}
                         onChange={(e) => setStatusFilter(e.value)}
-                        placeholder="Filter by Status"
+                        placeholder="Filter berdasarkan Status"
                     />
                     <span className="p-input-icon-left">
                         <i className="pi pi-search" />
                         <InputText
-                            placeholder="Search..."
+                            placeholder="Cari..."
                             value={searchText}
                             onChange={(e) => setSearchText(e.target.value)}
                         />
                     </span>
                 </div>
 
-                <Panel header="Work Orders List">
+                <Panel header="Daftar Work Order">
                     <DataTable
                         value={filteredData}
                         loading={loading}
@@ -192,34 +207,34 @@ export default function WorkOrderPage() {
                         paginator
                         rows={10}
                         rowsPerPageOptions={[5, 10, 25]}
-                        emptyMessage="No work orders found"
+                        emptyMessage="Tidak ada Work Order ditemukan"
                         selectionMode="multiple"
                         className="border-round-lg"
                         header={
                             <div className="flex justify-content-between align-items-center">
-                                <span className="text-xl font-bold">All Work Orders</span>
+                                <span className="text-xl font-bold">Semua Work Order</span>
                                 <span>Total: {filteredData.length}</span>
                             </div>
                         }
                     >
                         <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
-                        <Column field="title" header="Title" sortable />
-                        <Column field="machine.name" header="Machine" sortable />
-                        <Column field="priority" header="Priority" sortable />
+                        <Column field="title" header="Judul" sortable />
+                        <Column field="machine.name" header="Mesin" sortable />
+                        <Column field="priority" header="Prioritas" sortable />
                         <Column field="status" header="Status" body={statusBodyTemplate} sortable />
-                        <Column header="Assigned To" body={technicianBodyTemplate} sortable />
+                        <Column header="Ditugaskan Kepada" body={technicianBodyTemplate} sortable />
                         <Column
-                            header="Scheduled Date"
+                            header="Tanggal Terjadwal"
                             body={(row) => dateBodyTemplate(row, "scheduled_date")}
                             sortable
                         />
                         <Column
-                            header="Created At"
+                            header="Dibuat Pada"
                             body={(row) => dateBodyTemplate(row, "created_at")}
                             sortable
                         />
                         <Column
-                            header="Actions"
+                            header="Aksi"
                             body={actionBodyTemplate}
                             style={{ minWidth: "10rem" }}
                         />
@@ -231,7 +246,6 @@ export default function WorkOrderPage() {
                 visible={assignDialogVisible}
                 onHide={() => setAssignDialogVisible(false)}
                 workOrder={selectedWorkOrder}
-                fetchWorkOrders={fetchWorkOrders}
                 showToast={showToast}
                 onTechnicianAssigned={handleTechnicianAssigned}
             />

@@ -56,5 +56,12 @@ export const API_ENDPOINTS = {
     MACHINE_BY_ID: (id) => `${API_URL}/admin/machines/${id}`,
     DELETE_MANY_MACHINES: `${API_URL}/admin/machines/delete-many`,
     AVAILABLE_MACHINES: `${API_URL}/admin/machines/available`,
+    ADMIN_PARTS: `${API_URL}/admin/parts`,
+    ADMIN_PARTS_BY_ID: (id) => `${API_URL}/admin/parts/${id}`,
+    ADMIN_PARTS_DELETE_MANY: `${API_URL}/admin/parts/delete-many`,
+    ADMIN_PART_REQUESTS: `${API_URL}/admin/part-requests`,
+    ADMIN_PART_REQUEST_BY_ID: (id) => `${API_URL}/admin/part-requests/${id}`,
+    ADMIN_PART_REQUEST_STATUS: (id) => `${API_URL}/admin/part-requests/${id}/status`,
+    ADMIN_PART_REQUEST_DELETE_MANY: `${API_URL}/admin/part-requests/delete-many`,
 };
 
