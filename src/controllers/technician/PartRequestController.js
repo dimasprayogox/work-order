@@ -166,5 +166,45 @@ export const PartRequestController = {
             console.error("Error fetching parts:", err);
             res.status(500).json({ message: err.message });
         }
+    },
+
+    async deleteMany(req, res) {
+        try {
+            const { ids } = req.body; // array of PartRequest IDs
+            const technicianId = req.user.userId;
+
+            if (!Array.isArray(ids) || ids.length === 0) {
+                return res.status(400).json({ message: "IDs array is required." });
+            }
+
+            // Ambil semua part requests yang sesuai dan milik teknisi
+            const partRequests = await PartRequest.query().whereIn("id", ids);
+
+            // Filter hanya yang pending dan milik user
+            const deletable = partRequests.filter(
+                (pr) => pr.requested_by_id === technicianId && pr.status === "pending"
+            );
+
+            if (deletable.length === 0) {
+                return res.status(404).json({ message: "No deletable Part Requests found." });
+            }
+
+            const deletableIds = deletable.map((pr) => pr.id);
+
+            // Hapus semua items terkait
+            await PartRequestItem.query().delete().whereIn("part_request_id", deletableIds);
+
+            // Hapus part requests
+            await PartRequest.query().delete().whereIn("id", deletableIds);
+
+            res.status(200).json({
+                message: "Selected part requests deleted successfully.",
+                deletedCount: deletable.length,
+                deletedIds: deletableIds
+            });
+        } catch (err) {
+            console.error("Error deleting multiple part requests:", err);
+            res.status(500).json({ message: err.message });
+        }
     }
 };
