@@ -99,7 +99,7 @@ export const IssueController = {
                 title: newIssue.title,
                 description: newIssue.description,
                 status: "pending",
-                created_by_id: req.user.userId,
+                created_by_id: newIssue.reported_by_id, // Link to the user who reported the issue
                 issue_id: newIssue.id,
             });
 
@@ -181,15 +181,27 @@ export const IssueController = {
 
             const data = parsed.data;
             const existingIssue = await Issue.query().findById(id);
+
             if (!existingIssue) {
                 return res.status(404).json({ message: "Issue not found" });
             }
 
-            const updateData = { ...data };
+            const updateData = {};
+
+            if (data.title !== undefined) {
+                updateData.title = data.title;
+            }
+            if (data.description !== undefined) {
+                updateData.description = data.description;
+            }
+            if (data.machine_id !== undefined) {
+                updateData.machine_id = data.machine_id;
+            }
 
             if (req.file) {
-                // Hapus file lama dari MinIO (jika ada)
-                await removeMinioObject(existingIssue.photo_url);
+                if (existingIssue.photo_url) {
+                    await removeMinioObject(existingIssue.photo_url);
+                }
 
                 const bucketName = process.env.MINIO_BUCKET_NAME;
                 const folderName = "photo-issue";
@@ -207,6 +219,11 @@ export const IssueController = {
                 );
 
                 updateData.photo_url = `${process.env.MINIO_PUBLIC_URL || "http://localhost:9000"}/${bucketName}/${objectName}`;
+            } else if (req.body.remove_photo === "true") {
+                if (existingIssue.photo_url) {
+                    await removeMinioObject(existingIssue.photo_url);
+                }
+                updateData.photo_url = null;
             }
 
             if (Object.keys(updateData).length === 0) {
@@ -234,13 +251,10 @@ export const IssueController = {
                 return res.status(400).json({ message: "Only issues with status 'open' can be deleted." });
             }
 
-            // Hapus file dari MinIO
             await removeMinioObject(issue.photo_url);
 
-            // Hapus Work Order terkait
             await WorkOrder.query().delete().where("issue_id", id);
 
-            // Hapus Issue
             await Issue.query().deleteById(id);
 
             res.status(200).json({ message: "Issue deleted successfully." });
@@ -284,7 +298,6 @@ export const IssueController = {
 
                 const machineIds = [...new Set(issuesToDelete.map((issue) => issue.machine_id))];
 
-                // Hapus file MinIO
                 for (const issue of issuesToDelete) {
                     await removeMinioObject(issue.photo_url);
                 }
