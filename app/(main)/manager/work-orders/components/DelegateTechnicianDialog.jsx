@@ -14,7 +14,6 @@ export default function DelegateTechnicianDialog({
     visible,
     onHide,
     workOrder,
-    fetchWorkOrders,
     showToast,
     onTechnicianAssigned
 }) {
@@ -48,7 +47,7 @@ export default function DelegateTechnicianDialog({
             if (response.ok) {
                 setTechnicians(result.data);
             } else {
-                throw new Error(result.message || "Failed to fetch available technicians");
+                throw new Error(result.message || "Gagal mengambil daftar teknisi yang tersedia");
             }
         } catch (error) {
             showToast("error", "Error", error.message);
@@ -57,8 +56,8 @@ export default function DelegateTechnicianDialog({
 
     const validateForm = () => {
         const errors = {};
-        if (!formData.assigned_to_id) errors.assigned_to_id = "Technician is required";
-        if (!formData.scheduled_date) errors.scheduled_date = "Schedule date is required";
+        if (!formData.assigned_to_id) errors.assigned_to_id = "Teknisi wajib diisi";
+        if (!formData.scheduled_date) errors.scheduled_date = "Tanggal jadwal wajib diisi";
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -84,11 +83,11 @@ export default function DelegateTechnicianDialog({
 
             const result = await response.json();
             if (!response.ok) {
-                throw new Error(result.message || "Failed to assign technician");
+                throw new Error(result.message || "Gagal menugaskan teknisi");
             }
 
             if (onTechnicianAssigned) {
-                onTechnicianAssigned();
+                onTechnicianAssigned(result.data);
             }
 
             onHide();
@@ -124,16 +123,16 @@ export default function DelegateTechnicianDialog({
 
     return (
         <Dialog
-            header={`Assign Technician for: ${workOrder?.title || ""}`}
+            header={`Tugaskan Teknisi untuk: ${workOrder?.title || ""}`}
             visible={visible}
             style={{ width: "min(90vw, 500px)" }}
             modal
             onHide={onHide}
             footer={
                 <div className="flex justify-content-end gap-2">
-                    <Button label="Cancel" icon="pi pi-times" outlined onClick={onHide} />
+                    <Button label="Batal" icon="pi pi-times" outlined onClick={onHide} />
                     <Button
-                        label="Assign"
+                        label="Tugaskan"
                         icon="pi pi-check"
                         onClick={handleSubmit}
                         loading={loading}
@@ -144,7 +143,7 @@ export default function DelegateTechnicianDialog({
             <div className="p-fluid">
                 <div className="field mb-4">
                     <label htmlFor="technician" className="font-bold mb-2 block">
-                        Select Technician
+                        Pilih Teknisi
                     </label>
                     <Dropdown
                         id="technician"
@@ -154,7 +153,7 @@ export default function DelegateTechnicianDialog({
                             value: tech.id
                         }))}
                         onChange={(e) => setFormData({ ...formData, assigned_to_id: e.value })}
-                        placeholder="Select a technician"
+                        placeholder="Pilih teknisi"
                         className={formErrors.assigned_to_id ? "p-invalid" : ""}
                         itemTemplate={technicianOptionTemplate}
                         valueTemplate={selectedTechnicianTemplate}
@@ -166,7 +165,7 @@ export default function DelegateTechnicianDialog({
 
                 <div className="field mb-4">
                     <label htmlFor="scheduled_date" className="font-bold mb-2 block">
-                        Scheduled Date
+                        Tanggal Terjadwal
                     </label>
                     <Calendar
                         id="scheduled_date"
@@ -184,7 +183,7 @@ export default function DelegateTechnicianDialog({
 
                 <div className="field mb-4">
                     <label htmlFor="notes" className="font-bold mb-2 block">
-                        Additional Notes
+                        Catatan Tambahan
                     </label>
                     <InputTextarea
                         id="notes"
