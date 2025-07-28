@@ -1,14 +1,14 @@
+// app/employee/work-order/page.jsx
+
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
-import { Dialog } from "primereact/dialog";
+import { Dialog } from "primereact/dialog"; 
 import { Divider } from "primereact/divider";
 import { InputText } from "primereact/inputtext";
-import { Accordion, AccordionTab } from "primereact/accordion";
-import Link from "next/link";
 import { Dropdown } from "primereact/dropdown";
 import { Tag } from "primereact/tag";
 import { Tooltip } from "primereact/tooltip";
@@ -19,30 +19,50 @@ import { motion } from "framer-motion";
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 
 import WorkOrderEditModal from "./components/WorkOrderEditModal";
+import WorkOrderAddModal from "./components/WorkOrderAddModal"; 
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
 
 const statusBodyTemplate = (rowData) => {
-    const getStatusSeverity = (status) => {
-        switch (status) {
-            case "open":
-                return "danger";
-            case "in_progress":
-                return "info";
-            case "resolved":
-                return "success";
-            case "closed":
-                return "secondary";
-            default:
-                return "warning";
-        }
-    };
+    let severity = "info"; // Default
+    let icon = "";
+    let displayText = "";
 
-    const formattedStatus = rowData.status ? rowData.status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) : "";
+    switch (rowData.status) {
+        case "open":
+            severity = "danger";
+            icon = "pi pi-exclamation-circle";
+            displayText = "Pending"; // Ubah dari "Open" menjadi "Pending"
+            break;
+        case "in_progress":
+            severity = "info";
+            icon = "pi pi-spin pi-spinner"; // Ikon loading
+            displayText = "In Progress";
+            break;
+        case "resolved":
+            severity = "success";
+            icon = "pi pi-check-circle"; // Ikon centang
+            displayText = "Resolved";
+            break;
+        case "closed":
+            severity = "secondary";
+            icon = "pi pi-lock";
+            displayText = "Closed";
+            break;
+        default:
+            severity = "warning";
+            icon = "pi pi-question-circle";
+            displayText = "Unknown";
+    }
 
     return (
         <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
-            <Tag value={formattedStatus} severity={getStatusSeverity(rowData.status)} className="font-medium" />
+            <Tag
+                // Menggunakan span untuk menggabungkan ikon dan teks
+                value={<span className="flex align-items-center gap-1"><i className={icon}></i> {displayText}</span>}
+                severity={severity}
+                className="font-medium"
+            />
         </motion.div>
     );
 };
@@ -89,8 +109,6 @@ const WorkOrderPage = () => {
 
     const [status, setStatus] = useState("");
     const [search, setSearch] = useState("");
-    const [activeIndex, setActiveIndex] = useState(0);
-    const [continent, setContinent] = useState([]);
 
     const showToast = useCallback((severity, summary, detail) => {
         toast.current.show({
@@ -130,10 +148,16 @@ const WorkOrderPage = () => {
 
     const fetchMachines = useCallback(async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/machines`, {
+            const response = await fetch(`${API_BASE_URL}/employee/machines/available`, {
                 method: "GET",
                 credentials: "include"
             });
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                const text = await response.text();
+                throw new Error(`Expected JSON but received: ${text.substring(0, 100)}...`);
+            }
+
             const result = await response.json();
 
             if (!response.ok) {
@@ -148,21 +172,6 @@ const WorkOrderPage = () => {
         }
     }, [showToast]);
 
-    const getContinent = async () => {
-        setLoading(true);
-        try {
-            const response = await fetch(`${API_BASE_URL}/continents`, { method: "GET" });
-            if (!response.ok) {
-                throw new Error(`Response status: ${response.status} - ${response.statusText}`);
-            }
-            const data = await response.json();
-            setContinent(data);
-        } catch (err) {
-            console.error(`Error: ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const filteredData = myWorkRequests.filter((item) => {
         const matchesStatus = status === "" || item.status.toLowerCase() === status.toLowerCase();
@@ -278,7 +287,6 @@ const WorkOrderPage = () => {
     useEffect(() => {
         fetchMyWorkRequests();
         fetchMachines();
-        getContinent();
     }, [fetchMyWorkRequests, fetchMachines]);
 
     return (
@@ -376,29 +384,16 @@ const WorkOrderPage = () => {
                     </Panel>
                 </motion.div>
 
-                <Dialog
-                    header="Pick a site for work order"
+                <WorkOrderAddModal
                     visible={addWorkOrderDialogVisible}
-                    style={{ width: "50vw" }}
-                    onHide={() => {
-                        if (!addWorkOrderDialogVisible) return;
-                        setAddWorkOrderDialogVisible(false);
+                    onHide={() => setAddWorkOrderDialogVisible(false)}
+                    machines={machines}
+                    onAddSuccess={() => {
+                        showToast("success", "Success", "Work order created successfully.");
+                        fetchMyWorkRequests();
                     }}
-                >
-                    <Accordion activeIndex={activeIndex}>
-                        {continent.map((item, index) => (
-                            <AccordionTab key={index} header={item.continent}>
-                                <ul className="list-disc pl-4">
-                                    {item.cities.map((city, idx) => (
-                                        <li key={idx}>
-                                            <Link href={`/employee/work-orders/request/add?city=${city}`}>{city}</Link>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </AccordionTab>
-                        ))}
-                    </Accordion>
-                </Dialog>
+                    showToast={showToast}
+                />
 
                 <WorkOrderEditModal
                     visible={editWorkOrderDialogVisible}

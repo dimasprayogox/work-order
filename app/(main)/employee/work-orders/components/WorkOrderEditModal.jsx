@@ -17,7 +17,6 @@ const WorkOrderEditModal = ({ visible, onHide, workOrder, machines, onUpdateSucc
     const [formData, setFormData] = useState({
         title: "",
         description: "",
-        status: "",
         machine_id: null,
         current_photo_url: "",
     });
@@ -42,7 +41,6 @@ const WorkOrderEditModal = ({ visible, onHide, workOrder, machines, onUpdateSucc
             setFormData({
                 title: workOrder.title || "",
                 description: workOrder.description || "",
-                status: workOrder.status || "",
                 machine_id: workOrder.machine_id || null,
                 current_photo_url: workOrder.photo_url || "",
             });
@@ -59,18 +57,10 @@ const WorkOrderEditModal = ({ visible, onHide, workOrder, machines, onUpdateSucc
         }
     };
 
-    const handleDropdownChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-        if (errors[name]) {
-            setErrors((prev) => ({ ...prev, [name]: undefined }));
-        }
-    };
-
     const onFileSelect = (e) => {
         if (e.files && e.files.length > 0) {
             setSelectedFile(e.files[0]);
-            setFormData((prev) => ({ ...prev, current_photo_url: URL.createObjectURL(e.files[0]) })); // For instant preview
+            setFormData((prev) => ({ ...prev, current_photo_url: URL.createObjectURL(e.files[0]) }));
         } else {
             setSelectedFile(null);
             if (workOrder) {
@@ -82,7 +72,7 @@ const WorkOrderEditModal = ({ visible, onHide, workOrder, machines, onUpdateSucc
     const onFileRemove = () => {
         setSelectedFile(null);
         if (workOrder) {
-            setFormData((prev) => ({ ...prev, current_photo_url: workOrder.photo_url || "" }));
+            setFormData((prev) => ({ ...prev, current_photo_url: "" })); // Set to empty string to trigger remove_photo
         }
         if (fileUploadRef.current) {
             fileUploadRef.current.clear();
@@ -96,9 +86,6 @@ const WorkOrderEditModal = ({ visible, onHide, workOrder, machines, onUpdateSucc
         }
         if (!formData.description.trim()) {
             newErrors.description = "Description is required.";
-        }
-        if (!formData.status) {
-            newErrors.status = "Status is required.";
         }
         if (!formData.machine_id) {
             newErrors.machine_id = "Machine is required.";
@@ -119,19 +106,16 @@ const WorkOrderEditModal = ({ visible, onHide, workOrder, machines, onUpdateSucc
             const formDataToSubmit = new FormData();
             formDataToSubmit.append("title", formData.title);
             formDataToSubmit.append("description", formData.description);
-            formDataToSubmit.append("status", formData.status);
             formDataToSubmit.append("machine_id", formData.machine_id);
 
             if (selectedFile) {
                 formDataToSubmit.append("photo", selectedFile);
             } else if (!formData.current_photo_url && workOrder?.photo_url) {
-                // If user cleared photo but there was an existing one, signal to remove it
                 formDataToSubmit.append("remove_photo", "true");
             }
 
             const response = await fetch(`${API_BASE_URL}/employee/issues/${workOrder.id}`, {
-                method: "POST", // Use POST for FormData, but your backend should handle it as PUT/PATCH
-                // Do NOT set Content-Type header manually for FormData, browser sets it
+                method: "PATCH",
                 body: formDataToSubmit,
                 credentials: "include",
             });
@@ -159,6 +143,11 @@ const WorkOrderEditModal = ({ visible, onHide, workOrder, machines, onUpdateSucc
             <Button label="Save" icon="pi pi-check" onClick={handleSubmit} loading={loading} />
         </div>
     );
+
+    const formatStatusForDisplay = (statusValue) => {
+        if (!statusValue) return "N/A";
+        return statusValue.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+    };
 
     return (
         <Dialog
@@ -205,16 +194,15 @@ const WorkOrderEditModal = ({ visible, onHide, workOrder, machines, onUpdateSucc
                         <label htmlFor="status" className="font-bold">
                             Status
                         </label>
-                        <Dropdown
+                        <InputText
                             id="status"
                             name="status"
-                            value={formData.status}
-                            options={statusOptions}
-                            onChange={handleDropdownChange}
-                            placeholder="Select a Status"
-                            className={classNames({ 'p-invalid': errors.status })}
+                            value={formatStatusForDisplay(workOrder.status)}
+                            readOnly
+                            disabled
+                            className="p-inputtext-sm"
                         />
-                        {errors.status && <small className="p-error">{errors.status}</small>}
+                        <small className="p-text-secondary">Status is updated by technicians.</small>
                     </div>
 
                     <div className="field col-12 md:col-6">
@@ -226,7 +214,7 @@ const WorkOrderEditModal = ({ visible, onHide, workOrder, machines, onUpdateSucc
                             name="machine_id"
                             value={formData.machine_id}
                             options={machineOptions}
-                            onChange={handleDropdownChange}
+                            onChange={handleChange}
                             placeholder="Select a Machine"
                             className={classNames({ 'p-invalid': errors.machine_id })}
                         />
@@ -248,7 +236,7 @@ const WorkOrderEditModal = ({ visible, onHide, workOrder, machines, onUpdateSucc
                             name="photo"
                             mode="advanced"
                             accept="image/*"
-                            maxFileSize={1000000} // 1MB
+                            maxFileSize={1000000}
                             onSelect={onFileSelect}
                             onClear={onFileRemove}
                             onRemove={onFileRemove}
@@ -256,7 +244,7 @@ const WorkOrderEditModal = ({ visible, onHide, workOrder, machines, onUpdateSucc
                             chooseLabel="Choose New Photo"
                             uploadLabel="Upload (Not used here)"
                             cancelLabel="Clear"
-                            customUpload={true} // Important: we handle upload ourselves
+                            customUpload={true}
                             emptyTemplate={<p className="m-0">Drag and drop new photo here or click to browse.</p>}
                         />
                         <small className="text-500 block mt-2">Max file size: 1MB. Accepted formats: images.</small>
