@@ -64,28 +64,39 @@ const AppMenu = () => {
                         icon: "pi pi-fw pi-truck",
                         items: [{ label: "Parts Forecaster", icon: "pi pi-fw pi-truck", to: "/supplies/parts-forecaster" }]
                     },
+                    machineCategories: {
+                        label: "Machine Categories",
+                        icon: "pi pi-fw pi-th-large",
+                        to: "/admin/machine-categories"
+                    },
+                    machines: {
+                        label: "Machines",
+                        icon: "pi pi-fw pi-box",
+                        to: "/admin/machines"
+                    },
                     users: {
                         label: "Users",
                         icon: "pi pi-fw pi-users",
-                        items: [{ label: "Users", icon: "pi pi-fw pi-user", to: "/users/admin" }]
+                        to: "/admin/users"
                     }
                 };
 
                 let filteredModel = [];
                 if (role === "admin") {
-                    filteredModel = [allMenus.dashboard, allMenus.maintenance, allMenus.assets, allMenus.supplies, allMenus.users];
+                    filteredModel = [allMenus.dashboard, allMenus.maintenance, allMenus.assets, allMenus.supplies, allMenus.machineCategories, allMenus.machines, allMenus.users, ];
                 } else if (role === "employee") {
-                    filteredModel = [allMenus.dashboard.items[0], allMenus.maintenance.items[1]];
-                } else if (role === "manager") {
-                    const managerAllowedLabels = ["Work Orders", "Scheduled Maintenance"];
-                    const managerMaintenanceItems = allMenus.maintenance.items.filter((item) => managerAllowedLabels.includes(item.label));
-
                     filteredModel = [
-                        allMenus.dashboard.items[0],
+
                         {
-                            ...allMenus.maintenance,
-                            items: managerMaintenanceItems
-                        }
+                            label: "Dashboard",
+                            icon: "pi pi-fw pi-home",
+                            to: "/employee/dashboard"
+                        },
+                        {
+                            label: "Work Orders",
+                            icon: "pi pi-fw pi-file",
+                            to: "/employee/work-orders"
+                        },
                     ];
                 } else if (role === "technician") {
                     filteredModel = [
@@ -129,7 +140,27 @@ const AppMenu = () => {
                             to: "/logistics/part-usage"
                         }
                     ];
+                } else if (role === "manager") {
+                    filteredModel = [
+                        {
+                            label: "Dashboard",
+                            icon: "pi pi-fw pi-home",
+                            to: "/manager/dashboard"
+                        },
+                        {
+                            label: "Work Orders",
+                            icon: "pi pi-fw pi-file",
+                            to: "/manager/work-orders"
+                        },
+                        {
+                            label: "Schedules",
+                            icon: "pi pi-fw pi-calendar",
+                            to: "/manager/schedules"
+                        }
+                    ];
                 }
+
+
 
                 setModel(filteredModel);
             } catch (error) {

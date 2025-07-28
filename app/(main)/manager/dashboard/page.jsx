@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
+
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
@@ -15,10 +16,13 @@ import { Calendar } from "primereact/calendar";
 import { Chart } from 'primereact/chart';
 import { classNames } from 'primereact/utils';
 
+// Fixed status configuration with proper pending status
 const statusConfig = {
-    open: { label: "Pending", color: "#ef4444", bgColor: "bg-red-100", textColor: "text-red-800", icon: "pi-clock" },
+    open: { label: "Pending", color: "#ef4444", bgColor: "bg-red-100", textColor: "text-red-800", icon: "pi-exclamation-triangle" },
+    pending: { label: "Pending", color: "#ef4444", bgColor: "bg-red-100", textColor: "text-red-800", icon: "pi-exclamation-triangle" },
     in_progress: { label: "In Progress", color: "#3b82f6", bgColor: "bg-blue-100", textColor: "text-blue-800", icon: "pi-spinner pi-spin" },
     resolved: { label: "Completed", color: "#10b981", bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check" },
+    completed: { label: "Completed", color: "#10b981", bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check" },
     active: { label: "Active", color: "#10b981", bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check-circle" },
     idle: { label: "Idle", color: "#6b7280", bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-pause" },
     maintenance: { label: "Maintenance", color: "#f59e0b", bgColor: "bg-orange-100", textColor: "text-orange-800", icon: "pi-wrench" },
@@ -42,9 +46,9 @@ const ManagerDashboardPage = () => {
 
     const woStatusOptions = [
         { label: "All Status", value: "" },
-        { label: "Pending", value: "open" },
+        { label: "Pending", value: "open" }, // Keep original status value
         { label: "In Progress", value: "in_progress" },
-        { label: "Completed", value: "resolved" }
+        { label: "Completed", value: "resolved" } // Keep original status value
     ];
 
     const fetchDashboardData = useCallback(async () => {
@@ -62,7 +66,7 @@ const ManagerDashboardPage = () => {
 
             const scheduleResponse = await fetch(`${API_BASE_URL}/manager/dashboard/maintenance/schedule`, { method: "GET", credentials: "include" });
             const scheduleResult = await scheduleResponse.json();
-            if (!scheduleResult.ok) throw new Error(scheduleResult.message || "Failed to fetch maintenance schedule.");
+            if (!scheduleResponse.ok) throw new Error(scheduleResult.message || "Failed to fetch maintenance schedule.");
             setMaintenanceSchedule(scheduleResult.data || []);
 
             const partsResponse = await fetch(`${API_BASE_URL}/manager/dashboard/parts/analysis`, { method: "GET", credentials: "include" });
@@ -113,9 +117,9 @@ const ManagerDashboardPage = () => {
 
     const getChartOptions = (title) => {
         const documentStyle = getComputedStyle(document.documentElement);
-        const textColor = documentStyle.getPropertyValue('--text-color');
-        const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary');
-        const surfaceBorder = documentStyle.getPropertyValue('--surface-border');
+        const textColor = documentStyle.getPropertyValue('--text-color') || '#374151';
+        const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary') || '#6b7280';
+        const surfaceBorder = documentStyle.getPropertyValue('--surface-border') || '#e5e7eb';
 
         return {
             plugins: {
@@ -161,12 +165,12 @@ const ManagerDashboardPage = () => {
         { name: "Pending", value: pendingWorkOrdersCount, color: "#ef4444" },
         { name: "In Progress", value: inProgressWorkOrdersCount, color: "#06b6d4" },
         { name: "Completed", value: completedWorkOrdersCount, color: "#10b981" }
-    ];
+    ].filter(item => item.value > 0);
 
     const machineChartData = overviewData?.machineStatus?.map(s => {
         const config = getStatusStyle(s.status);
         return { name: config.label, value: s.count, color: config.color };
-    }) || [];
+    }).filter(item => item.value > 0) || [];
 
     return (
         <div className="card">
@@ -196,12 +200,12 @@ const ManagerDashboardPage = () => {
                         <div className="col-6 md:col-3">
                             <div className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden" style={{ height: "180px", background: "linear-gradient(135deg, #ef4444 0%, #f97316 100%)", borderRadius: "12px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
                                 <div className="text-center w-full">
-                                    <i className="pi pi-clock text-white opacity-80" style={{ fontSize: "2rem" }}></i>
+                                    <i className="pi pi-exclamation-triangle text-white opacity-80" style={{ fontSize: "2rem" }}></i>
                                     <h6 className="font-bold text-white mt-3 mb-1">PENDING WORK ORDERS</h6>
                                 </div>
                                 <h3 className="text-4xl font-bold text-white my-2">{pendingWorkOrdersCount}</h3>
                                 <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
-                                    <div className="bg-white h-2 rounded-full" style={{ width: `${(pendingWorkOrdersCount / totalWorkOrders) * 100}%` }}></div>
+                                    <div className="bg-white h-2 rounded-full" style={{ width: `${totalWorkOrders > 0 ? (pendingWorkOrdersCount / totalWorkOrders) * 100 : 0}%` }}></div>
                                 </div>
                             </div>
                         </div>
@@ -214,7 +218,7 @@ const ManagerDashboardPage = () => {
                                 </div>
                                 <h3 className="text-4xl font-bold text-white my-2">{inProgressWorkOrdersCount}</h3>
                                 <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
-                                    <div className="bg-white h-2 rounded-full" style={{ width: `${(inProgressWorkOrdersCount / totalWorkOrders) * 100}%` }}></div>
+                                    <div className="bg-white h-2 rounded-full" style={{ width: `${totalWorkOrders > 0 ? (inProgressWorkOrdersCount / totalWorkOrders) * 100 : 0}%` }}></div>
                                 </div>
                             </div>
                         </div>
@@ -227,7 +231,7 @@ const ManagerDashboardPage = () => {
                                 </div>
                                 <h3 className="text-4xl font-bold text-white my-2">{completedWorkOrdersCount}</h3>
                                 <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
-                                    <div className="bg-white h-2 rounded-full" style={{ width: `${(completedWorkOrdersCount / totalWorkOrders) * 100}%` }}></div>
+                                    <div className="bg-white h-2 rounded-full" style={{ width: `${totalWorkOrders > 0 ? (completedWorkOrdersCount / totalWorkOrders) * 100 : 0}%` }}></div>
                                 </div>
                             </div>
                         </div>
@@ -356,8 +360,8 @@ const ManagerDashboardPage = () => {
                                                 (item) => {
                                                     const scheduledDate = new Date(item.scheduled_date);
                                                     return scheduledDate.getDate() === date.day &&
-                                                           scheduledDate.getMonth() === date.month &&
-                                                           scheduledDate.getFullYear() === date.year;
+                                                        scheduledDate.getMonth() === date.month &&
+                                                        scheduledDate.getFullYear() === date.year;
                                                 }
                                             );
                                             return (
@@ -369,7 +373,9 @@ const ManagerDashboardPage = () => {
                                                 })}>
                                                     {date.day}
                                                     {event && (
-                                                        <i className="pi pi-cog absolute bottom-0 right-0 text-xs text-white"></i>
+                                                        <div className="absolute -bottom-1 -right-1 bg-orange-500 rounded-full w-1rem h-1rem flex align-items-center justify-content-center text-xs">
+                                                            <i className="pi pi-cog text-white" style={{ fontSize: '0.5rem' }}></i>
+                                                        </div>
                                                     )}
                                                 </div>
                                             );
@@ -379,19 +385,41 @@ const ManagerDashboardPage = () => {
                                 <div className="mt-4">
                                     <h6 className="font-bold mb-2">Detail Jadwal Mendatang:</h6>
                                     {maintenanceSchedule.length > 0 ? (
-                                        <ul>
+                                        <ul className="list-none p-0">
                                             {maintenanceSchedule
                                                 .filter(item => new Date(item.scheduled_date) >= new Date())
                                                 .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))
                                                 .slice(0, 5)
                                                 .map((item, index) => (
-                                                <li key={index} className="mb-1">
-                                                    <span className="font-medium text-blue-600">{new Date(item.scheduled_date).toLocaleDateString('id-ID', { weekday: 'short', month: 'short', day: 'numeric' })}:</span> {item.title} ({item.machine?.name || 'N/A'})
+                                                <li key={index} className="mb-2 p-2 bg-gray-50 rounded-md">
+                                                    <div className="flex justify-content-between align-items-start">
+                                                        <div>
+                                                            <span className="font-medium text-blue-600">
+                                                                {new Date(item.scheduled_date).toLocaleDateString('id-ID', { 
+                                                                    weekday: 'short', 
+                                                                    month: 'short', 
+                                                                    day: 'numeric',
+                                                                    year: 'numeric'
+                                                                })}:
+                                                            </span>
+                                                            <div className="mt-1">
+                                                                <strong>{item.title}</strong> ({item.machine?.name || 'N/A'})
+                                                            </div>
+                                                            {item.notes && (
+                                                                <div className="text-sm text-gray-600 mt-1">
+                                                                    <i className="pi pi-info-circle mr-1"></i>
+                                                                    {item.notes}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <Tag value={getStatusStyle(item.status).label} 
+                                                             severity={item.status === 'pending' ? 'danger' : item.status === 'in_progress' ? 'info' : 'success'} />
+                                                    </div>
                                                 </li>
                                             ))}
                                         </ul>
                                     ) : (
-                                        <p>Tidak ada jadwal maintenance mendatang.</p>
+                                        <p className="text-gray-500">Tidak ada jadwal maintenance mendatang.</p>
                                     )}
                                 </div>
                             </div>
@@ -408,10 +436,10 @@ const ManagerDashboardPage = () => {
                                             <BarChart data={partsAnalysis.mostUsedParts} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                                                 <XAxis type="number" />
-                                                <YAxis type="category" dataKey="partName" width={100} />
-                                                <Tooltip />
+                                                <YAxis type="category" dataKey="partName" width={120} />
+                                                <Tooltip formatter={(value, name) => [value, 'Jumlah Penggunaan']} />
                                                 <Legend />
-                                                <Bar dataKey="usageCount" name="Jumlah Penggunaan" fill="#8884d8" radius={[4, 4, 0, 0]} />
+                                                <Bar dataKey="usageCount" name="Jumlah Penggunaan" fill="#8884d8" radius={[0, 4, 4, 0]} />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </div>
@@ -431,9 +459,9 @@ const ManagerDashboardPage = () => {
                                         <ResponsiveContainer>
                                             <BarChart data={partsAnalysis.technicianPartUsage} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                                <XAxis dataKey="technicianName" />
+                                                <XAxis dataKey="technicianName" angle={-45} textAnchor="end" height={80} />
                                                 <YAxis />
-                                                <Tooltip />
+                                                <Tooltip formatter={(value, name) => [value, 'Total Suku Cadang Digunakan']} />
                                                 <Legend />
                                                 <Bar dataKey="totalPartsUsed" name="Total Suku Cadang Digunakan" fill="#82ca9d" radius={[4, 4, 0, 0]} />
                                             </BarChart>
@@ -454,23 +482,71 @@ const ManagerDashboardPage = () => {
                                     <DataTable
                                         value={partsAnalysis.criticalStock}
                                         className="border-round-lg"
-                                        rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
+                                        rowClassName={(rowData) => rowData.currentStock <= rowData.minStockLevel ? "bg-red-50 hover:bg-red-100 transition-colors" : "hover:bg-gray-50 transition-colors"}
                                         emptyMessage="Tidak ada suku cadang dengan stok penting."
+                                        paginator
+                                        rows={10}
+                                        header={
+                                            <div className="flex align-items-center justify-content-between">
+                                                <span className="text-xl font-bold">Critical Stock Parts</span>
+                                                <div className="flex align-items-center gap-2">
+                                                    <i className="pi pi-exclamation-triangle text-red-500"></i>
+                                                    <span className="text-sm text-gray-600">Items with low stock levels</span>
+                                                </div>
+                                            </div>
+                                        }
                                     >
-                                        <Column field="partName" header="Nama Suku Cadang" />
-                                        <Column field="currentStock" header="Stok Saat Ini" sortable />
-                                        <Column field="minStockLevel" header="Level Minimum Stok" sortable />
-                                        <Column header="Status" body={(rowData) => (
-                                            <Tag value={rowData.currentStock <= rowData.minStockLevel ? "Low Stock" : "Sufficient"}
-                                                 severity={rowData.currentStock <= rowData.minStockLevel ? "danger" : "success"} />
+                                        <Column field="partName" header="Nama Suku Cadang" sortable body={(rowData) => (
+                                            <div className="font-medium">
+                                                {rowData.partName}
+                                            </div>
                                         )} />
+                                        <Column field="currentStock" header="Stok Saat Ini" sortable body={(rowData) => (
+                                            <div className={classNames("font-bold", {
+                                                "text-red-600": rowData.currentStock <= rowData.minStockLevel,
+                                                "text-green-600": rowData.currentStock > rowData.minStockLevel
+                                            })}>
+                                                {rowData.currentStock}
+                                            </div>
+                                        )} />
+                                        <Column field="minStockLevel" header="Level Minimum Stok" sortable />
+                                        <Column header="Status" body={(rowData) => {
+                                            const isLowStock = rowData.currentStock <= rowData.minStockLevel;
+                                            return (
+                                                <Tag 
+                                                    value={isLowStock ? "Low Stock" : "Sufficient"}
+                                                    severity={isLowStock ? "danger" : "success"}
+                                                    icon={isLowStock ? "pi pi-exclamation-triangle" : "pi pi-check"}
+                                                />
+                                            );
+                                        }} />
+                                        <Column header="Action Required" body={(rowData) => {
+                                            const isLowStock = rowData.currentStock <= rowData.minStockLevel;
+                                            const deficit = rowData.minStockLevel - rowData.currentStock;
+                                            return isLowStock ? (
+                                                <div className="text-sm text-red-600">
+                                                    <i className="pi pi-shopping-cart mr-1"></i>
+                                                    Order {deficit} more units
+                                                </div>
+                                            ) : (
+                                                <div className="text-sm text-green-600">
+                                                    <i className="pi pi-check mr-1"></i>
+                                                    Stock sufficient
+                                                </div>
+                                            );
+                                        }} />
                                     </DataTable>
                                 ) : (
-                                    <p className="text-center text-gray-500">Tidak ada data stok suku cadang penting.</p>
+                                    <div className="flex flex-column align-items-center justify-content-center p-4 text-gray-500">
+                                        <i className="pi pi-check-circle" style={{ fontSize: '3rem', color: '#10b981' }}></i>
+                                        <p className="mt-2 font-medium">All parts have sufficient stock levels!</p>
+                                        <p className="text-sm">No critical stock alerts at this time.</p>
+                                    </div>
                                 )}
                             </div>
                         </div>
                     </div>
+
                 </>
             )}
         </div>
@@ -478,3 +554,4 @@ const ManagerDashboardPage = () => {
 };
 
 export default ManagerDashboardPage;
+                                    

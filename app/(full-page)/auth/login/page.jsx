@@ -12,19 +12,16 @@ import { classNames } from "primereact/utils";
 import { Toast } from 'primereact/toast';
 
 const LoginPage = () => {
-    // --- STATE ---
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [checked, setChecked] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
 
-    // --- HOOKS ---
     const router = useRouter();
     const toastRef = useRef(null);
-    const { layoutConfig } = useContext(LayoutContext); // 2. Dapatkan layoutConfig dari context
+    const { layoutConfig } = useContext(LayoutContext); 
 
-    // --- HANDLER ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -41,45 +38,39 @@ const LoginPage = () => {
 
             if (res.ok && result.status === "00") {
                 toastRef.current?.show({severity:'success', summary: 'Success', detail: result.message});
-                console.log("Login sukses:", result.message);
 
-                // --- MODIFIKASI DIMULAI DI SINI ---
-                const userRole = result.role; // Ambil role langsung dari respons API
-
-                // Definisikan path dasar untuk dashboard Anda
-                const dashboardBasePath = "/dashboard"; // Ini akan mengarah ke (main)/dashboard/
+                const userRole = result.role; 
 
                 let redirectPath;
 
                 switch (userRole) {
                     case "admin":
-                        redirectPath = `${dashboardBasePath}/admin`; // Akan menjadi /dashboard/admin
+                        redirectPath = "/dashboard/admin";
                         break;
                     case "employee":
-                        redirectPath = `${dashboardBasePath}/employee`; // Akan menjadi /dashboard/employee
+                        redirectPath = "/employee/dashboard";
                         break;
                     case "technician":
-                        redirectPath = `/technician${dashboardBasePath}`; // Akan menjadi /dashboard/technician
+                        redirectPath = "/technician/dashboard";
                         break;
                     case "manager":
-                        redirectPath = `${dashboardBasePath}/manager`; // Akan menjadi /dashboard/manager
+                        redirectPath = "/manager/dashboard";
                         break;
                     case "logistics":
-                        redirectPath = `${dashboardBasePath}/logistics`; // Akan menjadi /dashboard/logistics
+                        redirectPath = "/logistics/dashboard";
                         break;
                     default:
-                        redirectPath = dashboardBasePath; // Fallback ke /dashboard jika role tidak dikenali
+                        redirectPath = "/dashboard";
                         break;
                 }
+                
                 router.push(redirectPath);
 
-
             } else {
-               toastRef.current?.show({ severity: "error", summary: "Gagal", detail: result.message || "Email atau Password salah.", life: 3000 });
+                toastRef.current?.show({ severity: "error", summary: "Gagal", detail: result.message || "Email atau Password salah.", life: 3000 });
             }
         } catch (error) {
             console.error("Terjadi kesalahan:", error);
-            // toastRef.current?.show({severity:'error', summary: 'Error', detail: 'Tidak dapat terhubung ke server.'});
         } finally {
             setLoading(false);
         }
@@ -112,7 +103,6 @@ const LoginPage = () => {
                                     <label htmlFor="email1" className="block text-900 text-xl font-medium mb-2">
                                         Email
                                     </label>
-                                    {/* 5. Hubungkan value dan onChange ke state email */}
                                     <InputText id="email1" type="text" placeholder="Alamat Email" className="w-full md:w-30rem" style={{ padding: "1rem" }} value={email} onChange={(e) => setEmail(e.target.value)} />
                                 </div>
 

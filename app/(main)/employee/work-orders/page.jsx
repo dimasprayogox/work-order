@@ -15,8 +15,10 @@ import { Tooltip } from "primereact/tooltip";
 import { Toast } from "primereact/toast";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { Panel } from "primereact/panel";
-import { Message } from "primereact/message";
 import { motion } from "framer-motion";
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+
+import WorkOrderEditModal from "./components/WorkOrderEditModal";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
 
@@ -29,6 +31,8 @@ const statusBodyTemplate = (rowData) => {
                 return "info";
             case "resolved":
                 return "success";
+            case "closed":
+                return "secondary";
             default:
                 return "warning";
         }
@@ -45,7 +49,6 @@ const statusBodyTemplate = (rowData) => {
 
 const photoBodyTemplate = (rowData) => {
     const handleImageClick = (url) => {
-        // Implement image preview logic if needed
         console.log("Image clicked:", url);
     };
 
@@ -75,11 +78,14 @@ const dateBodyTemplate = (rowData) => {
 
 const WorkOrderPage = () => {
     const toast = useRef(null);
-    const [visible, setVisible] = useState(false);
+    const [addWorkOrderDialogVisible, setAddWorkOrderDialogVisible] = useState(false);
+    const [editWorkOrderDialogVisible, setEditWorkOrderDialogVisible] = useState(false);
+    const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
     const [loading, setLoading] = useState(false);
     const [loadingWorkRequests, setLoadingWorkRequests] = useState(true);
     const [myWorkRequests, setMyWorkRequests] = useState([]);
     const [selectedRequests, setSelectedRequests] = useState([]);
+    const [machines, setMachines] = useState([]);
 
     const [status, setStatus] = useState("");
     const [search, setSearch] = useState("");
@@ -108,8 +114,6 @@ const WorkOrderPage = () => {
             });
             const result = await response.json();
 
-            console.log("Response from /employee/issues:", result);
-
             if (!response.ok) {
                 const errorDetail = result.message || JSON.stringify(result.errors) || "Failed to load work requests.";
                 throw new Error(`Failed to load work requests: ${errorDetail}`);
@@ -121,6 +125,26 @@ const WorkOrderPage = () => {
             setMyWorkRequests([]);
         } finally {
             setLoadingWorkRequests(false);
+        }
+    }, [showToast]);
+
+    const fetchMachines = useCallback(async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/machines`, {
+                method: "GET",
+                credentials: "include"
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                const errorDetail = result.message || JSON.stringify(result.errors) || "Failed to load machines.";
+                throw new Error(`Failed to load machines: ${errorDetail}`);
+            }
+            setMachines(Array.isArray(result.data) ? result.data : []);
+        } catch (error) {
+            console.error("Error fetching machines:", error);
+            showToast("error", "Error", `Failed to load machines: ${error.message}`);
+            setMachines([]);
         }
     }, [showToast]);
 
@@ -146,29 +170,128 @@ const WorkOrderPage = () => {
         return matchesStatus && matchesSearch;
     });
 
+    const handleEditWorkOrder = (rowData) => {
+        setSelectedWorkOrder(rowData);
+        setEditWorkOrderDialogVisible(true);
+    };
+
+    const handleDeleteWorkOrder = (rowData) => {
+        confirmDialog({
+            message: `Are you sure you want to delete the work order "${rowData.title}"?`,
+            header: 'Confirm Deletion',
+            icon: 'pi pi-exclamation-triangle',
+            acceptClassName: 'p-button-danger',
+            accept: async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/employee/issues/${rowData.id}`, {
+                        method: "DELETE",
+                        credentials: "include"
+                    });
+
+                    if (!response.ok) {
+                        const errorResult = await response.json();
+                        throw new Error(errorResult.message || "Failed to delete work order.");
+                    }
+
+                    showToast("success", "Deleted", `Work order "${rowData.title}" has been deleted.`);
+                    fetchMyWorkRequests();
+                } catch (error) {
+                    console.error("Error deleting work order:", error);
+                    showToast("error", "Error", `Failed to delete work order: ${error.message}`);
+                }
+            },
+            reject: () => {
+                showToast("info", "Cancelled", "Work order deletion cancelled.");
+            }
+        });
+    };
+
     const handleDeleteSelected = () => {
-        // Implement your delete logic here
-        console.log("Selected requests to delete:", selectedRequests);
-        showToast("info", "Delete", `${selectedRequests.length} requests selected for deletion`);
-        // Reset selection after action
-        setSelectedRequests([]);
+        if (selectedRequests.length === 0) {
+            showToast("warn", "No Selection", "Please select work requests to delete.");
+            return;
+        }
+
+        confirmDialog({
+            message: `Are you sure you want to delete ${selectedRequests.length} selected work orders?`,
+            header: 'Confirm Bulk Deletion',
+            icon: 'pi pi-exclamation-triangle',
+            acceptClassName: 'p-button-danger',
+            accept: async () => {
+                try {
+                    const deletePromises = selectedRequests.map(request =>
+                        fetch(`${API_BASE_URL}/employee/issues/${request.id}`, {
+                            method: "DELETE",
+                            credentials: "include"
+                        })
+                    );
+
+                    const results = await Promise.allSettled(deletePromises);
+                    const successfulDeletes = results.filter(res => res.status === 'fulfilled' && res.value.ok).length;
+                    const failedDeletes = selectedRequests.length - successfulDeletes;
+
+                    if (successfulDeletes > 0) {
+                        showToast("success", "Deleted", `${successfulDeletes} work orders deleted successfully.`);
+                    }
+                    if (failedDeletes > 0) {
+                        showToast("warn", "Partial Deletion", `${failedDeletes} work orders failed to delete.`);
+                    }
+
+                    setSelectedRequests([]);
+                    fetchMyWorkRequests();
+                } catch (error) {
+                    console.error("Error during bulk delete:", error);
+                    showToast("error", "Error", `Failed to perform bulk deletion: ${error.message}`);
+                }
+            },
+            reject: () => {
+                showToast("info", "Cancelled", "Bulk deletion cancelled.");
+            }
+        });
+    };
+
+    const actionBodyTemplate = (rowData) => {
+        return (
+            <div className="flex flex-row gap-2">
+                <Button
+                    icon="pi pi-pencil"
+                    rounded
+                    outlined
+                    severity="info"
+                    tooltip="Edit"
+                    tooltipOptions={{ position: 'left' }}
+                    onClick={() => handleEditWorkOrder(rowData)}
+                />
+                <Button
+                    icon="pi pi-trash"
+                    rounded
+                    outlined
+                    severity="danger"
+                    tooltip="Delete"
+                    tooltipOptions={{ position: 'right' }}
+                    onClick={() => handleDeleteWorkOrder(rowData)}
+                />
+            </div>
+        );
     };
 
     useEffect(() => {
         fetchMyWorkRequests();
+        fetchMachines();
         getContinent();
-    }, [fetchMyWorkRequests]);
+    }, [fetchMyWorkRequests, fetchMachines]);
 
     return (
         <div className="p-4">
             <Toast ref={toast} position="top-right" className="opacity-90" />
+            <ConfirmDialog />
 
             <div className="card">
                 <h3>Work Order Page</h3>
 
                 <div className="flex flex-row gap-2">
                     <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
-                    <Button size="small" label="New" icon="pi pi-plus" outlined severity="success" onClick={() => setVisible(true)} />
+                    <Button size="small" label="New" icon="pi pi-plus" outlined severity="success" onClick={() => setAddWorkOrderDialogVisible(true)} />
                     <Divider layout="vertical" />
                     <Button size="small" label="Import" icon="pi pi-file-import" outlined />
                     <Button size="small" label="Export" icon="pi pi-file-export" outlined />
@@ -204,7 +327,7 @@ const WorkOrderPage = () => {
                                     <div className="flex align-items-center justify-content-between gap-2">
                                         <div>
                                             <span className="text-xl font-bold mr-3">Work Requests</span>
-                                            <Dropdown placeholder="Filter Status" value={status} options={["", "open", "in_progress", "resolved"]} onChange={(e) => setStatus(e.value)} />
+                                            <Dropdown placeholder="Filter Status" value={status} options={["", "open", "in_progress", "resolved", "closed"]} onChange={(e) => setStatus(e.value)} />
                                         </div>
                                         <InputText placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} />
                                     </div>
@@ -231,7 +354,7 @@ const WorkOrderPage = () => {
                                                 className="description-tooltip"
                                                 data-pr-tooltip={rowData.description}
                                                 style={{
-                                                    whiteSpace: "nowrap",
+                                                    whiteWhiteSpace: "nowrap",
                                                     overflow: "hidden",
                                                     textOverflow: "ellipsis",
                                                     display: "block",
@@ -247,19 +370,19 @@ const WorkOrderPage = () => {
                                 <Column field="status" header="Status" body={statusBodyTemplate} sortable />
                                 <Column header="Photo" body={photoBodyTemplate} />
                                 <Column field="created_at" header="Submitted" body={dateBodyTemplate} />
+                                <Column header="Actions" body={actionBodyTemplate} alignFrozen="right" frozen />
                             </DataTable>
                         )}
                     </Panel>
                 </motion.div>
 
-                {/* Add new work orders dialog */}
                 <Dialog
                     header="Pick a site for work order"
-                    visible={visible}
+                    visible={addWorkOrderDialogVisible}
                     style={{ width: "50vw" }}
                     onHide={() => {
-                        if (!visible) return;
-                        setVisible(false);
+                        if (!addWorkOrderDialogVisible) return;
+                        setAddWorkOrderDialogVisible(false);
                     }}
                 >
                     <Accordion activeIndex={activeIndex}>
@@ -268,7 +391,6 @@ const WorkOrderPage = () => {
                                 <ul className="list-disc pl-4">
                                     {item.cities.map((city, idx) => (
                                         <li key={idx}>
-                                            {/* MODIFIKASI INI: Mengubah jalur untuk link "add" */}
                                             <Link href={`/employee/work-orders/request/add?city=${city}`}>{city}</Link>
                                         </li>
                                     ))}
@@ -277,6 +399,21 @@ const WorkOrderPage = () => {
                         ))}
                     </Accordion>
                 </Dialog>
+
+                <WorkOrderEditModal
+                    visible={editWorkOrderDialogVisible}
+                    onHide={() => {
+                        setEditWorkOrderDialogVisible(false);
+                        setSelectedWorkOrder(null);
+                    }}
+                    workOrder={selectedWorkOrder}
+                    machines={machines}
+                    onUpdateSuccess={() => {
+                        showToast("success", "Success", "Work order updated successfully.");
+                        fetchMyWorkRequests();
+                    }}
+                    showToast={showToast}
+                />
             </div>
         </div>
     );
