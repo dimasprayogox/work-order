@@ -50,12 +50,12 @@ const LogisticsDashboardPage = () => {
                 <PartSummary title="OUT OF STOCK" value={data.part_summary.out_of_stock || 0} icon="out" color="out" />
                 <PartSummary title="CRITICAL PARTS" value="ini belum bisa" icon="critical" color="critical" />
             </div>
-            <div className="grid mt-6">
+            <div className="grid mt-4">
                 <PartRequestSummary data={data.part_requests} />
                 <RecentRequests data={data.recent_requests} />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <div className="grid mt-2">
                 <TopUsedParts data={data.top_used_parts} />
             </div>
         </div>

@@ -51,3 +51,25 @@ export const POST = async (request) => {
         return NextResponse.json({ message: "Gagal membuat part request." }, { status: 500 });
     }
 };
+
+export const DELETE = async (request) => {
+    const token = request.cookies.get("authToken")?.value;
+    if (!token) {
+        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+        const body = await request.json(); // { ids: [...] }
+        const response = await Axios.delete(`${API_ENDPOINTS.TECHNICIAN_PART_REQUEST_BASE}/deletemany`, {
+            headers: { Authorization: `Bearer ${token}` },
+            data: body
+        });
+        return NextResponse.json(response.data, { status: 200 });
+    } catch (err) {
+        if (isAxiosError(err) && err.response) {
+            return NextResponse.json(err.response.data, { status: err.response.status });
+        }
+        console.error("[API TECHNICIAN PART REQUEST DELETE MANY]", err);
+        return NextResponse.json({ message: "Gagal menghapus part request." }, { status: 500 });
+    }
+};
