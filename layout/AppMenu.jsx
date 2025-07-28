@@ -74,6 +74,16 @@ const AppMenu = () => {
                         icon: "pi pi-fw pi-box",
                         to: "/admin/machines"
                     },
+                    parts: {
+                        label: "Parts",
+                        icon: "pi pi-fw pi-file",
+                        to: "/admin/parts"
+                    },
+                    partsRequest: {
+                        label: "Parts Request",
+                        icon: "pi pi-fw pi-inbox",
+                        to: "/admin/part-requests"
+                    },
                     users: {
                         label: "Users",
                         icon: "pi pi-fw pi-users",
@@ -83,7 +93,7 @@ const AppMenu = () => {
 
                 let filteredModel = [];
                 if (role === "admin") {
-                    filteredModel = [allMenus.dashboard, allMenus.maintenance, allMenus.assets, allMenus.supplies, allMenus.machineCategories, allMenus.machines, allMenus.users, ];
+                    filteredModel = [allMenus.dashboard, allMenus.maintenance, allMenus.assets, allMenus.supplies, allMenus.partsRequest, allMenus.machineCategories, allMenus.machines, allMenus.parts, allMenus.users, ];
                 } else if (role === "employee") {
                     filteredModel = [
 
