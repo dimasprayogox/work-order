@@ -1,159 +1,124 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-// import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-// import Swal from 'sweetalert2';
 import { Button } from 'primereact/button';
-// import 'react-pdf/dist/esm/Page/TextLayer.css';
+import { ProgressSpinner } from 'primereact/progressspinner'; // Import untuk loading indicator
 
-function PDFViewer({ pdfUrl, paperSize, fileName }) {
+// 1. Aktifkan impor CSS yang penting
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+// 2. Gunakan path absolut ke worker yang ada di folder `public`
+// PENTING: Anda harus menyalin file `pdf.worker.min.js` dari `node_modules/pdfjs-dist/build/`
+// ke dalam folder `public/` di proyek Anda.
+pdfjs.GlobalWorkerOptions.workerSrc = `${window.location.origin}/worker/pdf.worker.min.mjs`;
+
+
+function PDFViewer({ pdfUrl, fileName }) {
     const [numPages, setNumPages] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageWidth, setPageWidth] = useState(0);
-    const [pageHeight, setPageHeight] = useState(0);
-    const [scale, setScale] = useState(1);
+    const [scale, setScale] = useState(1.0); // Skala default
 
-    pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.54/pdf.min.mjs`;
+    function onDocumentLoadSuccess({ numPages: nextNumPages }) {
+        setNumPages(nextNumPages);
+        setCurrentPage(1); // Kembali ke halaman 1 setiap kali dokumen baru dimuat
+    }
 
-    const handleFirstPage = () => {
-        if (currentPage !== 1) {
-            setCurrentPage(1);
-        }
-    };
-
-    const handlePrevPage = () => {
-        if (currentPage > 1) {
-            setCurrentPage(currentPage - 1);
-        }
-    };
-
-    const handleNextPage = () => {
-        if (currentPage < numPages) {
-            setCurrentPage(currentPage + 1);
-        }
-    };
-
-    const handleLastPage = () => {
-        if (currentPage !== numPages) {
-            setCurrentPage(numPages);
-        }
-    };
-
-    const handleZoomIn = () => {
-        if (scale < 2.0) {
-            setScale(scale + 0.1);
-        }
-    };
-
-    const handleZoomOut = () => {
-        if (scale > 0.5) {
-            setScale(scale - 0.1);
-        }
-    };
+    const handleFirstPage = () => setCurrentPage(1);
+    const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+    const handleNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, numPages));
+    const handleLastPage = () => setCurrentPage(numPages);
+    const handleZoomIn = () => setScale((prev) => Math.min(prev + 0.2, 3.0));
+    const handleZoomOut = () => setScale((prev) => Math.max(prev - 0.2, 0.4));
 
     const handleDownloadPDF = () => {
+        if (!pdfUrl) return;
         const downloadLink = document.createElement('a');
         downloadLink.href = pdfUrl;
-        downloadLink.download = fileName + '.pdf';
+        downloadLink.download = `${fileName || 'document'}.pdf`;
+        document.body.appendChild(downloadLink);
         downloadLink.click();
+        document.body.removeChild(downloadLink);
     };
 
     const handlePrint = () => {
         if (pdfUrl) {
-            window.open(pdfUrl, '_blank');
+            const printWindow = window.open(pdfUrl);
+            if (printWindow) {
+                printWindow.onload = () => {
+                    printWindow.print();
+                };
+            }
         }
     };
 
-    useEffect(() => {
-        const loadPdf = async () => {
-            try {
-                const loadingTask = pdfjs.getDocument({ url: pdfUrl });
-                const pdf = await loadingTask.promise;
-                const pages = pdf.numPages;
-                setNumPages(pages);
+    const loadingIndicator = (
+        <div className="flex flex-column align-items-center justify-content-center p-5">
+            <ProgressSpinner style={{width: '50px', height: '50px'}} strokeWidth="8" />
+            <p className="mt-3">Loading PDF...</p>
+        </div>
+    );
 
-
-                const mmToPixel = 3.7795275591;
-                let paperWidthInMm, paperHeightInMm;
-
-                if (paperSize === 'A4') {
-                    paperWidthInMm = 210;
-                    paperHeightInMm = 297;
-                } else if (paperSize === 'Letter') {
-                    paperWidthInMm = 216;
-                    paperHeightInMm = 279;
-                } else if (paperSize === 'Legal') {
-                    // Tambahkan pilihan Legal
-                    paperWidthInMm = 216;
-                    paperHeightInMm = 356;
-                } else {
-                    // Gunakan ukuran default jika pilihan tidak valid
-                    paperWidthInMm = 216;
-                    paperHeightInMm = 279;
-                }
-
-                setPageWidth(paperWidthInMm * mmToPixel);
-                setPageHeight(paperHeightInMm * mmToPixel);
-            } catch (error) {
-                // Swal.fire({
-                //     icon: 'error',
-                //     title: 'Error',
-                //     text: 'Error loading PDF: ' + error.message
-                // });
-            }
-        };
-
-        if (pdfUrl) {
-            loadPdf();
-        }
-    }, [pdfUrl, paperSize]);
+    const errorIndicator = (
+        <div className="flex align-items-center justify-content-center p-5 text-red-500">
+            <i className="pi pi-exclamation-triangle mr-2"></i>
+            <p>Failed to load PDF file.</p>
+        </div>
+    );
 
     return (
-        <div>
-            {pdfUrl && numPages !== null && (
-                <div>
-                    <div
-                        style={{
-                            // display: 'flex',
-                            backgroundColor: '#f0f0f0',
-                            padding: '10px',
-                            borderRadius: '5px',
-                            boxShadow: '0px 0px 5px rgba(0, 0, 0, 0.3)',
-                            position: 'sticky',
-                            top: '0',
-                            zIndex: '1000',
-                            width: '100%'
-                        }}
-                    >
-                        <Button label="" icon="pi pi-angle-double-left" style={{ margin: '5px' }} onClick={handleFirstPage} disabled={currentPage === 1} className="p-button-secondary pdf-toolbar-button" />
-                        <Button label="" icon="pi pi-angle-left" style={{ margin: '5px' }} onClick={handlePrevPage} disabled={currentPage === 1} className="p-button-secondary pdf-toolbar-button" />
-                        <Button label="" icon="pi pi-search-plus" style={{ margin: '5px' }} onClick={handleZoomIn} disabled={scale >= 2.0} className="p-button-info pdf-toolbar-button" />
-                        <Button label="" icon="pi pi-search-minus" style={{ margin: '5px' }} onClick={handleZoomOut} disabled={scale <= 0.5} className="p-button-info pdf-toolbar-button" />
-                        <Button label="" icon="pi pi-angle-right" style={{ margin: '5px' }} onClick={handleNextPage} disabled={currentPage === numPages} className="p-button-secondary pdf-toolbar-button" />
-                        <Button label="" icon="pi pi-angle-double-right" style={{ margin: '5px' }} onClick={handleLastPage} disabled={currentPage === numPages} className="p-button-secondary pdf-toolbar-button" />
-                        <Button label="" icon="pi pi-download" style={{ margin: '5px' }} onClick={handleDownloadPDF} className="p-button-success pdf-toolbar-button" />
-                        <Button label="" icon="pi pi-print" style={{ margin: '5px' }} onClick={handlePrint} className="p-button-success pdf-toolbar-button" />
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {pdfUrl && (
+                <>
+                    {/* Toolbar */}
+                    <div style={{
+                        padding: '10px',
+                        backgroundColor: '#f0f0f0',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '10px',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 10,
+                        flexWrap: 'wrap',
+                        borderBottom: '1px solid #ddd'
+                    }}>
+                        <Button icon="pi pi-angle-double-left" onClick={handleFirstPage} disabled={!numPages || currentPage === 1} tooltip="First Page" />
+                        <Button icon="pi pi-angle-left" onClick={handlePrevPage} disabled={!numPages || currentPage === 1} tooltip="Previous Page" />
+                        <span className="p-2 text-sm">Page {currentPage || '--'} of {numPages || '--'}</span>
+                        <Button icon="pi pi-angle-right" onClick={handleNextPage} disabled={!numPages || currentPage === numPages} tooltip="Next Page" />
+                        <Button icon="pi pi-angle-double-right" onClick={handleLastPage} disabled={!numPages || currentPage === numPages} tooltip="Last Page" />
+                        <Button icon="pi pi-search-minus" onClick={handleZoomOut} disabled={!numPages || scale <= 0.4} tooltip="Zoom Out" />
+                        <Button icon="pi pi-search-plus" onClick={handleZoomIn} disabled={!numPages || scale >= 3.0} tooltip="Zoom In" />
+                        <Button icon="pi pi-download" onClick={handleDownloadPDF} disabled={!numPages} tooltip="Download" />
+                        <Button icon="pi pi-print" onClick={handlePrint} disabled={!numPages} tooltip="Print" />
                     </div>
-                    <div style={{ overflow: 'auto', height: '59vh', display: 'flex', paddingTop: '10%', justifyContent: 'center', alignItems: 'center' }}>
-                        <div className="pdf-canvas" style={{ background: 'lightgray', marginTop: '640px', padding: '10px' }}>
-                            <div className="pdf-frame" style={{ border: 'none', padding: '0px', maxWidth: '100%', maxHeight: '100%' }}>
-                                <Document file={pdfUrl}>
-                                    <Page pageNumber={currentPage} width={pageWidth} height={pageHeight} scale={scale} />
-                                </Document>
-                            </div>
-                        </div>
+
+                    {/* PDF Container */}
+                    <div style={{
+                        flex: 1,
+                        overflow: 'auto',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        padding: '20px',
+                        backgroundColor: '#e9e9e9'
+                    }}>
+                        <Document
+                            file={pdfUrl}
+                            onLoadSuccess={onDocumentLoadSuccess}
+                            onLoadError={(error) => console.error('Gagal memuat PDF:', error.message)}
+                            loading={loadingIndicator}
+                            error={errorIndicator}
+                        >
+                            <Page
+                                pageNumber={currentPage}
+                                scale={scale}
+                                renderAnnotationLayer={true}
+                                renderTextLayer={true}
+                            />
+                        </Document>
                     </div>
-                    <div
-                        className="pdf-page-info"
-                        style={{
-                            textAlign: 'center',
-                            marginTop: '10px',
-                            color: 'gray',
-                            fontSize: '12px'
-                        }}
-                    >
-                        Page {currentPage} of {numPages}
-                    </div>
-                </div>
+                </>
             )}
         </div>
     );

@@ -19,7 +19,7 @@ import UpdateWorkOrderDialog from "./components/UpdateWorkOrderDialog";
 // Opsi untuk filter status
 const statusFilterOptions = [
     { label: "All Statuses", value: "" },
-    { label: "Pending", value: "open" },
+    { label: "Pending", value: "pending" },
     { label: "In Progress", value: "in_progress" },
     { label: "Resolved", value: "resolved" },
     { label: "Completed", value: "completed" },
@@ -28,7 +28,7 @@ const statusFilterOptions = [
 // Template untuk menampilkan status dengan warna dan teks yang benar
 const statusBodyTemplate = (rowData) => {
     const statusMap = {
-        open: { label: "Pending", severity: "danger" },
+        pending: { label: "Pending", severity: "danger" },
         in_progress: { label: "In Progress", severity: "info" },
         resolved: { label: "Resolved", severity: "success" },
         completed: { label: "Completed", severity: "success" },
@@ -69,12 +69,13 @@ const photoBodyTemplate = (rowData) => {
 
 export default function TechnicianWorkOrderPage() {
     const [workOrders, setWorkOrders] = useState([]);
+    console.log("workOrders", workOrders);
     const [loading, setLoading] = useState(true);
     const toast = useRef(null);
     const router = useRouter();
 
     // State untuk dialog, filter, dan item terpilih
-    const [isUpdateDialogOpen, setUpdateDialogOpen] = useState(false);
+    const [isUpdateDialogpending, setUpdateDialogpending] = useState(false);
     const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
     const [selectedWorkOrders, setSelectedWorkOrders] = useState([]);
     const [globalFilter, setGlobalFilter] = useState('');
@@ -112,7 +113,7 @@ export default function TechnicianWorkOrderPage() {
     // Handler untuk membuka dialog update
     const handleUpdate = (workOrder) => {
         setSelectedWorkOrder(workOrder);
-        setUpdateDialogOpen(true);
+        setUpdateDialogpending(true);
     };
 
     // Fungsi untuk menghapus item yang dipilih
@@ -233,8 +234,8 @@ export default function TechnicianWorkOrderPage() {
             </div>
 
             <UpdateWorkOrderDialog
-                visible={isUpdateDialogOpen}
-                onHide={() => setUpdateDialogOpen(false)}
+                visible={isUpdateDialogpending}
+                onHide={() => setUpdateDialogpending(false)}
                 workOrder={selectedWorkOrder}
                 fetchWorkOrders={fetchWorkOrders}
                 showToast={showToast}
