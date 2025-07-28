@@ -11,11 +11,9 @@ import { Tag } from "primereact/tag";
 import { Divider } from "primereact/divider";
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 
-// Existing Dialog Components
 import ItemDetailDialog from "./components/ItemDetailDialog";
 import CreatePartRequestDialog from "./components/CreatePartRequestDialog";
 
-// Template for displaying status
 const statusBodyTemplate = (rowData) => {
     const statusMap = {
         pending: { label: "Pending", severity: "warning" },
@@ -27,7 +25,6 @@ const statusBodyTemplate = (rowData) => {
     return <Tag value={statusInfo.label} severity={statusInfo.severity} />;
 };
 
-// Template for displaying dates
 const dateBodyTemplate = (dateString) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleString("en-US", {
@@ -41,7 +38,6 @@ export default function PartRequestPage() {
     const [loading, setLoading] = useState(true);
     const toast = useRef(null);
 
-    // State for dialogs
     const [isDetailVisible, setDetailVisible] = useState(false);
     const [selectedItems, setSelectedItems] = useState([]);
     const [isCreateVisible, setCreateVisible] = useState(false);
@@ -70,7 +66,7 @@ export default function PartRequestPage() {
         fetchPartRequests();
     }, [fetchPartRequests]);
 
-    // --- Deletion Logic for Multiple Items ---
+    // --- Delete multiple requests ---
     const deleteSelectedRequests = async () => {
         setLoading(true);
         try {
@@ -105,7 +101,7 @@ export default function PartRequestPage() {
 
     const isDeleteDisabled = selectedRequests.length === 0 || selectedRequests.some(req => req.status !== 'pending');
 
-    // --- Deletion Logic for a Single Item ---
+    // --- Delete single request ---
     const confirmDeleteSingle = (request) => {
         confirmDialog({
             message: `Are you sure you want to delete the request for Work Order "${request.workOrder?.title}"?`,
@@ -173,38 +169,14 @@ export default function PartRequestPage() {
 
                 <div className="flex flex-wrap gap-2 mb-4">
                     <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
-                    <Button
-                        size="small"
-                        label="New Request"
-                        icon="pi pi-plus"
-                        severity="success"
-                        outlined
-                        onClick={handleCreate}
-                        // FIX: Added the loading prop back to enable loading indicator functionality
-                        loading={isFormLoading}
-                    />
+                    <Button size="small" label="New Request" icon="pi pi-plus" severity="success" outlined onClick={handleCreate} loading={isFormLoading} />
                     <Divider layout="vertical" />
                     <Button size="small" label="Import" icon="pi pi-file-import" outlined disabled />
                     <Button size="small" label="Export" icon="pi pi-file-export" outlined disabled />
                     <Button size="small" label="Print" icon="pi pi-print" outlined disabled />
                     <Divider layout="vertical" />
-                    <Button
-                        size="small"
-                        label="Delete"
-                        icon="pi pi-trash" // Changed to pi-trash for consistency
-                        severity="danger"
-                        outlined
-                        onClick={confirmDeleteSelected}
-                        disabled={isDeleteDisabled}
-                    />
-                    <Button
-                        size="small"
-                        label="Refresh"
-                        icon="pi pi-refresh"
-                        outlined
-                        onClick={fetchPartRequests}
-                        disabled={loading}
-                    />
+                    <Button size="small" label="Delete" icon="pi pi-trash" severity="danger" outlined onClick={confirmDeleteSelected} disabled={isDeleteDisabled} />
+                    <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={fetchPartRequests} disabled={loading} />
                 </div>
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
@@ -217,9 +189,8 @@ export default function PartRequestPage() {
                             rows={10}
                             selection={selectedRequests}
                             onSelectionChange={(e) => setSelectedRequests(e.value)}
-                            // other props...
                         >
-                            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+                            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
                             <Column field="workOrder.title" header="Work Order" sortable style={{ minWidth: '16rem' }} />
                             <Column field="status" header="Status" body={statusBodyTemplate} sortable />
                             <Column field="note" header="Notes" style={{ maxWidth: '200px' }} />
@@ -230,19 +201,8 @@ export default function PartRequestPage() {
                 </motion.div>
             </div>
 
-            <ItemDetailDialog
-                visible={isDetailVisible}
-                onHide={() => setDetailVisible(false)}
-                items={selectedItems}
-            />
-            <CreatePartRequestDialog
-                visible={isCreateVisible}
-                onHide={() => setCreateVisible(false)}
-                fetchPartRequests={fetchPartRequests}
-                showToast={showToast}
-                initialData={formInitialData}
-                loading={isFormLoading}
-            />
+            <ItemDetailDialog visible={isDetailVisible} onHide={() => setDetailVisible(false)} items={selectedItems} />
+            <CreatePartRequestDialog visible={isCreateVisible} onHide={() => setCreateVisible(false)} fetchPartRequests={fetchPartRequests} showToast={showToast} initialData={formInitialData} loading={isFormLoading} />
         </div>
     );
 }

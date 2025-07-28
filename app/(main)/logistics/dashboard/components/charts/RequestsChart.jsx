@@ -1,21 +1,27 @@
 "use client";
 
-import { Chart } from "primereact/chart";
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const RequestsChart = ({ data }) => {
-    const chartData = {
-        datasets: [
-            {
-                data: [data.pending, data.approved, data.rejected],
-                backgroundColor: ["#fbbf24", "#60a5fa", "#f87171"]
-            }
-        ]
-    };
+    const pieData = [
+        { name: "Pending", value: data.pending, color: "#fbbf24" },
+        { name: "Approved", value: data.approved, color: "#60a5fa" },
+        { name: "Fulfilled", value: data.fulfilled, color: "#34d399" },
+        { name: "Rejected", value: data.rejected, color: "#f87171" }
+    ];
 
     return (
-        <div style={{ width: "250px", height: "250px" }}>
-            <Chart type="pie" data={chartData} />
-        </div>
+        <ResponsiveContainer width="100%" height={350}>
+            <PieChart>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value">
+                    {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+            </PieChart>
+        </ResponsiveContainer>
     );
 };
 
