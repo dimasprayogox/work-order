@@ -11,12 +11,14 @@ export const LogisticsDashboardController = {
                 pendingRequests,
                 approvedRequests,
                 fulfilledRequests,
+                rejectedRequest,
                 topUsedParts
             ] = await Promise.all([
                 Part.query().resultSize(),
 
                 Part.query()
-                    .whereRaw('quantity_in_stock < min_stock'),
+                    .whereRaw('quantity_in_stock < min_stock')
+                    .orWhere('quantity_in_stock', '<', 2),
 
                 PartRequest.query()
                     .where('status', 'pending')
@@ -28,6 +30,10 @@ export const LogisticsDashboardController = {
 
                 PartRequest.query()
                     .where('status', 'fulfilled')
+                    .resultSize(),
+
+                PartRequest.query()
+                    .where('status', 'rejected')
                     .resultSize(),
 
                 PartUsage.query()
@@ -46,12 +52,14 @@ export const LogisticsDashboardController = {
                     part_summary: {
                         total_parts: totalParts,
                         low_stock: lowStockParts.length,
-                        low_stock_parts: lowStockParts
+                        low_stock_parts: lowStockParts,
+                        out_of_stock: lowStockParts.filter(part => part.quantity_in_stock <= 0).length
                     },
                     part_requests: {
                         pending: pendingRequests,
                         approved: approvedRequests,
-                        fulfilled: fulfilledRequests
+                        fulfilled: fulfilledRequests,
+                        rejected: rejectedRequest
                     },
                     top_used_parts: topUsedParts
                 }
