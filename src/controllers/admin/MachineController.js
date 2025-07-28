@@ -134,6 +134,41 @@ export const MachineController = {
         }
     },
 
+    async destroyMany(req, res) {
+        try {
+            const { ids } = req.body;
+            
+            if (!ids || !Array.isArray(ids) || ids.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'IDs array is required and cannot be empty'
+                });
+            }
+
+            const deletedCount = await Machine.query().deleteByIds(ids);
+            
+            if (deletedCount === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'No machines found with the provided IDs'
+                });
+            }
+
+            res.status(200).json({
+                success: true,
+                message: `${deletedCount} machines deleted successfully`,
+                data: { deletedCount, ids }
+            });
+        } catch (err) {
+            console.error("Error in MachineController.destroyMany:", err);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to delete machines',
+                error: err.message,
+            });
+        }
+    },
+    
     async getAvailableMachines(req, res) {
         try {
             

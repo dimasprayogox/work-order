@@ -69,7 +69,7 @@ export const ScheduleController = {
 
     async generateDueWorkOrders(req, res) {
         try {
-            const now = new Date().toISOString(); // pakai timestamp lengkap
+            const now = new Date().toISOString();
 
             const dueSchedules = await Schedule.query()
                 .where('next_due_date', '<=', now)
