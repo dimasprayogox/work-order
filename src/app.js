@@ -18,6 +18,9 @@ import userDetailRoutes from './routes/user-details.routes.js';
 import userRoutes from './routes/admin/user.routes.js';
 import machineCategoryRoutes from './routes/admin/machine-category.routes.js';
 import machineRoutes from './routes/admin/machine.routes.js';
+import adminPartRoutes from './routes/admin/part.route.js';
+import adminPartRequestRoutes from './routes/admin/partRequest.route.js';
+
 
 //employee
 import employeeDashboardRoutes from './routes/employee/dashboard.routes.js';
@@ -89,6 +92,10 @@ app.use(imagesErrorHandler);
 app.use('/api/admin/users', userRoutes);
 app.use('/api/admin/machine-categories', machineCategoryRoutes);
 app.use('/api/admin/machines', machineRoutes);
+app.use('/api/admin/issues', adminIssueRoutes);
+app.use('/api/admin/parts', adminPartRoutes);
+app.use('/api/admin/part-requests', adminPartRequestRoutes);
+
 
 //employee
 app.use('/api/employee/dashboard', employeeDashboardRoutes);
