@@ -92,7 +92,6 @@ app.use(imagesErrorHandler);
 app.use('/api/admin/users', userRoutes);
 app.use('/api/admin/machine-categories', machineCategoryRoutes);
 app.use('/api/admin/machines', machineRoutes);
-app.use('/api/admin/issues', adminIssueRoutes);
 app.use('/api/admin/parts', adminPartRoutes);
 app.use('/api/admin/part-requests', adminPartRequestRoutes);
 
