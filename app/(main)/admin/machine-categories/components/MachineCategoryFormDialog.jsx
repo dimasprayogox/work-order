@@ -6,7 +6,6 @@ import { InputTextarea } from "primereact/inputtextarea";
 import { Button } from "primereact/button";
 import { classNames } from "primereact/utils";
 import { useState, useEffect } from "react";
-import { API_ENDPOINTS } from "../../../../api/api";
 
 const MachineCategoryFormDialog = ({ visible, onHide, category, fetchCategories, showToast }) => {
     const [form, setForm] = useState({
@@ -47,8 +46,8 @@ const MachineCategoryFormDialog = ({ visible, onHide, category, fetchCategories,
         try {
             const res = await fetch(
                 category
-                    ? `${API_ENDPOINTS.MACHINE_CATEGORIES}/${category.id}`
-                    : API_ENDPOINTS.MACHINE_CATEGORIES,
+                    ? `/api/admin/machine-categories/${category.id}`
+                    : "/api/admin/machine-categories",
                 {
                     method: category ? "PATCH" : "POST",
                     headers: { "Content-Type": "application/json" },
