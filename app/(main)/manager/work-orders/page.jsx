@@ -131,7 +131,7 @@ export default function WorkOrderPage() {
                         setSelectedWorkOrder(rowData);
                         setAssignDialogVisible(true);
                     }}
-                    disabled={['assigned', 'in_progress', 'completed', 'rejected', 'cancelled'].includes(rowData.status)}
+                    disabled={rowData.status !== 'pending'}
                 />
                 <Button
                     icon="pi pi-eye"
@@ -173,11 +173,8 @@ export default function WorkOrderPage() {
                         options={[
                             { label: "Semua Status", value: "" },
                             { label: "Pending", value: "pending" },
-                            { label: "Ditugaskan", value: "assigned" },
                             { label: "Dalam Proses", value: "in_progress" },
-                            { label: "Selesai", value: "completed" },
-                            { label: "Ditolak", value: "rejected" },
-                            { label: "Dibatalkan", value: "cancelled" }
+                            { label: "Selesai", value: "completed" }
                         ]}
                         onChange={(e) => setStatusFilter(e.value)}
                         placeholder="Filter berdasarkan Status"

@@ -7,10 +7,8 @@ export const statusBodyTemplate = (rowData) => {
     const getStatusSeverity = (status) => {
         switch (status) {
             case "pending": return "warning";
-            case "assigned": return "info";
             case "in_progress": return "primary";
             case "completed": return "success";
-            case "rejected": return "danger";
             default: return null;
         }
     };
@@ -48,18 +46,15 @@ export const dateBodyTemplate = (rowData, field) => {
 };
 
 export const technicianBodyTemplate = (rowData) => {
-    if (!rowData.assigned_to || !rowData.assigned_to.name) {
-        return "Not Assigned";
+    if (!rowData.assignedTo || !rowData.assignedTo.full_name) {
+        return "Belum Ditugaskan";
     }
 
     let icon = null;
 
     switch (rowData.status) {
-        case "assigned":
-            icon = <i className="pi pi-check-circle text-green-500 mr-2" />;
-            break;
         case "in_progress":
-            icon = <i className="pi pi-spin pi-cog text-blue-500 mr-2" />;
+            icon = <i className="pi pi-cog pi-spin text-blue-500 mr-2" />;
             break;
         case "completed":
             icon = <i className="pi pi-check-square text-green-700 mr-2" />;
@@ -71,7 +66,7 @@ export const technicianBodyTemplate = (rowData) => {
     return (
         <div className="flex align-items-center">
             {icon}
-            <span>{rowData.assigned_to.name}</span>
+            <span>{rowData.assignedTo.full_name}</span>
         </div>
     );
 };
