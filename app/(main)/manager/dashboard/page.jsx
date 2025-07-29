@@ -1,8 +1,9 @@
+// my-project/app/(main)/manager/dashboard/page.jsx
 /* eslint-disable @next/next/no-img-element */
 
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Card } from "primereact/card";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
@@ -13,8 +14,9 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Ba
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
 import { Calendar } from "primereact/calendar";
-import { Chart } from 'primereact/chart'; // Tetap import karena mungkin digunakan di tempat lain
+import { Chart } from 'primereact/chart';
 import { classNames } from 'primereact/utils';
+import { Toast } from "primereact/toast";
 
 // Konfigurasi status yang disederhanakan
 const statusConfig = {
@@ -32,9 +34,8 @@ const getStatusStyle = (status) => {
     return statusConfig[status] || { label: status, color: "gray", bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-question" };
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
-
 const ManagerDashboardPage = () => {
+    const toast = useRef(null);
     const [loading, setLoading] = useState(true);
     const [overviewData, setOverviewData] = useState(null);
     const [workOrders, setWorkOrders] = useState([]);
@@ -43,7 +44,6 @@ const ManagerDashboardPage = () => {
     const [woStatusFilter, setWoStatusFilter] = useState("");
     const [woSearchText, setSearchText] = useState("");
 
-    // Opsi filter status Work Order yang disederhanakan
     const woStatusOptions = [
         { label: "Semua Status", value: "" },
         { label: "Pending", value: "pending" },
@@ -51,41 +51,50 @@ const ManagerDashboardPage = () => {
         { label: "Selesai", value: "completed" }
     ];
 
+    const showToast = useCallback((severity, summary, detail) => {
+        toast.current?.show({ severity, summary, detail, life: 3000 });
+    }, []);
+
     const fetchDashboardData = useCallback(async () => {
         setLoading(true);
         try {
-            const overviewResponse = await fetch(`${API_BASE_URL}/manager/dashboard/overview`, { method: "GET", credentials: "include" });
-            const overviewResult = await overviewResponse.json();
+            // Menggunakan proxy API Next.js
+            const overviewResponse = await fetch(`/api/manager/dashboard/overview`);
+            const allWoResponse = await fetch(`/api/manager/dashboard/work-orders/all`);
+            const scheduleResponse = await fetch(`/api/manager/schedules`);
+            const partsResponse = await fetch(`/api/manager/dashboard/parts/analysis`);
+
+            const [overviewResult, allWoResult, scheduleResult, partsResult] = await Promise.all([
+                overviewResponse.json(),
+                allWoResponse.json(),
+                scheduleResponse.json(),
+                partsResponse.json()
+            ]);
+
             if (!overviewResponse.ok) throw new Error(overviewResult.message || "Gagal mengambil data ringkasan.");
             setOverviewData(overviewResult.data);
 
-            const allWoResponse = await fetch(`${API_BASE_URL}/manager/dashboard/work-orders/all`, { method: "GET", credentials: "include" });
-            const allWoResult = await allWoResponse.json();
             if (!allWoResponse.ok) throw new Error(allWoResult.message || "Gagal mengambil semua work order.");
             setWorkOrders(allWoResult.data || []);
 
-            const scheduleResponse = await fetch(`${API_BASE_URL}/manager/schedules`, { method: "GET", credentials: "include" });
-            const scheduleResult = await scheduleResponse.json();
             if (!scheduleResponse.ok) throw new Error(scheduleResult.message || "Gagal mengambil jadwal perawatan.");
             setMaintenanceSchedules(scheduleResult.data || []);
 
-            const partsResponse = await fetch(`${API_BASE_URL}/manager/dashboard/parts/analysis`, { method: "GET", credentials: "include" });
-            const partsResult = await partsResponse.json();
             if (!partsResponse.ok) throw new Error(partsResult.message || "Gagal mengambil data analisis suku cadang.");
             setPartsAnalysis(partsResult.data);
 
         } catch (error) {
             console.error("Error fetching manager dashboard data:", error);
+            showToast("error", "Error", error.message);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     useEffect(() => {
         fetchDashboardData();
     }, [fetchDashboardData]);
 
-    // Gabungkan data work order dan jadwal perawatan untuk kalender dan daftar
     const allScheduledEvents = useMemo(() => {
         const events = [];
 
@@ -151,48 +160,6 @@ const ManagerDashboardPage = () => {
         return matchesStatus && matchesSearch;
     });
 
-    const getChartOptions = (title) => {
-        const documentStyle = getComputedStyle(document.documentElement);
-        const textColor = documentStyle.getPropertyValue('--text-color') || '#374151';
-        const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary') || '#6b7280';
-        const surfaceBorder = documentStyle.getPropertyValue('--surface-border') || '#e5e7eb';
-
-        return {
-            plugins: {
-                title: {
-                    display: true,
-                    text: title,
-                    color: textColor,
-                    font: { size: 16 }
-                },
-                legend: {
-                    labels: {
-                        color: textColor
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    ticks: {
-                        color: textColorSecondary
-                    },
-                    grid: {
-                        color: surfaceBorder
-                    }
-                },
-                y: {
-                    ticks: {
-                        color: textColorSecondary
-                    },
-                    grid: {
-                        color: surfaceBorder
-                    }
-                }
-            }
-        };
-    };
-
-    // Mengambil count berdasarkan status yang disederhanakan
     const totalWorkOrders = overviewData?.totalWorkOrders || 0;
     const pendingWorkOrdersCount = overviewData?.workOrderStatus?.find(s => s.status === 'pending')?.count || 0;
     const inProgressWorkOrdersCount = overviewData?.workOrderStatus?.find(s => s.status === 'in_progress')?.count || 0;
@@ -211,6 +178,7 @@ const ManagerDashboardPage = () => {
 
     return (
         <div className="card">
+            <Toast ref={toast} position="top-right" />
             <h2 className="font-semibold text-2xl mb-4">Dashboard</h2>
 
             {loading ? (
@@ -328,9 +296,6 @@ const ManagerDashboardPage = () => {
                         </div>
                     </div>
 
-                    {/* Bagian 'Tren Work Order Bulanan' telah dihapus */}
-                    
-
                     <div className="grid mt-4">
                         <div className="col-12">
                             <div className="card overflow-hidden">
@@ -425,46 +390,46 @@ const ManagerDashboardPage = () => {
                                                 .filter(event => event.date >= new Date()) // Hanya event di masa mendatang
                                                 .slice(0, 5) // Batasi hingga 5 event
                                                 .map((event, index) => (
-                                                <li key={index} className="mb-2 p-2 bg-gray-50 rounded-md">
-                                                    <div className="flex justify-content-between align-items-start">
-                                                        <div>
-                                                            <span className="font-medium text-blue-600">
-                                                                {event.date.toLocaleDateString('id-ID', { 
-                                                                    weekday: 'short', 
-                                                                    month: 'short', 
-                                                                    day: 'numeric',
-                                                                    year: 'numeric'
-                                                                })}:
-                                                            </span>
-                                                            <div className="mt-1">
-                                                                <strong>{event.title}</strong> ({event.machineName || 'N/A'})
-                                                                {event.type === 'workOrder' && (
-                                                                    <span className="ml-2 text-sm text-gray-500">
-                                                                        (WO - {getStatusStyle(event.status).label})
-                                                                    </span>
+                                                    <li key={index} className="mb-2 p-2 bg-gray-50 rounded-md">
+                                                        <div className="flex justify-content-between align-items-start">
+                                                            <div>
+                                                                <span className="font-medium text-blue-600">
+                                                                    {event.date.toLocaleDateString('id-ID', {
+                                                                        weekday: 'short',
+                                                                        month: 'short',
+                                                                        day: 'numeric',
+                                                                        year: 'numeric'
+                                                                    })}:
+                                                                </span>
+                                                                <div className="mt-1">
+                                                                    <strong>{event.title}</strong> ({event.machineName || 'N/A'})
+                                                                    {event.type === 'workOrder' && (
+                                                                        <span className="ml-2 text-sm text-gray-500">
+                                                                            (WO - {getStatusStyle(event.status).label})
+                                                                        </span>
+                                                                    )}
+                                                                    {event.type === 'maintenanceSchedule' && (
+                                                                        <span className="ml-2 text-sm text-gray-500">
+                                                                            (Jadwal PM)
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {(event.description || event.notes) && (
+                                                                    <div className="text-sm text-gray-600 mt-1">
+                                                                        <i className="pi pi-info-circle mr-1"></i>
+                                                                        {event.description || event.notes}
+                                                                    </div>
                                                                 )}
-                                                                {event.type === 'maintenanceSchedule' && (
-                                                                    <span className="ml-2 text-sm text-gray-500">
-                                                                        (Jadwal PM)
-                                                                    </span>
+                                                                {event.type === 'workOrder' && event.assignedTo && (
+                                                                    <div className="text-sm text-gray-600 mt-1">
+                                                                        <i className="pi pi-user mr-1"></i>
+                                                                        Teknisi: {event.assignedTo}
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                            {(event.description || event.notes) && (
-                                                                <div className="text-sm text-gray-600 mt-1">
-                                                                    <i className="pi pi-info-circle mr-1"></i>
-                                                                    {event.description || event.notes}
-                                                                </div>
-                                                            )}
-                                                            {event.type === 'workOrder' && event.assignedTo && (
-                                                                <div className="text-sm text-gray-600 mt-1">
-                                                                    <i className="pi pi-user mr-1"></i>
-                                                                    Teknisi: {event.assignedTo}
-                                                                </div>
-                                                            )}
                                                         </div>
-                                                    </div>
-                                                </li>
-                                            ))}
+                                                    </li>
+                                                ))}
                                         </ul>
                                     ) : (
                                         <p className="text-gray-500">Tidak ada jadwal maintenance atau work order mendatang.</p>
@@ -561,7 +526,7 @@ const ManagerDashboardPage = () => {
                                         <Column header="Status" body={(rowData) => {
                                             const isLowStock = rowData.currentStock <= rowData.minStockLevel;
                                             return (
-                                                <Tag 
+                                                <Tag
                                                     value={isLowStock ? "Stok Rendah" : "Cukup"}
                                                     severity={isLowStock ? "danger" : "success"}
                                                     icon={isLowStock ? "pi pi-exclamation-triangle" : "pi pi-check"}
@@ -594,7 +559,6 @@ const ManagerDashboardPage = () => {
                             </div>
                         </div>
                     </div>
-
                 </>
             )}
         </div>

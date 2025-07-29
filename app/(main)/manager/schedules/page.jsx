@@ -1,3 +1,4 @@
+// my-project/app/(main)/manager/schedules/page.jsx
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -5,8 +6,7 @@ import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
-import { Dropdown }
-from "primereact/dropdown";
+import { Dropdown } from "primereact/dropdown";
 import { Toast } from "primereact/toast";
 import { Panel } from "primereact/panel";
 import { Divider } from "primereact/divider";
@@ -25,16 +25,13 @@ import {
     machineBodyTemplate,
     actionBodyTemplate,
     createdByBodyTemplate
-} from "./components/ScheduleTable";
+} from "./components/ScheduleTable"; // Sesuaikan path jika ini adalah komponen terpisah
 import CreateScheduleDialog from "./components/CreateScheduleDialog";
 import EditScheduleDialog from "./components/EditScheduleDialog";
-// import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog"; // Hapus import ini
 import ScheduleDetailsDialog from "./components/ScheduleDetailsDialog";
 
 const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
 const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false });
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
 
 export default function SchedulePage() {
     const toast = useRef(null);
@@ -46,9 +43,8 @@ export default function SchedulePage() {
 
     const [createDialogVisible, setCreateDialogVisible] = useState(false);
     const [editDialogVisible, setEditDialogVisible] = useState(false);
-    // const [deleteDialogVisible, setDeleteDialogVisible] = useState(false); // Hapus state ini
     const [detailsDialogVisible, setDetailsDialogVisible] = useState(false);
-    const [selectedSchedule, setSelectedSchedule] = useState(null); // Tetap ada untuk edit/details
+    const [selectedSchedule, setSelectedSchedule] = useState(null);
 
     const fileInputRef = useRef(null);
     const [adjustDialog, setAdjustDialog] = useState(false);
@@ -85,9 +81,7 @@ export default function SchedulePage() {
     const fetchSchedules = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/manager/schedules`, {
-                credentials: "include"
-            });
+            const response = await fetch(`/api/manager/schedules`); // Menggunakan proxy API Next.js
             const result = await response.json();
 
             if (!response.ok) {
@@ -131,9 +125,8 @@ export default function SchedulePage() {
                 setLoading(true);
                 try {
                     for (const schedule of selectedSchedules) {
-                        const response = await fetch(`${API_BASE_URL}/manager/schedules/${schedule.id}`, {
+                        const response = await fetch(`/api/manager/schedules/${schedule.id}`, { // Menggunakan proxy API Next.js
                             method: "DELETE",
-                            credentials: "include"
                         });
                         if (!response.ok) {
                             const result = await response.json();
@@ -213,7 +206,7 @@ export default function SchedulePage() {
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
-        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0,10)}.xlsx`);
+        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
         showToast("success", "Ekspor Berhasil", "Data jadwal berhasil diekspor ke Excel.");
     };
 
@@ -305,7 +298,6 @@ export default function SchedulePage() {
                 });
 
                 for (const item of jsonData) {
-                    // Sesuaikan payload agar sesuai dengan createScheduleSchema di backend
                     const payload = {
                         title: item.judul || item.title,
                         description: item.deskripsi || item.description,
@@ -313,14 +305,13 @@ export default function SchedulePage() {
                         frequency: item.frekuensi || item.frequency,
                         next_due_date: item.next_due_date ? new Date(item.next_due_date).toISOString() : undefined,
                         priority: item.priority || 'medium',
-                        is_active: item.is_active !== undefined ? Boolean(item.is_active) : true, // Asumsi is_active bisa diimpor
+                        is_active: item.is_active !== undefined ? Boolean(item.is_active) : true,
                     };
 
-                    const res = await fetch(`${API_BASE_URL}/manager/schedules`, {
+                    const res = await fetch(`/api/manager/schedules`, { // Menggunakan proxy API Next.js
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload),
-                        credentials: "include"
                     });
                     if (!res.ok) {
                         const body = await res.json();
@@ -472,15 +463,6 @@ export default function SchedulePage() {
                 showToast={showToast}
                 onScheduleUpdated={handleScheduleUpdated}
             />
-
-            {/* ConfirmDeleteDialog ini tidak lagi digunakan untuk "Hapus Terpilih" */}
-            {/* <ConfirmDeleteDialog
-                visible={deleteDialogVisible}
-                onHide={() => setDeleteDialogVisible(false)}
-                onConfirm={confirmDelete}
-                itemType="jadwal perawatan"
-                itemName={selectedSchedule?.title}
-            /> */}
 
             <ScheduleDetailsDialog
                 visible={detailsDialogVisible}
