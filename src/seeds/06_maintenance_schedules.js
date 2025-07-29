@@ -37,11 +37,7 @@ export const seed = async function (knex) {
       title: "Pengecekan Oli Hidrolik Bulanan",
       description: "Ganti oli dan filter hidrolik sesuai standar.",
       frequency: "monthly",
-<<<<<<< HEAD
       next_due_date: formatDateForMySQL(nextDueDate), // Sudah sesuai format MySQL
-=======
-      next_due_date: nextDueDate.toISOString().replace('T', ' ').replace(/\..+/, ''),
->>>>>>> 765c87f5d43a175aedb06261ffffa7fe0c9dd809
       created_by_id: userManager.id,
       is_active: true,
     },
