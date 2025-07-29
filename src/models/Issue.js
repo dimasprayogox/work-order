@@ -1,4 +1,3 @@
-// models/Issue.js
 import { BaseModel } from './BaseModel.js';
 import { Machine } from './Machine.js';
 import { User } from './User.js';
@@ -40,7 +39,6 @@ export class Issue extends BaseModel {
         };
     }
 
-     // Fungsi update Issue berdasarkan ID
     static async updateIssue(id, updateData) {
         return await this.query().patchAndFetchById(id, updateData);
     }

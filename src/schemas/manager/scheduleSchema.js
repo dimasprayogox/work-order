@@ -1,29 +1,19 @@
 import { z } from 'zod';
 
 export const createScheduleSchema = z.object({
-    title: z.string().min(3),
-    machine_id: z.string().uuid(),
+    title: z.string().min(3, "Judul jadwal minimal 3 karakter."),
     description: z.string().optional(),
-    frequency: z.enum(['weekly', 'monthly']),
-    next_due_date: z
-    .string()
-    .refine(
-      (val) => !isNaN(Date.parse(val)),
-      "next_due_date harus berupa tanggal valid (ISO 8601)"
-    )
-    .transform((val) => new Date(val).toISOString()), // pastikan jadi format ISO
+    machine_id: z.string().uuid("ID mesin tidak valid."),
+    frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly'], "Frekuensi tidak valid."), 
+    next_due_date: z.coerce.date("Tanggal jatuh tempo tidak valid."),
+    priority: z.enum(['low', 'medium', 'high']).default('medium'),
 });
 
 export const updateScheduleSchema = z.object({
-    title: z.string().min(3).optional(),
-    machine_id: z.string().uuid().optional(),
+    title: z.string().min(3, "Judul jadwal minimal 3 karakter.").optional(),
     description: z.string().optional(),
-    frequency: z.enum(['weekly', 'monthly']).optional(),
-    next_due_date: z
-    .string()
-    .refine(
-      (val) => !isNaN(Date.parse(val)),
-      "next_due_date harus berupa tanggal valid (ISO 8601)"
-    )
-    .transform((val) => new Date(val).toISOString()), // pastikan jadi format ISO
+    machine_id: z.string().uuid("ID mesin tidak valid.").optional(),
+    frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly'], "Frekuensi tidak valid.").optional(), 
+    next_due_date: z.coerce.date("Tanggal jatuh tempo tidak valid.").optional(),
+    priority: z.enum(['low', 'medium', 'high']).optional(),
 });

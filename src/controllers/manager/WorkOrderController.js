@@ -7,7 +7,7 @@ export const WorkOrderController = {
     async index(req, res) {
         try {
             const workOrders = await WorkOrder.query()
-                .withGraphFetched('[machine, assignedTo, createdBy]')
+                .withGraphFetched('[machine, assignedTo, createdBy, issue]')
                 .orderBy('created_at', 'desc');
 
             res.json({ success: true, data: workOrders });
@@ -21,7 +21,7 @@ export const WorkOrderController = {
             const { id } = req.params;
             const workOrder = await WorkOrder.query()
                 .findById(id)
-                .withGraphFetched('[machine, assignedTo, createdBy]');
+                .withGraphFetched('[machine, assignedTo, createdBy, issue]');
 
             if (!workOrder) {
                 return res.status(404).json({ success: false, message: 'Work Order not found' });
@@ -77,13 +77,17 @@ export const WorkOrderController = {
                 return res.status(404).json({ success: false, message: "Work Order not found" });
             }
 
-            if (data.status === 'rejected') {
-                if (existingWO.status !== 'pending') {
-                    return res.status(400).json({ success: false, message: "Only pending work orders can be rejected." });
-                }
-                if (!data.notes || data.notes.trim() === '') {
-                    return res.status(400).json({ success: false, message: "Notes are required when rejecting a work order." });
-                }
+            // Logika perubahan status:
+            // Jika assigned_to_id ditambahkan DAN status saat ini pending, ubah ke in_progress
+            if (data.assigned_to_id && existingWO.status === 'pending') {
+                data.status = 'in_progress';
+            } 
+            // Jika status yang diminta adalah 'completed' DAN status saat ini 'in_progress', set completed_at
+            else if (data.status === 'completed' && existingWO.status === 'in_progress') {
+                data.completed_at = new Date(); // Set waktu selesai
+            } else if (data.status && !['pending', 'in_progress', 'completed'].includes(data.status)) {
+                // Menolak update status ke nilai yang tidak diizinkan jika status berasal dari frontend
+                return res.status(400).json({ success: false, message: "Status tidak valid." });
             }
 
             if (data.scheduled_date) {
@@ -94,7 +98,7 @@ export const WorkOrderController = {
                 if (newDate < now) {
                     return res.status(400).json({
                         success: false,
-                        message: "Scheduled date cannot be in the past."
+                        message: "Tanggal penjadwalan tidak boleh di masa lalu."
                     });
                 }
             }
@@ -103,7 +107,7 @@ export const WorkOrderController = {
 
             const updatedWOWithRelations = await WorkOrder.query()
                 .findById(id)
-                .withGraphFetched('[machine, assignedTo, createdBy]');
+                .withGraphFetched('[machine, assignedTo, createdBy, issue]');
 
             res.json({ success: true, data: updatedWOWithRelations });
         } catch (err) {
@@ -117,15 +121,15 @@ export const WorkOrderController = {
             const { id } = req.params;
             const existingWO = await WorkOrder.query().findById(id);
             if (!existingWO) {
-                return res.status(404).json({ success: false, message: "Work Order not found." });
+                return res.status(404).json({ success: false, message: "Work Order tidak ditemukan." });
             }
 
             if (existingWO.status !== "pending") {
-                return res.status(400).json({ success: false, message: "Only pending Work Orders can be deleted." });
+                return res.status(400).json({ success: false, message: "Hanya Work Order 'pending' yang dapat dihapus." });
             }
 
             await WorkOrder.query().deleteById(id);
-            res.json({ success: true, message: "Work Order deleted successfully." });
+            res.json({ success: true, message: "Work Order berhasil dihapus." });
         } catch (err) {
             res.status(500).json({ success: false, message: err.message });
         }
