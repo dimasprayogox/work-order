@@ -48,7 +48,7 @@ const LogisticsDashboardPage = () => {
                 <PartSummary title="TOTAL PARTS" value={data.part_summary.total_parts} icon="total" color="total" />
                 <PartSummary title="LOW STOCK" value={data.part_summary.low_stock} icon="low" color="low" />
                 <PartSummary title="OUT OF STOCK" value={data.part_summary.out_of_stock || 0} icon="out" color="out" />
-                <PartSummary title="CRITICAL PARTS" value="ini belum bisa" icon="critical" color="critical" />
+                <PartSummary title="CRITICAL PARTS" value={data.part_summary.critical_parts || 0} icon="critical" color="critical" />
             </div>
             <div className="grid mt-4">
                 <PartRequestSummary data={data.part_requests} />

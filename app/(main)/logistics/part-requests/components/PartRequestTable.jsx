@@ -1,29 +1,19 @@
 "use client";
-
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { Dropdown } from "primereact/dropdown";
-import { Tag } from "primereact/tag";
 import { InputText } from "primereact/inputtext";
 import { useState, useEffect } from "react";
 import { FilterMatchMode } from "primereact/api";
-
-const statusSeverity = {
-    pending: "info",
-    approved: "success",
-    rejected: "danger",
-    fulfilled: "success",
-    false: "success" // Add false as a success status
-};
+import StatusBadge from "../../dashboard/components/status/StatusBadge"; // Import your custom StatusBadge
 
 const statusOptions = [
     { label: "All Status", value: "" },
     { label: "Pending", value: "pending" },
     { label: "Approved", value: "approved" },
     { label: "Rejected", value: "rejected" },
-    { label: "Fulfilled", value: "fulfilled" },
-    { label: "Completed", value: "false" } // Changed label to "Completed"
+    { label: "Fulfilled", value: "fulfilled" }
 ];
 
 const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchText }) => {
@@ -50,7 +40,7 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
     const requestedByTemplate = (rowData) => rowData.requestedBy?.full_name || "-";
 
     const itemsTemplate = (rowData) => (
-        <ul className="list-disc ">
+        <ul className="list-disc pl-4">
             {rowData.items.map((item) => (
                 <li key={item.id}>
                     {item.part?.name} ({item.quantity_requested}){item.quantity_approved != null && ` → Disetujui: ${item.quantity_approved}`}
@@ -68,25 +58,22 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
                 </div>
             );
         }
-        return <Tag value={rowData.status} severity={statusSeverity[rowData.status]} />;
+        return <StatusBadge status={rowData.status} />; // Using your custom StatusBadge
     };
 
     const actionTemplate = (rowData) => {
-        if (rowData.status === "fulfilled" || rowData.status === "false") {
-            return null;
-        }
-        return <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onUpdateStatus(rowData)} tooltip="Edit" />;
+        return <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onUpdateStatus(rowData)} tooltip="Edit" tooltipOptions={{ position: "top" }} />;
     };
 
     const header = (
-        <div className="flex align-items-center justify-content-between">
+        <div className="flex flex-wrap align-items-center justify-content-between gap-3">
             <div className="flex align-items-center gap-3">
                 <span className="text-xl font-bold">Parts Request List</span>
                 <Dropdown placeholder="Filter Status" value={statusFilter} options={statusOptions} onChange={(e) => setStatusFilter(e.value)} className="w-10rem" />
             </div>
-            <span className="p-input-icon-left">
+            <span className="p-input-icon-left w-full md:w-auto">
                 <i className="pi pi-search" />
-                <InputText value={searchText} onChange={(e) => onGlobalFilterChange(e.target.value)} placeholder="Search" className="w-20rem" />
+                <InputText value={searchText} onChange={(e) => onGlobalFilterChange(e.target.value)} placeholder="Search" className="w-full" />
             </span>
         </div>
     );
@@ -112,7 +99,7 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
             <Column field="note" header="Catatan" sortable style={{ width: "20%", minWidth: "200px" }} />
             <Column header="Items" body={itemsTemplate} style={{ width: "35%", minWidth: "300px" }} />
             <Column header="Status" body={statusTemplate} sortable sortField="status" bodyClassName={(rowData) => (rowData.status === "false" ? "font-bold" : "")} style={{ width: "15%", minWidth: "120px" }} />
-            <Column header="Aksi" body={actionTemplate}  />
+            <Column header="Aksi" body={actionTemplate} style={{ width: "10%", minWidth: "80px" }} />
         </DataTable>
     );
 };
