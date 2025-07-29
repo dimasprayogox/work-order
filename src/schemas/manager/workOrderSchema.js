@@ -16,11 +16,8 @@ export const updateWorkOrderSchema = z.object({
     priority: z.enum(['low', 'medium', 'high']).optional(),
     status: z.enum([
         'pending',
-        'assigned',      
         'in_progress',
-        'completed',
-        'rejected',
-        'cancelled'      
+        'completed'      
     ]).optional(),
     scheduled_date: z.coerce.date().optional(),
     notes: z.string().optional()
