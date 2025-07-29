@@ -11,7 +11,6 @@ export class Machine extends BaseModel {
 
     static get relationMappings() {
         return {
-            
             category: {
                 relation: BaseModel.BelongsToOneRelation,
                 modelClass: MachineCategory,

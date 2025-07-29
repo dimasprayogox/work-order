@@ -1,7 +1,3 @@
-/**
- * @param { import("knex").Knex } knex
- * @returns { Promise<void> }
- */
 export const up = function(knex) {
   return knex.schema.createTable("work_orders", (table) => {
     table.string("id", 36).primary();
@@ -20,36 +16,38 @@ export const up = function(knex) {
     table.timestamp("completed_at").nullable();
     table.text("notes").nullable();
 
-    // Foreign Keys
     table.string("machine_id", 36).notNullable();
     table
       .foreign("machine_id")
       .references("id")
       .inTable("machines")
-      .onDelete("CASCADE"); // Jika mesin dihapus, WO ikut terhapus
+      .onDelete("CASCADE");
 
     table.string("assigned_to_id", 36).nullable();
     table
       .foreign("assigned_to_id")
       .references("id")
       .inTable("users")
-      .onDelete("SET NULL"); // Jika teknisi dihapus, WO tidak terhapus
+      .onDelete("SET NULL");
 
     table.string("created_by_id", 36).notNullable();
     table
       .foreign("created_by_id")
       .references("id")
       .inTable("users")
-      .onDelete("RESTRICT"); // Jangan hapus user jika masih punya WO
+      .onDelete("RESTRICT");
+
+    table.string("issue_id", 36).nullable();
+    table
+      .foreign("issue_id")
+      .references("id")
+      .inTable("issues")
+      .onDelete("SET NULL");
 
     table.timestamps(true, true);
   });
 };
 
-/**
- * @param { import("knex").Knex } knex
- * @returns { Promise<void> }
- */
 export const down = function(knex) {
   return knex.schema.dropTableIfExists("work_orders");
 };
