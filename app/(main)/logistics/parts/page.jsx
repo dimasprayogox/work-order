@@ -4,30 +4,33 @@ import React, { useState, useEffect, useRef } from "react";
 import { Toast } from "primereact/toast";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
-import { Dropdown } from "primereact/dropdown";
-import { MultiSelect } from "primereact/multiselect";
-import { Checkbox } from "primereact/checkbox";
 import { ConfirmDialog } from "primereact/confirmdialog";
 import { Divider } from "primereact/divider";
-import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import dynamic from "next/dynamic";
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 import PartTable from "./components/PartTable";
 import PartFormDialog from "./components/PartFormDialog";
 import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog";
-
 import AdjustPrintMarginLaporan from "../../Export/adjustPrintMarginLaporan";
-import PDFViewer from "../../Export/PDFViewer";
-
 import { API_ENDPOINTS } from "../../../api/api";
 
 import { useRouter } from "next/navigation";
 
+const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), {
+    ssr: false
+});
+
 const PartPage = () => {
     const router = useRouter();
+    // Refs
     const toast = useRef(null);
+    const fileInputRef = useRef(null);
 
+    // State
     const [parts, setParts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedPart, setSelectedPart] = useState(null);
@@ -41,7 +44,13 @@ const PartPage = () => {
 
     const [isPrintOptionsOpen, setPrintOptionsOpen] = useState(false);
 
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+    // State untuk alur kerja Print/PDF sesuai permintaan Anda
+    const [adjustDialog, setAdjustDialog] = useState(false);
+    const [jsPdfPreviewOpen, setJsPdfPreviewOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState(null);
+    const [fileName, setFileName] = useState('parts-report');
     const [printConfig, setPrintConfig] = useState({
         paperSize: "a4",
         orientation: "portrait",
@@ -58,7 +67,9 @@ const PartPage = () => {
         { header: "Location", value: "location" }
     ];
 
-    const showToast = (sev, sum, det) => toast.current.show({ severity: sev, summary: sum, detail: det });
+    // --- Core Functions ---
+
+    const showToast = (sev, sum, det) => toast.current?.show({ severity: sev, summary: sum, detail: det });
 
     const fetchParts = async () => {
         setLoading(true);
@@ -80,27 +91,43 @@ const PartPage = () => {
     const handleImport = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         try {
             const reader = new FileReader();
-            reader.onload = async (evt) => {
-                const wb = XLSX.read(evt.target.result, { type: "binary" });
-                const ws = wb.Sheets[wb.SheetNames[0]];
-                const data = XLSX.utils.sheet_to_json(ws);
-                for (const item of data) {
+            reader.readAsArrayBuffer(file);
+            reader.onload = async () => {
+                const buffer = reader.result;
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(buffer);
+                const worksheet = workbook.getWorksheet(1);
+                const jsonData = [];
+                const headerRow = worksheet.getRow(1);
+                worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+                    if (rowNumber > 1) {
+                        let rowObject = {};
+                        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                            const headerCell = headerRow.getCell(colNumber);
+                            if (headerCell && headerCell.value) {
+                                rowObject[headerCell.value.toString()] = cell.value;
+                            }
+                        });
+                        jsonData.push(rowObject);
+                    }
+                });
+                for (const item of jsonData) {
                     const res = await fetch(API_ENDPOINTS.PARTS, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         credentials: "include",
                         body: JSON.stringify(item)
                     });
-                    const body = await res.json();
-                    if (!res.ok) throw new Error(body.message || "Import gagal");
+                    if (!res.ok) {
+                        const body = await res.json();
+                        throw new Error(body.message || "Import gagal");
+                    }
                 }
                 showToast("success", "Import Sukses", "Data berhasil diimpor");
                 fetchParts();
             };
-            reader.readAsBinaryString(file);
         } catch (err) {
             showToast("error", "Import Gagal", err.message);
         }
@@ -121,101 +148,68 @@ const PartPage = () => {
   };
 
 
+    const exportExcel = async () => {
+        if (!parts.length) return showToast("warn", "Peringatan", "Tidak ada data untuk diekspor");
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Parts Data");
+        worksheet.columns = [
+            { header: 'Name', key: 'name', width: 30 },
+            { header: 'Part Number', key: 'part_number', width: 20 },
+            { header: 'Description', key: 'description', width: 40 },
+            { header: 'Quantity', key: 'quantity_in_stock', width: 15, style: { numFmt: '#,##0' } },
+            { header: 'Min Stock', key: 'min_stock', width: 15, style: { numFmt: '#,##0' } },
+            { header: 'Location', key: 'location', width: 20 }
+        ];
+        worksheet.getRow(1).eachCell((cell) => {
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF22A085' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        });
+        worksheet.addRows(parts);
+        const buffer = await workbook.xlsx.writeBuffer();
+        saveAs(new Blob([buffer]), `${fileName}.xlsx`);
+    };
+
     const generatePDF = (config) => {
         const { paperSize, orientation, columns, onlySelected, marginTop, marginBottom, marginLeft, marginRight } = config;
-
         const sourceData = onlySelected && selectedParts.length > 0 ? selectedParts : parts;
-
-        // **PENTING: Periksa apakah ada data untuk dicetak**
         if (!sourceData || sourceData.length === 0) {
             showToast("warn", "Tidak Ada Data", "Tidak ada data yang bisa dicetak.");
-            return null; // Kembalikan null jika tidak ada data
+            return null;
         }
-
         const headers = (columns || []).map((c) => columnOptions.find((o) => o.value === c)?.header || c);
         const body = sourceData.map((p) => (columns || []).map((c) => p[c] ?? "-"));
-
-        const doc = new jsPDF({
-            orientation,
-            unit: "mm",
-            format: paperSize
-        });
-
-        // Judul Dokumen
+        const doc = new jsPDF({ orientation, unit: "mm", format: paperSize });
         doc.setFontSize(16);
         doc.text("Daftar Suku Cadang", marginLeft, marginTop);
-
-        // Tabel Data
         autoTable(doc, {
             startY: marginTop + 10,
             head: [headers],
             body,
-            margin: {
-                top: marginTop,
-                right: marginRight,
-                bottom: marginBottom,
-                left: marginLeft
-            },
+            margin: { top: marginTop, right: marginRight, bottom: marginBottom, left: marginLeft },
             theme: "striped",
-            styles: {
-                fontSize: 8,
-                cellPadding: 2
-            },
-            headStyles: {
-                fillColor: [22, 160, 133], // Warna header
-                textColor: 255,
-                fontStyle: "bold"
-            }
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { fillColor: [22, 160, 133], textColor: 255, fontStyle: "bold" }
         });
-
         return doc;
     };
 
-    const handlePreview = (currentConfig) => {
-        const doc = generatePDF(currentConfig);
-
-        // **PENTING: Hanya lanjutkan jika dokumen berhasil dibuat**
-        if (doc) {
-            const blob = doc.output("bloburl");
-            setPdfUrl(blob);
-            setPreviewOpen(true);
-        }
-    };
-
-    const handleAdjustAndPreview = (adjustConfig) => {
-        // Gabungkan konfigurasi dasar dengan penyesuaian dari dialog
-        const finalConfig = {
-            ...printConfig,
-            ...adjustConfig,
-            // Pastikan kolom dan data terpilih diambil dari state saat ini
-            columns: printConfig.columns,
-            onlySelected: printConfig.onlySelected
-        };
-
+    // Fungsi ini dipanggil dari AdjustPrintMarginLaporan
+    const handleAdjust = (adjustConfig) => {
+        const finalConfig = { ...printConfig, ...adjustConfig };
         const doc = generatePDF(finalConfig);
-
         if (doc) {
-            const url = doc.output("bloburl"); // Gunakan bloburl untuk keandalan
-            setPdfUrl(url);
-            setPreviewOpen(true); // Buka dialog pratinjau
-            setAdjustDialogOpen(false); // Tutup dialog penyesuaian
+            setPdfUrl(doc.output("bloburl"));
+            setJsPdfPreviewOpen(true);
+            setAdjustDialog(false);
         }
-    };
-
-    const excel = () => {
-        if (!parts.length) return showToast("warn", "Peringatan", "Tidak ada data untuk diekspor");
-        const ws = XLSX.utils.json_to_sheet(parts);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Parts");
-        XLSX.writeFile(wb, "parts-data.xlsx");
     };
 
     return (
         <div className="p-4">
             <Toast ref={toast} position="top-right" />
             <ConfirmDialog />
-
-            <input type="file" accept=".xlsx,.xls" onChange={handleImport} style={{ display: "none" }} ref={(ref) => (window.__fileInputImportPart = ref)} />
+            <input type="file" accept=".xlsx,.xls" onChange={handleImport} style={{ display: "none" }} ref={fileInputRef} />
 
             <div className="card">
                 <h3 className="mb-4">Manajemen Parts</h3>
@@ -223,44 +217,18 @@ const PartPage = () => {
                     <Button label="Back" icon="pi pi-arrow-left" outlined onClick={() => router.push("/dashboard")}/>
                     <Button label="New" icon="pi pi-plus" outlined severity="success" onClick={() => setFormOpen(true)} />
                     <Divider layout="vertical" />
-                    <Button label="Import" icon="pi pi-file-import" outlined onClick={() => window.__fileInputImportPart?.click()} />
-                    <Button
-                        label="Export"
-                        icon="pi pi-file-excel"
-                        outlined
-                        onClick={() => {
-                            if (!parts.length) return showToast("warn", "Peringatan", "Tidak ada data untuk diekspor");
-                            const ws = XLSX.utils.json_to_sheet(parts);
-                            const wb = XLSX.utils.book_new();
-                            XLSX.utils.book_append_sheet(wb, ws, "Parts");
-                            XLSX.writeFile(wb, "parts-data.xlsx");
-                        }}
-                    />
-                    <Button label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialogOpen(true)} />
-                    <Button
-                        label={`Delete ${selectedParts.length > 0 ? `(${selectedParts.length})` : ""}`}
-                        icon="pi pi-trash"
-                        outlined
-                        severity="danger"
-                        onClick={handleDeleteSelected} 
-                        disabled={selectedParts.length === 0}
-                    />
+                    <Button label="Import" icon="pi pi-file-import" outlined onClick={() => fileInputRef.current?.click()} />
+                    <Button label="Export" icon="pi pi-file-excel" outlined onClick={exportExcel} />
+                    <Button label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
+                    <Divider layout="vertical" />
+                    <Button size="small" label={`Delete (${selectedParts.length})`} icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedParts.length === 0} />
                     <Divider layout="vertical" />
                     <Button label="Refresh" icon="pi pi-refresh" outlined onClick={fetchParts} />
                 </div>
 
-                <PartTable
-                    parts={parts}
-                    loading={loading}
-                    selectedParts={selectedParts}
-                    onSelectionChange={setSelectedParts}
-                    onEdit={(p) => {
-                        setSelectedPart(p);
-                        setFormOpen(true);
-                    }}
-                    onDelete={handleDelete}
-                />
+                <PartTable parts={parts} loading={loading} selectedParts={selectedParts} onSelectionChange={setSelectedParts} onEdit={(p) => { setSelectedPart(p); setFormOpen(true); }} onDelete={handleDelete} />
 
+                {/* Dialogs */}
                 <PartFormDialog visible={isFormOpen} onHide={() => setFormOpen(false)} part={selectedPart} fetchParts={fetchParts} showToast={showToast} />
 
                 <ConfirmDeleteDialog

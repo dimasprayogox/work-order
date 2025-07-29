@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Card } from "primereact/card";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
@@ -13,20 +13,19 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Ba
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
 import { Calendar } from "primereact/calendar";
-import { Chart } from 'primereact/chart';
+import { Chart } from 'primereact/chart'; // Tetap import karena mungkin digunakan di tempat lain
 import { classNames } from 'primereact/utils';
 
-// Fixed status configuration with proper pending status
+// Konfigurasi status yang disederhanakan
 const statusConfig = {
-    open: { label: "Pending", color: "#ef4444", bgColor: "bg-red-100", textColor: "text-red-800", icon: "pi-exclamation-triangle" },
     pending: { label: "Pending", color: "#ef4444", bgColor: "bg-red-100", textColor: "text-red-800", icon: "pi-exclamation-triangle" },
-    in_progress: { label: "In Progress", color: "#3b82f6", bgColor: "bg-blue-100", textColor: "text-blue-800", icon: "pi-spinner pi-spin" },
-    resolved: { label: "Completed", color: "#10b981", bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check" },
-    completed: { label: "Completed", color: "#10b981", bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check" },
-    active: { label: "Active", color: "#10b981", bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check-circle" },
-    idle: { label: "Idle", color: "#6b7280", bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-pause" },
-    maintenance: { label: "Maintenance", color: "#f59e0b", bgColor: "bg-orange-100", textColor: "text-orange-800", icon: "pi-wrench" },
-    broken: { label: "Broken", color: "#ef4444", bgColor: "bg-red-100", textColor: "text-red-800", icon: "pi-times-circle" }
+    in_progress: { label: "Dalam Proses", color: "#3b82f6", bgColor: "bg-blue-100", textColor: "text-blue-800", icon: "pi-spinner pi-spin" },
+    completed: { label: "Selesai", color: "#10b981", bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check" },
+    // Status mesin (jika ada, meskipun tidak terkait langsung dengan Work Order status enum)
+    active: { label: "Aktif", color: "#10b981", bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check-circle" },
+    idle: { label: "Diam", color: "#6b7280", bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-pause" },
+    maintenance: { label: "Perawatan", color: "#f59e0b", bgColor: "bg-orange-100", textColor: "text-orange-800", icon: "pi-wrench" },
+    broken: { label: "Rusak", color: "#ef4444", bgColor: "bg-red-100", textColor: "text-red-800", icon: "pi-times-circle" }
 };
 
 const getStatusStyle = (status) => {
@@ -39,16 +38,17 @@ const ManagerDashboardPage = () => {
     const [loading, setLoading] = useState(true);
     const [overviewData, setOverviewData] = useState(null);
     const [workOrders, setWorkOrders] = useState([]);
-    const [maintenanceSchedule, setMaintenanceSchedule] = useState([]);
+    const [maintenanceSchedules, setMaintenanceSchedules] = useState([]);
     const [partsAnalysis, setPartsAnalysis] = useState(null);
     const [woStatusFilter, setWoStatusFilter] = useState("");
     const [woSearchText, setSearchText] = useState("");
 
+    // Opsi filter status Work Order yang disederhanakan
     const woStatusOptions = [
-        { label: "All Status", value: "" },
-        { label: "Pending", value: "open" }, // Keep original status value
-        { label: "In Progress", value: "in_progress" },
-        { label: "Completed", value: "resolved" } // Keep original status value
+        { label: "Semua Status", value: "" },
+        { label: "Pending", value: "pending" },
+        { label: "Dalam Proses", value: "in_progress" },
+        { label: "Selesai", value: "completed" }
     ];
 
     const fetchDashboardData = useCallback(async () => {
@@ -56,22 +56,22 @@ const ManagerDashboardPage = () => {
         try {
             const overviewResponse = await fetch(`${API_BASE_URL}/manager/dashboard/overview`, { method: "GET", credentials: "include" });
             const overviewResult = await overviewResponse.json();
-            if (!overviewResponse.ok) throw new Error(overviewResult.message || "Failed to fetch overview data.");
+            if (!overviewResponse.ok) throw new Error(overviewResult.message || "Gagal mengambil data ringkasan.");
             setOverviewData(overviewResult.data);
 
             const allWoResponse = await fetch(`${API_BASE_URL}/manager/dashboard/work-orders/all`, { method: "GET", credentials: "include" });
             const allWoResult = await allWoResponse.json();
-            if (!allWoResponse.ok) throw new Error(allWoResult.message || "Failed to fetch all work orders.");
+            if (!allWoResponse.ok) throw new Error(allWoResult.message || "Gagal mengambil semua work order.");
             setWorkOrders(allWoResult.data || []);
 
-            const scheduleResponse = await fetch(`${API_BASE_URL}/manager/dashboard/maintenance/schedule`, { method: "GET", credentials: "include" });
+            const scheduleResponse = await fetch(`${API_BASE_URL}/manager/schedules`, { method: "GET", credentials: "include" });
             const scheduleResult = await scheduleResponse.json();
-            if (!scheduleResponse.ok) throw new Error(scheduleResult.message || "Failed to fetch maintenance schedule.");
-            setMaintenanceSchedule(scheduleResult.data || []);
+            if (!scheduleResponse.ok) throw new Error(scheduleResult.message || "Gagal mengambil jadwal perawatan.");
+            setMaintenanceSchedules(scheduleResult.data || []);
 
             const partsResponse = await fetch(`${API_BASE_URL}/manager/dashboard/parts/analysis`, { method: "GET", credentials: "include" });
             const partsResult = await partsResponse.json();
-            if (!partsResponse.ok) throw new Error(partsResult.message || "Failed to fetch parts analysis data.");
+            if (!partsResponse.ok) throw new Error(partsResult.message || "Gagal mengambil data analisis suku cadang.");
             setPartsAnalysis(partsResult.data);
 
         } catch (error) {
@@ -84,6 +84,42 @@ const ManagerDashboardPage = () => {
     useEffect(() => {
         fetchDashboardData();
     }, [fetchDashboardData]);
+
+    // Gabungkan data work order dan jadwal perawatan untuk kalender dan daftar
+    const allScheduledEvents = useMemo(() => {
+        const events = [];
+
+        workOrders.forEach(wo => {
+            if (wo.scheduled_date) {
+                events.push({
+                    date: new Date(wo.scheduled_date),
+                    type: 'workOrder',
+                    title: wo.title,
+                    description: wo.description,
+                    machineName: wo.machine?.name,
+                    status: wo.status,
+                    priority: wo.priority,
+                    assignedTo: wo.assignedTo?.full_name
+                });
+            }
+        });
+
+        maintenanceSchedules.forEach(sch => {
+            if (sch.next_due_date) {
+                events.push({
+                    date: new Date(sch.next_due_date),
+                    type: 'maintenanceSchedule',
+                    title: sch.title,
+                    description: sch.description,
+                    machineName: sch.machine?.name,
+                    frequency: sch.frequency
+                });
+            }
+        });
+
+        events.sort((a, b) => a.date.getTime() - b.date.getTime());
+        return events;
+    }, [workOrders, maintenanceSchedules]);
 
     const statusBodyTemplate = (rowData) => {
         const config = getStatusStyle(rowData.status);
@@ -106,7 +142,7 @@ const ManagerDashboardPage = () => {
     };
 
     const technicianBodyTemplate = (rowData) => {
-        return <Tag value={rowData.assignedTo?.name || "Unassigned"} className="bg-blue-100 text-blue-800 font-medium" />;
+        return <Tag value={rowData.assignedTo?.full_name || "Belum Ditugaskan"} className="bg-blue-100 text-blue-800 font-medium" />;
     };
 
     const filteredWorkOrders = workOrders.filter((wo) => {
@@ -156,15 +192,16 @@ const ManagerDashboardPage = () => {
         };
     };
 
+    // Mengambil count berdasarkan status yang disederhanakan
     const totalWorkOrders = overviewData?.totalWorkOrders || 0;
-    const pendingWorkOrdersCount = overviewData?.workOrderStatus?.find(s => s.status === 'open')?.count || 0;
+    const pendingWorkOrdersCount = overviewData?.workOrderStatus?.find(s => s.status === 'pending')?.count || 0;
     const inProgressWorkOrdersCount = overviewData?.workOrderStatus?.find(s => s.status === 'in_progress')?.count || 0;
-    const completedWorkOrdersCount = overviewData?.workOrderStatus?.find(s => s.status === 'resolved')?.count || 0;
+    const completedWorkOrdersCount = overviewData?.workOrderStatus?.find(s => s.status === 'completed')?.count || 0;
 
     const woChartData = [
         { name: "Pending", value: pendingWorkOrdersCount, color: "#ef4444" },
-        { name: "In Progress", value: inProgressWorkOrdersCount, color: "#06b6d4" },
-        { name: "Completed", value: completedWorkOrdersCount, color: "#10b981" }
+        { name: "Dalam Proses", value: inProgressWorkOrdersCount, color: "#06b6d4" },
+        { name: "Selesai", value: completedWorkOrdersCount, color: "#10b981" }
     ].filter(item => item.value > 0);
 
     const machineChartData = overviewData?.machineStatus?.map(s => {
@@ -258,7 +295,7 @@ const ManagerDashboardPage = () => {
                                 ) : (
                                     <div className="flex flex-column align-items-center justify-content-center w-full h-full text-gray-500">
                                         <i className="pi pi-chart-pie" style={{ fontSize: '3rem' }}></i>
-                                        <p className="mt-2">No work order data available for chart.</p>
+                                        <p className="mt-2">Tidak ada data work order untuk grafik.</p>
                                     </div>
                                 )}
                             </div>
@@ -284,28 +321,15 @@ const ManagerDashboardPage = () => {
                                 ) : (
                                     <div className="flex flex-column align-items-center justify-content-center w-full h-full text-gray-500">
                                         <i className="pi pi-cog" style={{ fontSize: '3rem' }}></i>
-                                        <p className="mt-2">No machine status data available for chart.</p>
+                                        <p className="mt-2">Tidak ada data status mesin untuk grafik.</p>
                                     </div>
                                 )}
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid mt-4">
-                        <div className="col-12">
-                            <div className="card overflow-hidden">
-                                <h5 className="font-bold mb-4">Tren Work Order Bulanan</h5>
-                                {partsAnalysis?.monthlyWoTrend?.labels?.length > 0 ? (
-                                    <Chart type="line" data={partsAnalysis.monthlyWoTrend} options={getChartOptions("Tren Work Order Bulanan")} className="h-20rem" />
-                                ) : (
-                                    <div className="flex flex-column align-items-center justify-content-center w-full h-20rem text-gray-500">
-                                        <i className="pi pi-chart-line" style={{ fontSize: '3rem' }}></i>
-                                        <p className="mt-2">No monthly trend data available.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                    {/* Bagian 'Tren Work Order Bulanan' telah dihapus */}
+                    
 
                     <div className="grid mt-4">
                         <div className="col-12">
@@ -319,26 +343,26 @@ const ManagerDashboardPage = () => {
                                     rows={10}
                                     rowsPerPageOptions={[5, 10, 25, 50]}
                                     paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
-                                    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} work orders"
-                                    emptyMessage="No work orders found"
+                                    currentPageReportTemplate="Menampilkan {first} sampai {last} dari {totalRecords} work order"
+                                    emptyMessage="Tidak ada work order ditemukan"
                                     header={
                                         <div className="flex align-items-center justify-content-between gap-2">
                                             <div>
                                                 <span className="text-xl font-bold mr-3">Work Orders</span>
                                                 <Dropdown placeholder="Filter Status" value={woStatusFilter} options={woStatusOptions} onChange={(e) => setWoStatusFilter(e.value)} className="w-10rem" />
                                             </div>
-                                            <InputText placeholder="Search" value={woSearchText} onChange={(e) => setSearchText(e.target.value)} className="w-15rem" />
+                                            <InputText placeholder="Cari" value={woSearchText} onChange={(e) => setSearchText(e.target.value)} className="w-15rem" />
                                         </div>
                                     }
                                 >
-                                    <Column field="title" header="Title" sortable body={(rowData) => (
+                                    <Column field="title" header="Judul" sortable body={(rowData) => (
                                         <motion.div whileHover={{ x: 5 }} className="font-medium text-blue-600">
                                             {rowData.title}
                                         </motion.div>
                                     )} />
-                                    <Column field="machine.name" header="Machine" body={machineBodyTemplate} sortable sortField="machine.name" />
-                                    <Column field="assignedTo.name" header="Assigned Technician" body={technicianBodyTemplate} sortable sortField="assignedTo.name" />
-                                    <Column field="scheduled_date" header="Scheduled Date" body={(rowData) => dateBodyTemplate(rowData, 'scheduled_date')} sortable />
+                                    <Column field="machine.name" header="Mesin" body={machineBodyTemplate} sortable sortField="machine.name" />
+                                    <Column field="assignedTo.full_name" header="Teknisi Ditugaskan" body={technicianBodyTemplate} sortable sortField="assignedTo.full_name" />
+                                    <Column field="scheduled_date" header="Tanggal Terjadwal" body={(rowData) => dateBodyTemplate(rowData, 'scheduled_date')} sortable />
                                     <Column field="status" header="Status" body={statusBodyTemplate} sortable />
                                 </DataTable>
                             </div>
@@ -356,25 +380,36 @@ const ManagerDashboardPage = () => {
                                         readOnlyInput
                                         style={{ width: '100%', minWidth: '300px' }}
                                         dateTemplate={(date) => {
-                                            const event = maintenanceSchedule.find(
-                                                (item) => {
-                                                    const scheduledDate = new Date(item.scheduled_date);
-                                                    return scheduledDate.getDate() === date.day &&
-                                                        scheduledDate.getMonth() === date.month &&
-                                                        scheduledDate.getFullYear() === date.year;
-                                                }
+                                            const eventsOnThisDay = allScheduledEvents.filter(
+                                                (event) =>
+                                                    event.date.getDate() === date.day &&
+                                                    event.date.getMonth() === date.month &&
+                                                    event.date.getFullYear() === date.year
                                             );
+                                            const hasEvent = eventsOnThisDay.length > 0;
+                                            const hasWorkOrder = eventsOnThisDay.some(e => e.type === 'workOrder');
+                                            const hasMaintenance = eventsOnThisDay.some(e => e.type === 'maintenanceSchedule');
+
+                                            let icon = null;
+                                            if (hasWorkOrder && hasMaintenance) {
+                                                icon = <i className="pi pi-calendar-times text-white" style={{ fontSize: '0.5rem' }}></i>; // Both
+                                            } else if (hasWorkOrder) {
+                                                icon = <i className="pi pi-briefcase text-white" style={{ fontSize: '0.5rem' }}></i>; // Work Order
+                                            } else if (hasMaintenance) {
+                                                icon = <i className="pi pi-cog text-white" style={{ fontSize: '0.5rem' }}></i>; // Maintenance Schedule
+                                            }
+
                                             return (
                                                 <div className={classNames('relative p-1 rounded-full w-2rem h-2rem flex align-items-center justify-content-center', {
-                                                    'bg-blue-500 text-white': event,
-                                                    'text-gray-900': !event,
-                                                    'font-bold': event,
+                                                    'bg-blue-500 text-white': hasEvent, // Warna dasar jika ada event
+                                                    'text-gray-900': !hasEvent,
+                                                    'font-bold': hasEvent,
                                                     'border-2 border-primary': date.today
                                                 })}>
                                                     {date.day}
-                                                    {event && (
+                                                    {hasEvent && (
                                                         <div className="absolute -bottom-1 -right-1 bg-orange-500 rounded-full w-1rem h-1rem flex align-items-center justify-content-center text-xs">
-                                                            <i className="pi pi-cog text-white" style={{ fontSize: '0.5rem' }}></i>
+                                                            {icon}
                                                         </div>
                                                     )}
                                                 </div>
@@ -384,18 +419,17 @@ const ManagerDashboardPage = () => {
                                 </div>
                                 <div className="mt-4">
                                     <h6 className="font-bold mb-2">Detail Jadwal Mendatang:</h6>
-                                    {maintenanceSchedule.length > 0 ? (
+                                    {allScheduledEvents.length > 0 ? (
                                         <ul className="list-none p-0">
-                                            {maintenanceSchedule
-                                                .filter(item => new Date(item.scheduled_date) >= new Date())
-                                                .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))
-                                                .slice(0, 5)
-                                                .map((item, index) => (
+                                            {allScheduledEvents
+                                                .filter(event => event.date >= new Date()) // Hanya event di masa mendatang
+                                                .slice(0, 5) // Batasi hingga 5 event
+                                                .map((event, index) => (
                                                 <li key={index} className="mb-2 p-2 bg-gray-50 rounded-md">
                                                     <div className="flex justify-content-between align-items-start">
                                                         <div>
                                                             <span className="font-medium text-blue-600">
-                                                                {new Date(item.scheduled_date).toLocaleDateString('id-ID', { 
+                                                                {event.date.toLocaleDateString('id-ID', { 
                                                                     weekday: 'short', 
                                                                     month: 'short', 
                                                                     day: 'numeric',
@@ -403,23 +437,37 @@ const ManagerDashboardPage = () => {
                                                                 })}:
                                                             </span>
                                                             <div className="mt-1">
-                                                                <strong>{item.title}</strong> ({item.machine?.name || 'N/A'})
+                                                                <strong>{event.title}</strong> ({event.machineName || 'N/A'})
+                                                                {event.type === 'workOrder' && (
+                                                                    <span className="ml-2 text-sm text-gray-500">
+                                                                        (WO - {getStatusStyle(event.status).label})
+                                                                    </span>
+                                                                )}
+                                                                {event.type === 'maintenanceSchedule' && (
+                                                                    <span className="ml-2 text-sm text-gray-500">
+                                                                        (Jadwal PM)
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                            {item.notes && (
+                                                            {(event.description || event.notes) && (
                                                                 <div className="text-sm text-gray-600 mt-1">
                                                                     <i className="pi pi-info-circle mr-1"></i>
-                                                                    {item.notes}
+                                                                    {event.description || event.notes}
+                                                                </div>
+                                                            )}
+                                                            {event.type === 'workOrder' && event.assignedTo && (
+                                                                <div className="text-sm text-gray-600 mt-1">
+                                                                    <i className="pi pi-user mr-1"></i>
+                                                                    Teknisi: {event.assignedTo}
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <Tag value={getStatusStyle(item.status).label} 
-                                                             severity={item.status === 'pending' ? 'danger' : item.status === 'in_progress' ? 'info' : 'success'} />
                                                     </div>
                                                 </li>
                                             ))}
                                         </ul>
                                     ) : (
-                                        <p className="text-gray-500">Tidak ada jadwal maintenance mendatang.</p>
+                                        <p className="text-gray-500">Tidak ada jadwal maintenance atau work order mendatang.</p>
                                     )}
                                 </div>
                             </div>
@@ -446,7 +494,7 @@ const ManagerDashboardPage = () => {
                                 ) : (
                                     <div className="flex flex-column align-items-center justify-content-center w-full h-full text-gray-500">
                                         <i className="pi pi-box" style={{ fontSize: '3rem' }}></i>
-                                        <p className="mt-2">No parts usage data available.</p>
+                                        <p className="mt-2">Tidak ada data penggunaan suku cadang.</p>
                                     </div>
                                 )}
                             </div>
@@ -470,7 +518,7 @@ const ManagerDashboardPage = () => {
                                 ) : (
                                     <div className="flex flex-column align-items-center justify-content-center w-full h-full text-gray-500">
                                         <i className="pi pi-users" style={{ fontSize: '3rem' }}></i>
-                                        <p className="mt-2">No technician parts usage data available.</p>
+                                        <p className="mt-2">Tidak ada data penggunaan suku cadang per teknisi.</p>
                                     </div>
                                 )}
                             </div>
@@ -488,10 +536,10 @@ const ManagerDashboardPage = () => {
                                         rows={10}
                                         header={
                                             <div className="flex align-items-center justify-content-between">
-                                                <span className="text-xl font-bold">Critical Stock Parts</span>
+                                                <span className="text-xl font-bold">Suku Cadang Stok Kritis</span>
                                                 <div className="flex align-items-center gap-2">
                                                     <i className="pi pi-exclamation-triangle text-red-500"></i>
-                                                    <span className="text-sm text-gray-600">Items with low stock levels</span>
+                                                    <span className="text-sm text-gray-600">Item dengan level stok rendah</span>
                                                 </div>
                                             </div>
                                         }
@@ -514,24 +562,24 @@ const ManagerDashboardPage = () => {
                                             const isLowStock = rowData.currentStock <= rowData.minStockLevel;
                                             return (
                                                 <Tag 
-                                                    value={isLowStock ? "Low Stock" : "Sufficient"}
+                                                    value={isLowStock ? "Stok Rendah" : "Cukup"}
                                                     severity={isLowStock ? "danger" : "success"}
                                                     icon={isLowStock ? "pi pi-exclamation-triangle" : "pi pi-check"}
                                                 />
                                             );
                                         }} />
-                                        <Column header="Action Required" body={(rowData) => {
+                                        <Column header="Tindakan Diperlukan" body={(rowData) => {
                                             const isLowStock = rowData.currentStock <= rowData.minStockLevel;
                                             const deficit = rowData.minStockLevel - rowData.currentStock;
                                             return isLowStock ? (
                                                 <div className="text-sm text-red-600">
                                                     <i className="pi pi-shopping-cart mr-1"></i>
-                                                    Order {deficit} more units
+                                                    Pesan {deficit} unit lagi
                                                 </div>
                                             ) : (
                                                 <div className="text-sm text-green-600">
                                                     <i className="pi pi-check mr-1"></i>
-                                                    Stock sufficient
+                                                    Stok cukup
                                                 </div>
                                             );
                                         }} />
@@ -539,8 +587,8 @@ const ManagerDashboardPage = () => {
                                 ) : (
                                     <div className="flex flex-column align-items-center justify-content-center p-4 text-gray-500">
                                         <i className="pi pi-check-circle" style={{ fontSize: '3rem', color: '#10b981' }}></i>
-                                        <p className="mt-2 font-medium">All parts have sufficient stock levels!</p>
-                                        <p className="text-sm">No critical stock alerts at this time.</p>
+                                        <p className="mt-2 font-medium">Semua suku cadang memiliki level stok yang cukup!</p>
+                                        <p className="text-sm">Tidak ada peringatan stok kritis saat ini.</p>
                                     </div>
                                 )}
                             </div>
@@ -554,4 +602,3 @@ const ManagerDashboardPage = () => {
 };
 
 export default ManagerDashboardPage;
-                                    
