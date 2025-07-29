@@ -7,8 +7,10 @@ import { Divider } from "primereact/divider";
 import PartRequestTable from "./components/PartRequestTable";
 import UpdateStatusDialog from "./components/UpdateStatusDialog";
 import { API_ENDPOINTS } from "../../../api/api";
+import { useRouter } from "next/navigation";
 
 const PartRequestPage = () => {
+    const router = useRouter();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
@@ -49,14 +51,14 @@ const PartRequestPage = () => {
 
     return (
         <div className="p-4">
-            <Toast ref={toast} position="top-right" className="opacity-90" />
+            <Toast ref={toast} position="top-right" />
 
             <div className="card">
                 <h3 className="mb-4">Manajemen Parts Request</h3>
-
                 <div className="flex flex-row gap-2 mb-4 justify-content-between">
-                    <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
-                    <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={handleRefresh} />
+                    <Button label="Back" icon="pi pi-arrow-left" outlined onClick={() => router.push("/dashboard")} />
+                    <Divider layout="vertical" />
+                    <Button label="Refresh" icon="pi pi-refresh" outlined onClick={handleRefresh} />
                 </div>
 
                 <PartRequestTable requests={requests} loading={loading} onUpdateStatus={handleUpdateStatus} searchText={searchText} onSearch={handleSearch} />
