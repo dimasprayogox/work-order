@@ -22,6 +22,7 @@ import adminPartRoutes from './routes/admin/part.route.js';
 import adminPartRequestRoutes from './routes/admin/partRequest.route.js';
 
 
+
 //employee
 import employeeDashboardRoutes from './routes/employee/dashboard.routes.js';
 import issueRoutes from './routes/employee/issue.route.js';
@@ -44,6 +45,8 @@ import managerDashboardRoutes from './routes/manager/dashboard.routes.js';
 import managerWorkOrderRoutes from './routes/manager/work-order.routes.js';
 import managerScheduleRoutes from './routes/manager/schedule.routes.js';
 import managerTechnicianRoutes from './routes/manager/technician.routes.js';
+import machinemanagerRoutes from './routes/manager/machine.routes.js';
+
 
 const app = express();
 
@@ -118,5 +121,6 @@ app.use('/api/manager/dashboard', managerDashboardRoutes);
 app.use('/api/manager/work-orders', managerWorkOrderRoutes);
 app.use('/api/manager/schedules', managerScheduleRoutes);
 app.use('/api/manager/technicians', managerTechnicianRoutes);
+app.use('/api/manager/machines', machinemanagerRoutes);
 
 export default app;

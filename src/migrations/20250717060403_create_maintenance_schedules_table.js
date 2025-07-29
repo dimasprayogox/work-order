@@ -7,9 +7,11 @@ export const up = function(knex) {
     table.string("id", 36).primary();
     table.string("title", 200).notNullable();
     table.text("description").nullable();
-    table.enum("frequency", ["daily", "weekly", "monthly"]).notNullable();
+    table.enum("frequency", ["daily", "weekly", "monthly", "yearly"]).notNullable(); 
     table.timestamp("next_due_date").notNullable();
     table.boolean("is_active").notNullable().defaultTo(true);
+
+    table.enum("priority", ["low", "medium", "high"]).notNullable().defaultTo("medium");
 
     // Foreign Keys
     table.string("machine_id", 36).notNullable();
