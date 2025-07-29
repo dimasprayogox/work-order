@@ -73,14 +73,7 @@ export default function WorkOrderPage() {
         setWorkOrders(prevOrders =>
             prevOrders.map(order =>
                 order.id === updatedWorkOrder.id
-                    ? {
-                        ...order,
-                        status: updatedWorkOrder.status,
-                        assigned_to_id: updatedWorkOrder.assigned_to_id,
-                        assigned_to: updatedWorkOrder.assigned_to || order.assigned_to,
-                        scheduled_date: updatedWorkOrder.scheduled_date,
-                        notes: updatedWorkOrder.notes
-                    }
+                    ? { ...updatedWorkOrder }
                     : order
             )
         );
@@ -138,6 +131,7 @@ export default function WorkOrderPage() {
                         setSelectedWorkOrder(rowData);
                         setAssignDialogVisible(true);
                     }}
+                    disabled={['assigned', 'in_progress', 'completed', 'rejected', 'cancelled'].includes(rowData.status)}
                 />
                 <Button
                     icon="pi pi-eye"
@@ -182,7 +176,8 @@ export default function WorkOrderPage() {
                             { label: "Ditugaskan", value: "assigned" },
                             { label: "Dalam Proses", value: "in_progress" },
                             { label: "Selesai", value: "completed" },
-                            { label: "Ditolak", value: "rejected" }
+                            { label: "Ditolak", value: "rejected" },
+                            { label: "Dibatalkan", value: "cancelled" }
                         ]}
                         onChange={(e) => setStatusFilter(e.value)}
                         placeholder="Filter berdasarkan Status"
