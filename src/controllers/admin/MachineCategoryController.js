@@ -145,4 +145,43 @@ export const MachineCategoryController = {
             });
         }
     },
+
+    async deleteMany(req, res) {
+        try {
+            const { ids } = req.body;
+            
+            // Validate that ids is provided and is an array
+            if (!ids || !Array.isArray(ids) || ids.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Please provide an array of category IDs to delete'
+                });
+            }
+
+            // Delete the categories with the provided IDs
+            const deletedCount = await MachineCategory.query()
+                .delete()
+                .whereIn('id', ids);
+
+            if (deletedCount === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'No categories found with the provided IDs'
+                });
+            }
+
+            res.status(200).json({
+                success: true,
+                message: `Successfully deleted ${deletedCount} categories`,
+                deletedCount
+            });
+        } catch (err) {
+            console.error('Delete many categories error:', err);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to delete categories',
+                error: err.message,
+            });
+        }
+    },
 };
