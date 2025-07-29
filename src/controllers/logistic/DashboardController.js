@@ -12,7 +12,8 @@ export const LogisticsDashboardController = {
                 approvedRequests,
                 fulfilledRequests,
                 rejectedRequest,
-                topUsedParts
+                topUsedParts,
+                criticalParts
             ] = await Promise.all([
                 Part.query().resultSize(),
 
@@ -42,7 +43,27 @@ export const LogisticsDashboardController = {
                     .groupBy('part_id')
                     .orderBy('total_used', 'desc')
                     .limit(5)
-                    .withGraphFetched('part') // Mengambil relasi part
+                    .withGraphFetched('part'), 
+
+                PartUsage.query()
+                    .select('part_id')
+                    .sum('quantity_used as total_used')
+                    .groupBy('part_id')
+                    .withGraphFetched('part')
+                    .then(partsUsage => {
+                        return Part.query()
+                            .whereIn('id', partsUsage.map(pu => pu.part_id))
+                            .where(builder => {
+                                builder.whereRaw('quantity_in_stock < min_stock')
+                                       .orWhere('quantity_in_stock', '<', 5);
+                            })
+                            .then(lowStockParts => {
+                                return partsUsage
+                                    .filter(pu => lowStockParts.some(p => p.id === pu.part_id))
+                                    .sort((a, b) => b.total_used - a.total_used)
+                                    .slice(0, 5); 
+                            });
+                    })
             ]);
 
             res.json({
@@ -53,7 +74,8 @@ export const LogisticsDashboardController = {
                         total_parts: totalParts,
                         low_stock: lowStockParts.length,
                         low_stock_parts: lowStockParts,
-                        out_of_stock: lowStockParts.filter(part => part.quantity_in_stock <= 0).length
+                        out_of_stock: lowStockParts.filter(part => part.quantity_in_stock <= 0).length,
+                        critical_parts: criticalParts.length
                     },
                     part_requests: {
                         pending: pendingRequests,
