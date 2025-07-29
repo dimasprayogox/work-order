@@ -48,15 +48,45 @@ const columnOptions = [
     { field: 'notes', header: 'Notes', visible: true },
 ];
 
-const statusBodyTemplate = (rowData) => {
-    const statusMap = {
-        pending: { label: "Pending", severity: "danger" },
-        in_progress: { label: "In Progress", severity: "info" },
-        resolved: { label: "Resolved", severity: "success" },
-        completed: { label: "Completed", severity: "success" },
+const priorityBodyTemplate = (rowData) => {
+    const priority = rowData.priority || ''; // Menangani jika data null/undefined
+    const severityMap = {
+        'high': 'danger',
+        'medium': 'warning',
+        'low': 'success'
     };
-    const statusInfo = statusMap[rowData.status] || { label: rowData.status, severity: "warning" };
-    return <Tag value={statusInfo.label} severity={statusInfo.severity} />;
+    // Menggunakan huruf kecil untuk pencocokan, tapi menampilkan teks asli dengan huruf kapital
+    const displayValue = priority.charAt(0).toUpperCase() + priority.slice(1);
+    const severity = severityMap[priority.toLowerCase()] || 'info'; // Default ke 'info' jika tidak cocok
+    return <Tag value={displayValue} severity={severity} />;
+};
+
+const getStatusLabel = (status) => {
+    const statusMap = {
+        pending: "Pending",
+        in_progress: "In Progress",
+        completed: "Completed",
+        rejected: "Rejected",
+    };
+    return statusMap[status] || status;
+};
+
+const statusBodyTemplate = (rowData) => {
+    const statusConfig = {
+        'pending': { bgColor: 'bg-orange-100', textColor: 'text-orange-800', icon: 'pi-clock' },
+        'in_progress': { bgColor: 'bg-cyan-100', textColor: 'text-cyan-800', icon: 'pi-spin pi-spinner' },
+        'completed': { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check-circle' },
+        'rejected': { bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle' },
+    };
+    const config = statusConfig[rowData.status] || { bgColor: 'bg-gray-100', textColor: 'text-gray-800', icon: 'pi-question' };
+    return (
+        <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                <i className={`pi ${config.icon}`}></i>
+                <span className="font-medium">{getStatusLabel(rowData.status)}</span>
+            </div>
+        </motion.div>
+    );
 };
 
 const dateBodyTemplate = (dateString) => {
@@ -404,20 +434,12 @@ export default function TechnicianWorkOrderPage() {
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                     <Panel>
-                        <DataTable
-                            value={filteredData}
-                            loading={loading}
-                            dataKey="id"
-                            paginator
-                            rows={10}
-                            rowsPerPageOptions={[5, 10, 25, 50]}
-                            header={header}
-                            emptyMessage="No work orders found."
-                        >
+                        <DataTable value={filteredData} loading={loading} dataKey="id" paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]} header={header} emptyMessage="No work orders found.">
                             <Column header="Photo" body={photoBodyTemplate} style={{ width: '100px' }} />
                             <Column field="title" header="Title" sortable />
                             <Column field="description" header="Description" style={{ minWidth: '200px' }} />
-                            <Column field="priority" header="Priority" body={(rowData) => <Tag value={rowData.priority} />} sortable />
+                            {/* ## GUNAKAN TEMPLATE YANG BENAR DI SINI ## */}
+                            <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                             <Column field="status" header="Status" body={statusBodyTemplate} sortable />
                             <Column field="created_at" header="Schedule" body={(rowData) => dateBodyTemplate(rowData.created_at)} sortable />
                             <Column field="started_at" header="Started At" body={(rowData) => dateBodyTemplate(rowData.started_at)} sortable />

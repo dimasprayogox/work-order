@@ -24,15 +24,37 @@ import CreatePartRequestDialog from "./components/CreatePartRequestDialog";
 const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
 const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false });
 
-const statusBodyTemplate = (rowData) => {
+const getStatusLabel = (status) => {
     const statusMap = {
-        pending: { label: "Pending", severity: "warning" },
-        approved: { label: "Approved", severity: "info" },
-        fulfilled: { label: "Fulfilled", severity: "success" },
-        rejected: { label: "Rejected", severity: "danger" },
+        pending: "Pending",
+        approved: "Approved",
+        fulfilled: "Fulfilled",
+        rejected: "Rejected", // Menambahkan 'rejected' jika ada
     };
-    const statusInfo = statusMap[rowData.status] || { label: rowData.status.toUpperCase(), severity: "secondary" };
-    return <Tag value={statusInfo.label} severity={statusInfo.severity} />;
+    return statusMap[status] || status;
+};
+
+// 2. PERBAIKI statusBodyTemplate
+const statusBodyTemplate = (rowData) => {
+    // Gunakan nilai data asli (e.g., 'in_progress') sebagai kunci
+    const statusConfig = {
+        'pending': { color: '#f97316', bgColor: 'bg-orange-100', textColor: 'text-orange-800', icon: 'pi-clock' },
+        'approved': { color: '#06b6d4', bgColor: 'bg-cyan-100', textColor: 'text-cyan-800', icon: 'pi-spin pi-spinner' },
+        'fulfilled': { color: '#10b981', bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check-circle' },
+        'rejected': { color: '#ef4444', bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle' },
+    };
+
+    const config = statusConfig[rowData.status] || { bgColor: 'bg-gray-100', textColor: 'text-gray-800', icon: 'pi-question' };
+
+    return (
+        <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                <i className={`pi ${config.icon}`}></i>
+                {/* Gunakan helper untuk menampilkan label yang benar */}
+                <span className="font-medium">{getStatusLabel(rowData.status)}</span>
+            </div>
+        </motion.div>
+    );
 };
 
 const dateBodyTemplate = (dateString) => {
