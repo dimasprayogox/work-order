@@ -33,6 +33,10 @@ export const machineBodyTemplate = (rowData) => {
     return rowData.machine?.name || "N/A";
 };
 
+export const createdByBodyTemplate = (rowData) => {
+    return rowData.createdBy?.full_name || rowData.createdBy?.username || "N/A";
+};
+
 export const actionBodyTemplate = (rowData, onEdit, onDetails) => {
     return (
         <div className="flex gap-2">

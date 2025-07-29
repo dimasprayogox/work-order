@@ -15,7 +15,8 @@ import {
     frequencyBodyTemplate,
     nextDueDateBodyTemplate,
     machineBodyTemplate,
-    actionBodyTemplate
+    actionBodyTemplate,
+    createdByBodyTemplate
 } from "./components/ScheduleTable";
 import CreateScheduleDialog from "./components/CreateScheduleDialog";
 import EditScheduleDialog from "./components/EditScheduleDialog";
@@ -214,7 +215,7 @@ export default function SchedulePage() {
                             <Column field="machine.name" header="Mesin" body={machineBodyTemplate} sortable />
                             <Column field="frequency" header="Frekuensi" body={frequencyBodyTemplate} sortable />
                             <Column field="next_due_date" header="Jatuh Tempo Berikutnya" body={nextDueDateBodyTemplate} sortable />
-                            <Column field="created_by.full_name" header="Dibuat Oleh" sortable />
+                            <Column field="created_by.full_name" header="Dibuat Oleh" body={createdByBodyTemplate} sortable />
                             <Column
                                 header="Aksi"
                                 body={(rowData) => actionBodyTemplate(rowData, handleEditSchedule, handleViewDetails)}
