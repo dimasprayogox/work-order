@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Card, DataTable, Column } from "primereact";
+import { DataTable, Column } from "primereact";
 import StatusBadge from "./status/StatusBadge";
 import { InputText } from "primereact/inputtext";
 import { API_ENDPOINTS } from "../../../../api/api";

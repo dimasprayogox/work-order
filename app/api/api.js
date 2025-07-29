@@ -41,9 +41,10 @@ export const API_ENDPOINTS = {
     //logistics
     LOGISTICS_DASHBOARD: `${API_URL}/logistics/dashboard`,
     PARTS: `${API_URL}/logistics/parts`,
+    DELETE_PARTS_MANY: `${API_URL}/logistics/parts/delete-many`,
     PART_REQUESTS: `${API_URL}/logistics/part-requests`,
     TOP_USED_PARTS: `${API_URL}/logistics/part-usage/top-used-parts`,
-    USAGE_LOG: `${API_URL}/logistics/part-usage/log`,
+    USAGE_LOG: `${API_URL}/logistics/part-usage/usage-log`,
 
     // Admin
     USERS: `${API_URL}/admin/users`,

@@ -18,11 +18,14 @@ import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog";
 import AdjustPrintMarginLaporan from "../../Export/adjustPrintMarginLaporan";
 import { API_ENDPOINTS } from "../../../api/api";
 
+import { useRouter } from "next/navigation";
+
 const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), {
     ssr: false
 });
 
 const PartPage = () => {
+    const router = useRouter();
     // Refs
     const toast = useRef(null);
     const fileInputRef = useRef(null);
@@ -33,9 +36,14 @@ const PartPage = () => {
     const [selectedPart, setSelectedPart] = useState(null);
     const [selectedParts, setSelectedParts] = useState([]);
 
-    // Dialog State
     const [isFormOpen, setFormOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
+    const [adjustDialogOpen, setAdjustDialogOpen] = useState(false); // Dialog untuk custom margin
+    const [isPreviewOpen, setPreviewOpen] = useState(false); // Dialog untuk PDF viewer
+    const [deleteManyDialogOpen, setDeleteManyDialogOpen] = useState(false);
+
+    const [isPrintOptionsOpen, setPrintOptionsOpen] = useState(false);
+
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
     // State untuk alur kerja Print/PDF sesuai permintaan Anda
@@ -126,14 +134,19 @@ const PartPage = () => {
     };
 
     const handleDelete = (part) => {
-        setSelectedPart(part);
-        setDeleteOpen(true);
+      setSelectedPart(part);
+      setDeleteOpen(true);
     };
 
-    const handleDeleteSelected = () => {
-        if (selectedParts.length === 0) return showToast("warn", "Warning", "Tidak ada part yang dipilih");
-        setDeleteConfirmOpen(true);
-    };
+  const handleDeleteSelected = () => {
+     if (selectedParts.length === 0) {
+         showToast("warn", "Peringatan", "Tidak ada part yang dipilih");
+         return;
+     }
+     setSelectedPart(null);
+     setDeleteOpen(true);
+  };
+
 
     const exportExcel = async () => {
         if (!parts.length) return showToast("warn", "Peringatan", "Tidak ada data untuk diekspor");
@@ -200,7 +213,8 @@ const PartPage = () => {
 
             <div className="card">
                 <h3 className="mb-4">Manajemen Parts</h3>
-                <div className="flex flex-row justify-content-between gap-2 mb-4">
+                <div className="flex flex-row gap-2 mb-4">
+                    <Button label="Back" icon="pi pi-arrow-left" outlined onClick={() => router.push("/dashboard")}/>
                     <Button label="New" icon="pi pi-plus" outlined severity="success" onClick={() => setFormOpen(true)} />
                     <Divider layout="vertical" />
                     <Button label="Import" icon="pi pi-file-import" outlined onClick={() => fileInputRef.current?.click()} />
@@ -216,20 +230,24 @@ const PartPage = () => {
 
                 {/* Dialogs */}
                 <PartFormDialog visible={isFormOpen} onHide={() => setFormOpen(false)} part={selectedPart} fetchParts={fetchParts} showToast={showToast} />
-                <ConfirmDeleteDialog visible={isDeleteOpen} onHide={() => setDeleteOpen(false)} part={selectedPart} fetchParts={fetchParts} showToast={showToast} />
 
-                {/* Komponen yang diintegrasikan sesuai permintaan */}
-                <AdjustPrintMarginLaporan
-                    adjustDialog={adjustDialog}
-                    setAdjustDialog={setAdjustDialog}
-                    handleAdjust={handleAdjust}
-                    excel={exportExcel}
+                <ConfirmDeleteDialog
+                    visible={isDeleteOpen}
+                    onHide={() => {
+                        setDeleteOpen(false);
+                        setSelectedPart(null);
+                    }}
+                    part={selectedPart}
+                    selectedParts={selectedParts} // <-- INI YANG MEMPERBAIKI ERROR
+                    fetchParts={() => {
+                        fetchParts();
+                        setSelectedParts([]); // Kosongkan seleksi setelah berhasil
+                    }}
+                    showToast={showToast}
                 />
-
-                <Dialog visible={jsPdfPreviewOpen} onHide={() => setJsPdfPreviewOpen(false)} modal style={{ width: '90%', height: '100%' }} header="PDF Preview">
-                    <div className="p-dialog-content" style={{ height: '100%' }}>
-                        <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
-                    </div>
+                <AdjustPrintMarginLaporan adjustDialog={adjustDialogOpen} setAdjustDialog={setAdjustDialogOpen} handleAdjust={handleAdjustAndPreview} loadingPreview={loading} excel={excel} />
+                <Dialog visible={isPreviewOpen} onHide={() => setPreviewOpen(false)} header="PDF Preview" style={{ width: "90vw", height: "90vh" }} maximizable>
+                    {pdfUrl && <PDFViewer pdfUrl={pdfUrl} paperSize={printConfig.paperSize} fileName="parts-preview" />}
                 </Dialog>
             </div>
         </div>

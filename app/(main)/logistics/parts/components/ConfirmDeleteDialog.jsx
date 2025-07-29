@@ -15,7 +15,7 @@ const ConfirmDeleteDialog = ({ visible, onHide, part, selectedParts = [], fetchP
         try {
             let res;
             if (isBulkDelete) {
-                res = await fetch(`${API_ENDPOINTS.PARTS}/delete-many`, {
+                res = await fetch(`${API_ENDPOINTS.DELETE_PARTS_MANY}`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
@@ -48,20 +48,18 @@ const ConfirmDeleteDialog = ({ visible, onHide, part, selectedParts = [], fetchP
     };
 
     const footerContent = (
-        <div className="flex justify-content-center gap-2">
-            <Button label="Batal" icon="pi pi-times" severity="secondary" outlined onClick={onHide} disabled={loading} />
-            <Button label="Ya, Hapus" icon="pi pi-trash" severity="danger" onClick={handleDelete} loading={loading} />
+        <div className="flex justify-content-end gap-2">
+            <Button label="Batal"  severity="secondary" outlined onClick={onHide} disabled={loading} />
+            <Button label="Ya, Hapus" severity="danger" onClick={handleDelete} loading={loading} />
         </div>
     );
 
     return (
-        <Dialog header="Konfirmasi Hapus" visible={visible} onHide={onHide} modal style={{ width: "25rem" }} footer={footerContent}>
+        <Dialog header="Konfirmasi Hapus" visible={visible} onHide={onHide} modal footer={footerContent}>
             <div className="flex flex-column align-items-center text-center gap-4 py-4">
-                <i className="pi pi-exclamation-triangle text-red-500 text-6xl" />
-
-                <div>
-                    <h3 className="font-bold mb-2">{isBulkDelete ? `Hapus ${selectedParts.length} Part?` : "Hapus Part Ini?"}</h3>
-                    <p className="text-color-secondary">
+                <div className="flex align-items-center justify-content-center gap-3">
+                    <i className="pi pi-exclamation-triangle text-3xl" />
+                    <p className="text-color-secondary m-0">
                         {isBulkDelete ? (
                             `Anda akan menghapus ${selectedParts.length} part yang dipilih.`
                         ) : (
@@ -69,8 +67,6 @@ const ConfirmDeleteDialog = ({ visible, onHide, part, selectedParts = [], fetchP
                                 Anda akan menghapus <strong>{part?.name ?? "part yang dipilih"}</strong>.
                             </>
                         )}
-                        <br />
-                        Tindakan ini tidak dapat diurungkan.
                     </p>
                 </div>
             </div>

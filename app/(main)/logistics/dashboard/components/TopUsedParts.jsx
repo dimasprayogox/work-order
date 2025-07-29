@@ -3,19 +3,29 @@
 import { Card } from "primereact/card";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ProgressSpinner } from "primereact/progressspinner";
+import { Toast } from "primereact/toast";
+import { API_ENDPOINTS } from "../../../../api/api";
 
-const TopUsedParts = ({ data }) => {
+
+const TopUsedParts = () => {
     const [partsData, setPartsData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const toast = useRef(null);
 
-    useEffect(() => {
-        if (data) {
-            try {
-                // Transformasi data sesuai struktur response
-                const transformedData = data.map((item) => ({
+    const fetchTopUsedParts = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_ENDPOINTS.TOP_USED_PARTS}`, { credentials: "include" });
+            if (!res.ok) {
+                throw new Error("Failed to fetch top used parts");
+            }
+            const response = await res.json();
+
+            if (response.success && response.data) {
+                const transformedData = response.data.map((item) => ({
                     id: item.part_id,
                     name: item.part?.name || "Part Tidak Dikenal",
                     part_number: item.part?.part_number || "-",
@@ -24,41 +34,29 @@ const TopUsedParts = ({ data }) => {
                     min_stock: item.part?.min_stock || 0,
                     location: item.part?.location || "-"
                 }));
-
                 setPartsData(transformedData);
-                setLoading(false);
-            } catch (err) {
-                console.error("Error processing parts data:", err);
-                setError(err.message || "Terjadi kesalahan saat memproses data");
-                setLoading(false);
+            } else {
+                throw new Error("Invalid data format received");
             }
+        } catch (err) {
+            console.error("Error fetching top used parts:", err);
+            setError(err.message);
+            toast.current?.show({
+                severity: "error",
+                summary: "Error",
+                detail: "Gagal mengambil data part yang sering digunakan"
+            });
+        } finally {
+            setLoading(false);
         }
-    }, [data]);
-
-    const stockStatusTemplate = (rowData) => {
-        if (rowData.current_stock <= rowData.min_stock) {
-            return <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Kritis</span>;
-        } else if (rowData.current_stock <= rowData.min_stock * 2) {
-            return <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Sedikit</span>;
-        }
-        return <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Baik</span>;
     };
 
-    const stockLevelTemplate = (rowData) => {
-        const percentage = (rowData.current_stock / (rowData.min_stock * 3)) * 100;
-        return (
-            <div className="flex align-items-center gap-3">
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div
-                        className={`h-2.5 rounded-full ${rowData.current_stock <= rowData.min_stock ? "bg-red-500" : rowData.current_stock <= rowData.min_stock * 2 ? "bg-yellow-500" : "bg-green-500"}`}
-                        style={{ width: `${Math.min(100, percentage)}%` }}
-                    ></div>
-                </div>
-                <span>
-                    {rowData.current_stock}/{rowData.min_stock * 3}
-                </span>
-            </div>
-        );
+    useEffect(() => {
+        fetchTopUsedParts();
+    }, []);
+
+    const rowNumberTemplate = (rowData, { rowIndex }) => {
+        return rowIndex + 1;
     };
 
     if (loading) {
@@ -84,26 +82,29 @@ const TopUsedParts = ({ data }) => {
     }
 
     return (
-        <Card title="Part Paling Sering Digunakan" className="shadow-md h-full">
-            <DataTable
-                value={partsData}
-                paginator
-                rows={5}
-                stripedRows
-                className="p-datatable-sm"
-                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
-                emptyMessage="Tidak ada data penggunaan part"
-                scrollable
-                scrollHeight="flex"
-            >
-                <Column field="part_number" header="Kode Part" sortable style={{ width: "20%" }} />
-                <Column field="name" header="Nama Part" sortable style={{ width: "25%" }} />
-                <Column field="total_used" header="Digunakan" sortable body={(rowData) => rowData.total_used.toLocaleString("id-ID")} style={{ width: "15%" }} />
-                <Column header="Level Stok" body={stockLevelTemplate} sortable sortField="current_stock" style={{ width: "20%" }} />
-                <Column header="Status" body={stockStatusTemplate} style={{ width: "10%" }} />
-                <Column field="location" header="Lokasi" sortable style={{ width: "10%" }} />
-            </DataTable>
-        </Card>
+        <div className="col-12 md:col-12">
+            <Toast ref={toast} />
+            <div className="card flex flex-column p-3 ">
+                 <h5 className="font-bold mb-4 self-start pt-2 pb-4 text-center">Top 10 Used Parts</h5>
+                <DataTable
+                    value={partsData}
+                    paginator
+                    rows={5}
+                    stripedRows
+                    className="p-datatable-sm"
+                    paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
+                    emptyMessage="Tidak ada data penggunaan part"
+                    scrollable
+                    scrollHeight="flex"
+                >
+                    <Column header="No" body={rowNumberTemplate} style={{ width: "5%", textAlign: "center" }} />
+                    <Column field="part_number" header="Kode Part" sortable style={{ width: "20%" }} />
+                    <Column field="name" header="Nama Part" sortable style={{ width: "25%" }} />
+                    <Column field="total_used" header="Digunakan" sortable body={(rowData) => rowData.total_used.toLocaleString("id-ID")} style={{ width: "15%" }} />
+                    <Column field="location" header="Lokasi" sortable style={{ width: "10%" }} />
+                </DataTable>
+            </div>
+        </div>
     );
 };
 

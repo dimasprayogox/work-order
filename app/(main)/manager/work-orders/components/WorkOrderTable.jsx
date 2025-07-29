@@ -1,48 +1,27 @@
 import React from 'react';
 import { Tag } from 'primereact/tag';
-import { Tooltip } from 'primereact/tooltip';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { Button } from 'primereact/button';
 
 export const statusBodyTemplate = (rowData) => {
-    const getStatusSeverity = (status) => {
-        switch (status) {
-            case "pending": return "warning";
-            case "in_progress": return "primary";
-            case "completed": return "success";
-            default: return null;
-        }
+    const statusMap = {
+        pending: { label: "Pending", severity: "danger" },
+        in_progress: { label: "In Progress", severity: "info" },
+        completed: { label: "Completed", severity: "success" },
     };
-    const getStatusIcon = (status) => {
-        switch (status) {
-            case "in_progress":
-                return <ProgressSpinner style={{ width: '1rem', height: '1rem' }} strokeWidth="8" animationDuration=".5s" />;
-            default: return null;
-        }
-    };
-
-    const formattedStatus = rowData.status
-        ? rowData.status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
-        : "";
-
-    return (
-        <Tag
-            value={formattedStatus}
-            severity={getStatusSeverity(rowData.status)}
-            className="font-medium"
-            icon={getStatusIcon(rowData.status)}
-            style={{ display: 'flex', alignItems: 'center', gap: '5px' }} 
-        />
-    );
+    const statusInfo = statusMap[rowData.status] || { label: rowData.status, severity: "warning" };
+    return <Tag value={statusInfo.label} severity={statusInfo.severity} />;
 };
 
-export const dateBodyTemplate = (rowData, field) => {
-    return rowData[field] ? new Date(rowData[field]).toLocaleString("id-ID", {
-        year: 'numeric',
-        month: '2-digit',
+export const dateBodyTemplate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleString("id-ID", {
         day: '2-digit',
+        month: 'short',
+        year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
-    }) : "N/A";
+    });
 };
 
 export const technicianBodyTemplate = (rowData) => {
