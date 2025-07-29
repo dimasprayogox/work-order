@@ -13,7 +13,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Ba
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
 import { Calendar } from "primereact/calendar";
-import { Chart } from 'primereact/chart';
+import { Chart } from 'primereact/chart'; // Tetap import karena mungkin digunakan di tempat lain
 import { classNames } from 'primereact/utils';
 
 // Konfigurasi status yang disederhanakan
@@ -43,6 +43,7 @@ const ManagerDashboardPage = () => {
     const [woStatusFilter, setWoStatusFilter] = useState("");
     const [woSearchText, setSearchText] = useState("");
 
+    // Opsi filter status Work Order yang disederhanakan
     const woStatusOptions = [
         { label: "Semua Status", value: "" },
         { label: "Pending", value: "pending" },
@@ -63,7 +64,6 @@ const ManagerDashboardPage = () => {
             if (!allWoResponse.ok) throw new Error(allWoResult.message || "Gagal mengambil semua work order.");
             setWorkOrders(allWoResult.data || []);
 
-            // PERBAIKAN: Ubah URL fetch untuk maintenance schedules
             const scheduleResponse = await fetch(`${API_BASE_URL}/manager/schedules`, { method: "GET", credentials: "include" });
             const scheduleResult = await scheduleResponse.json();
             if (!scheduleResponse.ok) throw new Error(scheduleResult.message || "Gagal mengambil jadwal perawatan.");
@@ -192,6 +192,7 @@ const ManagerDashboardPage = () => {
         };
     };
 
+    // Mengambil count berdasarkan status yang disederhanakan
     const totalWorkOrders = overviewData?.totalWorkOrders || 0;
     const pendingWorkOrdersCount = overviewData?.workOrderStatus?.find(s => s.status === 'pending')?.count || 0;
     const inProgressWorkOrdersCount = overviewData?.workOrderStatus?.find(s => s.status === 'in_progress')?.count || 0;
@@ -327,21 +328,8 @@ const ManagerDashboardPage = () => {
                         </div>
                     </div>
 
-                    <div className="grid mt-4">
-                        <div className="col-12">
-                            <div className="card overflow-hidden">
-                                <h5 className="font-bold mb-4">Tren Work Order Bulanan</h5>
-                                {partsAnalysis?.monthlyWoTrend?.labels?.length > 0 ? (
-                                    <Chart type="line" data={partsAnalysis.monthlyWoTrend} options={getChartOptions("Tren Work Order Bulanan")} className="h-20rem" />
-                                ) : (
-                                    <div className="flex flex-column align-items-center justify-content-center w-full h-20rem text-gray-500">
-                                        <i className="pi pi-chart-line" style={{ fontSize: '3rem' }}></i>
-                                        <p className="mt-2">Tidak ada data tren bulanan.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                    {/* Bagian 'Tren Work Order Bulanan' telah dihapus */}
+                    
 
                     <div className="grid mt-4">
                         <div className="col-12">
