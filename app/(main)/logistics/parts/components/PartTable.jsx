@@ -13,6 +13,9 @@ const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSel
         global: { value: null, matchMode: FilterMatchMode.CONTAINS }
     });
     const [globalFilterValue, setGlobalFilterValue] = useState("");
+    const [selectAll, setSelectAll] = useState(false);
+    const [currentFirst, setCurrentFirst] = useState(0);
+    const [currentRows, setCurrentRows] = useState(10);
 
     useEffect(() => {
         setGlobalFilterValue(searchText);
@@ -30,8 +33,24 @@ const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSel
         onSelectionChange(e.value);
     };
 
+    const handleSelectAllChange = (e) => {
+        const checked = e.checked;
+        let selected = [];
 
-    
+        if (checked) {
+            // hanya pilih item yang ada di halaman saat ini
+            selected = parts.slice(currentFirst, currentFirst + currentRows);
+        }
+
+        setSelectAll(checked);
+        onSelectionChange(selected);
+    };
+
+    const onPageChange = (e) => {
+        setCurrentFirst(e.first);
+        setCurrentRows(e.rows);
+    };
+
     const actionBodyTemplate = (rowData) => (
         <div className="flex gap-2">
             <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onEdit(rowData)} tooltip="Edit" />
@@ -64,12 +83,16 @@ const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSel
             <ConfirmDialog />
 
             <DataTable
+                selectAll={selectAll}
+                onSelectAllChange={handleSelectAllChange}
+                onPage={onPageChange}
+                first={currentFirst}
+                rows={currentRows}
                 value={parts}
                 selection={selectedParts}
                 onSelectionChange={handleSelectionChange}
                 dataKey="id"
                 paginator
-                rows={10}
                 loading={loading}
                 emptyMessage="No parts found."
                 filters={filters}
