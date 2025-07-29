@@ -1,35 +1,42 @@
-'use client';
+"use client";
+
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+import Link from 'next/link'; 
 import { IconService } from '../../../../demo/service/IconService';
 import { InputText } from 'primereact/inputtext';
 
 const IconsDemo = () => {
-    const [icons, setIcons] = useState<Demo.Icon[]>([]);
-    const [filteredIcons, setFilteredIcons] = useState<Demo.Icon[]>([]);
+    const [icons, setIcons] = useState([]);
+    const [filteredIcons, setFilteredIcons] = useState([]);
 
     useEffect(() => {
         IconService.getIcons().then((data) => {
             data.sort((icon1, icon2) => {
-                if (icon1.properties!.name < icon2.properties!.name) return -1;
-                else if (icon1.properties!.name < icon2.properties!.name) return 1;
+                const name1 = icon1.properties?.name || '';
+                const name2 = icon2.properties?.name || '';
+                if (name1 < name2) return -1;
+                else if (name1 > name2) return 1; 
                 else return 0;
             });
 
             setIcons(data);
             setFilteredIcons(data);
-        });
+        })
+        .catch(error => console.error('Error fetching icons:', error)); 
     }, []);
 
     const onFilter = (event) => {
-        if (!event.currentTarget.value) {
-            setFilteredIcons(icons);
+        const value = event.currentTarget.value.toLowerCase();
+        if (!value) {
+            setFilteredIcons(icons); 
         } else {
-            setFilteredIcons(
-                icons.filter((it) => {
-                    return it.icon && it.icon.tags && it.icon.tags[0].includes(event.currentTarget.value);
-                })
-            );
+            const filtered = icons.filter((iconMeta) => {
+                const { icon, properties } = iconMeta;
+                const matchesName = properties?.name?.toLowerCase().includes(value);
+                const matchesTag = icon?.tags?.some(tag => tag.toLowerCase().includes(value));
+                return matchesName || matchesTag;
+            });
+            setFilteredIcons(filtered);
         }
     };
 
@@ -104,10 +111,10 @@ const IconsDemo = () => {
                         const { icon, properties } = iconMeta;
 
                         return (
-                            icon?.tags?.indexOf('deprecate') === -1 && (
-                                <div className="col-6 sm:col-4 lg:col-3 xl:col-2 pb-5" key={properties?.name}>
-                                    <i className={'text-2xl mb-2 pi pi-' + properties?.name}></i>
-                                    <div>pi-{properties?.name}</div>
+                            icon?.tags?.indexOf('deprecate') === -1 && properties?.name && (
+                                <div className="col-6 sm:col-4 lg:col-3 xl:col-2 pb-5" key={properties.name}>
+                                    <i className={'text-2xl mb-2 pi pi-' + properties.name}></i>
+                                    <div>pi-{properties.name}</div>
                                 </div>
                             )
                         );

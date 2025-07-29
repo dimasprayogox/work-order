@@ -1,5 +1,5 @@
 // api/admin/part-requests/[id]/status/route.js
-import { Axios } from "../../../../../../utils/axios";
+import { Axios } from "../../../../../utils/axios";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
