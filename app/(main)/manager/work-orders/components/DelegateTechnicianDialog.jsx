@@ -70,8 +70,7 @@ export default function DelegateTechnicianDialog({
             const payload = {
                 assigned_to_id: formData.assigned_to_id,
                 scheduled_date: formData.scheduled_date.toISOString(),
-                notes: formData.notes,
-                status: "assigned"
+                notes: formData.notes
             };
 
             const response = await fetch(`${API_BASE_URL}/manager/work-orders/${workOrder.id}`, {
@@ -99,10 +98,10 @@ export default function DelegateTechnicianDialog({
     };
 
     const technicianOptionTemplate = (option) => {
-        const isAssigned = option.value === workOrder?.assigned_to_id;
+        const isCurrentlyAssigned = workOrder?.assigned_to_id === option.value;
         return (
             <div className="flex align-items-center">
-                {isAssigned && <i className="pi pi-check mr-2 text-green-500" />}
+                {isCurrentlyAssigned && <i className="pi pi-check mr-2 text-green-500" />}
                 <span>{option.label}</span>
             </div>
         );
@@ -110,10 +109,10 @@ export default function DelegateTechnicianDialog({
 
     const selectedTechnicianTemplate = (option, props) => {
         if (option) {
-            const isAssigned = option.value === workOrder?.assigned_to_id;
+            const isCurrentlyAssigned = workOrder?.assigned_to_id === option.value;
             return (
                 <div className="flex align-items-center">
-                    {isAssigned && <i className="pi pi-check mr-2 text-green-500" />}
+                    {isCurrentlyAssigned && <i className="pi pi-check mr-2 text-green-500" />}
                     <span>{option.label}</span>
                 </div>
             );
