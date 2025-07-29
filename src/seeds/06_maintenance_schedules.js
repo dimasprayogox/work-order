@@ -1,9 +1,10 @@
 /**
  * @param { import("knex").Knex } knex
- * @returns { Promise<void> } 
+ * @returns { Promise<void> }
  */
-export const seed = async function(knex) {
-  await knex('maintenance_schedules').del();
+export const seed = async function (knex) {
+  await knex("maintenance_schedules").del();
+
   const machines = await knex("machines").select("id", "machine_code");
   const users = await knex("users").select("id", "username");
 
@@ -11,16 +12,23 @@ export const seed = async function(knex) {
   const userManager = users.find((u) => u.username === "Manager");
 
   if (!machinePress) {
-      console.warn("Peringatan: Mesin 'PRESS-H-05' tidak ditemukan di seeder maintenance_schedules.");
-      return; 
+    console.warn("Peringatan: Mesin 'PRESS-H-05' tidak ditemukan di seeder maintenance_schedules.");
+    return;
   }
   if (!userManager) {
-      console.warn("Peringatan: User 'Manager' tidak ditemukan di seeder maintenance_schedules.");
-      return; 
+    console.warn("Peringatan: User 'Manager' tidak ditemukan di seeder maintenance_schedules.");
+    return;
   }
 
   const nextDueDate = new Date();
   nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+
+  // Fungsi untuk format ke MySQL DATETIME: YYYY-MM-DD HH:mm:ss
+  const formatDateForMySQL = (date) => {
+    const pad = (n) => (n < 10 ? "0" + n : n);
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+           `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  };
 
   await knex("maintenance_schedules").insert([
     {
@@ -29,10 +37,11 @@ export const seed = async function(knex) {
       title: "Pengecekan Oli Hidrolik Bulanan",
       description: "Ganti oli dan filter hidrolik sesuai standar.",
       frequency: "monthly",
-      next_due_date: nextDueDate.toISOString(),
+      next_due_date: formatDateForMySQL(nextDueDate), // Sudah sesuai format MySQL
       created_by_id: userManager.id,
       is_active: true,
     },
   ]);
-  console.log('Data maintenance_schedules berhasil di-seed.');
+
+  console.log("Data maintenance_schedules berhasil di-seed.");
 };
