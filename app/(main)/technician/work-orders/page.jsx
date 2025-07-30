@@ -49,15 +49,14 @@ const columnOptions = [
 ];
 
 const priorityBodyTemplate = (rowData) => {
-    const priority = rowData.priority || ''; // Menangani jika data null/undefined
+    const priority = rowData.priority || '';
     const severityMap = {
         'high': 'danger',
         'medium': 'warning',
         'low': 'success'
     };
-    // Menggunakan huruf kecil untuk pencocokan, tapi menampilkan teks asli dengan huruf kapital
     const displayValue = priority.charAt(0).toUpperCase() + priority.slice(1);
-    const severity = severityMap[priority.toLowerCase()] || 'info'; // Default ke 'info' jika tidak cocok
+    const severity = severityMap[priority.toLowerCase()] || 'info';
     return <Tag value={displayValue} severity={severity} />;
 };
 
@@ -143,6 +142,7 @@ export default function TechnicianWorkOrderPage() {
         marginTop: 10,
         marginBottom: 10
     });
+    const [tempPrintConfig, setTempPrintConfig] = useState(null);
 
     const showToast = useCallback((severity, summary, detail) => {
         toast.current?.show({ severity, summary, detail, life: 3000 });
@@ -212,11 +212,13 @@ export default function TechnicianWorkOrderPage() {
     };
 
     // --- Export to PDF ---
-    const exportPdf = () => {
+    const exportPdf = (config = null) => {
+        const currentConfig = config || printConfig;
+
         const doc = new jsPDF({
-            orientation: printConfig.orientation,
-            unit: printConfig.unit,
-            format: printConfig.format
+            orientation: currentConfig.orientation,
+            unit: currentConfig.unit,
+            format: currentConfig.format
         });
 
         const visibleColumns = columnOptions.filter(col => col.visible);
@@ -240,17 +242,17 @@ export default function TechnicianWorkOrderPage() {
             });
         });
 
-        doc.text('Work Orders Report', printConfig.marginLeft, printConfig.marginTop);
+        doc.text('Work Orders Report', currentConfig.marginLeft, currentConfig.marginTop);
 
         autoTable(doc, {
-            startY: printConfig.marginTop + 10,
+            startY: currentConfig.marginTop + 10,
             head: [headers],
             body: data,
             margin: {
-                left: printConfig.marginLeft,
-                right: printConfig.marginRight,
-                top: printConfig.marginTop + 10,
-                bottom: printConfig.marginBottom
+                left: currentConfig.marginLeft,
+                right: currentConfig.marginRight,
+                top: currentConfig.marginTop + 10,
+                bottom: currentConfig.marginBottom
             }
         });
 
@@ -260,15 +262,12 @@ export default function TechnicianWorkOrderPage() {
         setJsPdfPreviewOpen(true);
     };
 
-    // --- Print Handler ---
-    const handlePrint = () => {
-        exportPdf();
-    };
 
     // --- Adjust Print Margins ---
     const handleAdjust = (newConfig) => {
         setPrintConfig(newConfig);
-        exportPdf();
+        setTempPrintConfig(newConfig);
+        exportPdf(newConfig); // Immediately generate PDF with new config
     };
 
     // --- Import Handler ---
@@ -438,7 +437,6 @@ export default function TechnicianWorkOrderPage() {
                             <Column header="Photo" body={photoBodyTemplate} style={{ width: '100px' }} />
                             <Column field="title" header="Title" sortable />
                             <Column field="description" header="Description" style={{ minWidth: '200px' }} />
-                            {/* ## GUNAKAN TEMPLATE YANG BENAR DI SINI ## */}
                             <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                             <Column field="status" header="Status" body={statusBodyTemplate} sortable />
                             <Column field="created_at" header="Schedule" body={(rowData) => dateBodyTemplate(rowData.created_at)} sortable />
@@ -468,6 +466,7 @@ export default function TechnicianWorkOrderPage() {
             />
 
             <AdjustPrintMarginLaporan
+                key={adjustDialog ? 'open' : 'closed'} // Force re-render
                 adjustDialog={adjustDialog}
                 setAdjustDialog={setAdjustDialog}
                 handleAdjust={handleAdjust}
