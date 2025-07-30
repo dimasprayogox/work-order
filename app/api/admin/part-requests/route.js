@@ -1,13 +1,12 @@
 // api/admin/part-requests/route.js
 import { Axios } from "../../../utils/axios";
+import { API_ENDPOINTS } from "../../api";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
-const PART_REQUESTS_API_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/admin/part-requests` : "http://localhost:3100/api/admin/part-requests";
-
 /**
- * Handler untuk mengambil semua part requests
- * GET /api/admin/part-requests
+ * Handler untuk mengambil semua part requests.
+ * @param {Request} request
  */
 export const GET = async (request) => {
     const token = request.cookies.get("authToken")?.value;
@@ -16,7 +15,7 @@ export const GET = async (request) => {
     }
 
     try {
-        const response = await Axios.get(PART_REQUESTS_API_URL, {
+        const response = await Axios.get(API_ENDPOINTS.ADMIN_PART_REQUESTS, {
             headers: { Authorization: `Bearer ${token}` }
         });
         return NextResponse.json(response.data);
@@ -24,20 +23,14 @@ export const GET = async (request) => {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API ADMIN GET PART REQUESTS]", err);
-        return NextResponse.json(
-            {
-                success: false,
-                message: "Gagal mengambil data part requests."
-            },
-            { status: 500 }
-        );
+        console.error("[API PART REQUESTS GET ALL]", err);
+        return NextResponse.json({ message: "Gagal mengambil data part requests." }, { status: 500 });
     }
 };
 
 /**
- * Handler untuk bulk delete part requests
- * POST /api/admin/part-requests (with delete-many action)
+ * Handler untuk membuat part request baru atau operasi batch.
+ * @param {Request} request
  */
 export const POST = async (request) => {
     const token = request.cookies.get("authToken")?.value;
@@ -48,39 +41,16 @@ export const POST = async (request) => {
     try {
         const body = await request.json();
 
-        // Check if this is a delete-many request
-        if (body.action === "delete-many") {
-            const response = await Axios.post(
-                `${PART_REQUESTS_API_URL}/delete-many`,
-                { ids: body.ids },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json"
-                    }
-                }
-            );
-            return NextResponse.json(response.data);
-        }
-
-        return NextResponse.json(
-            {
-                success: false,
-                message: "Invalid action"
-            },
-            { status: 400 }
-        );
+        // Regular POST for creating new part request
+        const response = await Axios.post(API_ENDPOINTS.ADMIN_PART_REQUESTS, body, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return NextResponse.json(response.data, { status: 201 });
     } catch (err) {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API ADMIN POST PART REQUESTS]", err);
-        return NextResponse.json(
-            {
-                success: false,
-                message: "Gagal memproses request."
-            },
-            { status: 500 }
-        );
+        console.error("[API PART REQUESTS POST]", err);
+        return NextResponse.json({ message: "Gagal memproses request." }, { status: 500 });
     }
 };
