@@ -110,4 +110,38 @@ export const UserController = {
             res.status(500).json({ message: "Failed to delete user", error: err.message });
         }
     },
+
+        // POST /users/delete-many
+    async deleteMany(req, res) {
+        try {
+            const { ids } = req.body;
+
+            if (!ids || !Array.isArray(ids) || ids.length === 0) {
+                return res.status(400).json({
+                    message: "Please provide an array of user IDs to delete",
+                });
+            }
+
+            const deletedCount = await User.query()
+                .delete()
+                .whereIn("id", ids);
+
+            if (deletedCount === 0) {
+                return res.status(404).json({
+                    message: "No users found with the provided IDs",
+                });
+            }
+
+            res.status(200).json({
+                message: `Successfully deleted ${deletedCount} users`,
+                deletedCount,
+            });
+        } catch (err) {
+            console.error("Error in UserController.deleteMany:", err);
+            res.status(500).json({
+                message: "Failed to delete users",
+                error: err.message,
+            });
+        }
+    },
 };
