@@ -10,7 +10,6 @@ import { Column } from "primereact/column";
 import { Tag } from "primereact/tag";
 import { Divider } from "primereact/divider";
 import { useState, useEffect } from "react";
-import { API_ENDPOINTS } from "../../../../api/api";
 
 const PartRequestDetailDialog = ({ visible, onHide, request, fetchPartRequests, showToast }) => {
     const [loading, setLoading] = useState(false);
@@ -59,7 +58,8 @@ const PartRequestDetailDialog = ({ visible, onHide, request, fetchPartRequests, 
                 }))
             };
 
-            const res = await fetch(API_ENDPOINTS.ADMIN_PART_REQUEST_STATUS(request.id), {
+            // Menggunakan API route handler
+            const res = await fetch(`/api/admin/part-requests/${request.id}/status`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
