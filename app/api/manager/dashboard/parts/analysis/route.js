@@ -1,5 +1,5 @@
-import { Axios } from "../../../../../utils/axios"; 
-import { API_ENDPOINTS } from "../../../../api"; 
+import { Axios } from "../../../../../utils/axios";
+import { API_ENDPOINTS } from "../../../../api";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 

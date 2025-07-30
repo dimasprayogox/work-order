@@ -3,9 +3,7 @@ import { Axios } from "../../../../../utils/axios";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
-const PART_REQUESTS_API_URL = process.env.NEXT_PUBLIC_API_URL ?
-    `${process.env.NEXT_PUBLIC_API_URL}/api/admin/part-requests` :
-    "http://localhost:3100/api/admin/part-requests";
+const PART_REQUESTS_API_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/admin/part-requests` : "http://localhost:3100/api/admin/part-requests";
 
 /**
  * Handler untuk update status part request
@@ -23,7 +21,7 @@ export const PATCH = async (request, { params }) => {
         const response = await Axios.patch(`${PART_REQUESTS_API_URL}/${params.id}/status`, body, {
             headers: {
                 Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                "Content-Type": "application/json"
             }
         });
 
@@ -33,9 +31,12 @@ export const PATCH = async (request, { params }) => {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
         console.error("[API ADMIN UPDATE PART REQUEST STATUS]", err);
-        return NextResponse.json({
-            success: false,
-            message: "Gagal mengupdate status part request."
-        }, { status: 500 });
+        return NextResponse.json(
+            {
+                success: false,
+                message: "Gagal mengupdate status part request."
+            },
+            { status: 500 }
+        );
     }
 };

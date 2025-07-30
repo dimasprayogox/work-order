@@ -3,9 +3,7 @@ import { Axios } from "../../../utils/axios";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
-const PART_REQUESTS_API_URL = process.env.NEXT_PUBLIC_API_URL ?
-    `${process.env.NEXT_PUBLIC_API_URL}/api/admin/part-requests` :
-    "http://localhost:3100/api/admin/part-requests";
+const PART_REQUESTS_API_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/admin/part-requests` : "http://localhost:3100/api/admin/part-requests";
 
 /**
  * Handler untuk mengambil semua part requests
@@ -27,10 +25,13 @@ export const GET = async (request) => {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
         console.error("[API ADMIN GET PART REQUESTS]", err);
-        return NextResponse.json({
-            success: false,
-            message: "Gagal mengambil data part requests."
-        }, { status: 500 });
+        return NextResponse.json(
+            {
+                success: false,
+                message: "Gagal mengambil data part requests."
+            },
+            { status: 500 }
+        );
     }
 };
 
@@ -48,32 +49,38 @@ export const POST = async (request) => {
         const body = await request.json();
 
         // Check if this is a delete-many request
-        if (body.action === 'delete-many') {
-            const response = await Axios.post(`${PART_REQUESTS_API_URL}/delete-many`,
+        if (body.action === "delete-many") {
+            const response = await Axios.post(
+                `${PART_REQUESTS_API_URL}/delete-many`,
                 { ids: body.ids },
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+                        "Content-Type": "application/json"
                     }
                 }
             );
             return NextResponse.json(response.data);
         }
 
-        return NextResponse.json({
-            success: false,
-            message: "Invalid action"
-        }, { status: 400 });
-
+        return NextResponse.json(
+            {
+                success: false,
+                message: "Invalid action"
+            },
+            { status: 400 }
+        );
     } catch (err) {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
         console.error("[API ADMIN POST PART REQUESTS]", err);
-        return NextResponse.json({
-            success: false,
-            message: "Gagal memproses request."
-        }, { status: 500 });
+        return NextResponse.json(
+            {
+                success: false,
+                message: "Gagal memproses request."
+            },
+            { status: 500 }
+        );
     }
 };

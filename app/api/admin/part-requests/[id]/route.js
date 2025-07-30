@@ -3,9 +3,7 @@ import { Axios } from "../../../../utils/axios";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
-const PART_REQUESTS_API_URL = process.env.NEXT_PUBLIC_API_URL ?
-    `${process.env.NEXT_PUBLIC_API_URL}/api/admin/part-requests` :
-    "http://localhost:3100/api/admin/part-requests";
+const PART_REQUESTS_API_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/admin/part-requests` : "http://localhost:3100/api/admin/part-requests";
 
 /**
  * Handler untuk menghapus part request berdasarkan ID
@@ -28,9 +26,12 @@ export const DELETE = async (request, { params }) => {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
         console.error("[API ADMIN DELETE PART REQUEST]", err);
-        return NextResponse.json({
-            success: false,
-            message: "Gagal menghapus part request."
-        }, { status: 500 });
+        return NextResponse.json(
+            {
+                success: false,
+                message: "Gagal menghapus part request."
+            },
+            { status: 500 }
+        );
     }
 };

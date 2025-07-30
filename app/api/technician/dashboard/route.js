@@ -13,10 +13,7 @@ export const GET = async (request) => {
         const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
         // Panggil kedua endpoint secara bersamaan (paralel)
-        const [overviewResponse, overdueResponse] = await Promise.all([
-            Axios.get(API_ENDPOINTS.GET_TECHNICIAN_DASHBOARD_OVERVIEW, authHeader),
-            Axios.get(API_ENDPOINTS.GET_TECHNICIAN_OVERDUE_WORK_ORDERS, authHeader)
-        ]);
+        const [overviewResponse, overdueResponse] = await Promise.all([Axios.get(API_ENDPOINTS.GET_TECHNICIAN_DASHBOARD_OVERVIEW, authHeader), Axios.get(API_ENDPOINTS.GET_TECHNICIAN_OVERDUE_WORK_ORDERS, authHeader)]);
 
         // Gabungkan hasilnya menjadi satu objek
         const responseData = {
@@ -25,7 +22,6 @@ export const GET = async (request) => {
         };
 
         return NextResponse.json(responseData);
-
     } catch (err) {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });

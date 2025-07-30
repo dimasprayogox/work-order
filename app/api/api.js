@@ -69,5 +69,5 @@ export const API_ENDPOINTS = {
     EMPLOYEE_MY_ISSUES: `${API_URL}/employee/issues/my-issues`,
     EMPLOYEE_ISSUES: `${API_URL}/employee/issues`,
     EMPLOYEE_ISSUE_BY_ID: (id) => `${API_URL}/employee/issues/${id}`,
-    EMPLOYEE_AVAILABLE_MACHINES: `${API_URL}/employee/machines/available`,
+    EMPLOYEE_AVAILABLE_MACHINES: `${API_URL}/employee/machines/available`
 };
