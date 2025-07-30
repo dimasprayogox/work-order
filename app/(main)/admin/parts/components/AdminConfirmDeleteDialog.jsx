@@ -2,7 +2,6 @@
 
 import { Dialog } from "primereact/dialog";
 import { Button } from "primereact/button";
-import { API_ENDPOINTS } from "../../../../api/api";
 import { useState } from "react";
 
 const AdminConfirmDeleteDialog = ({ visible, onHide, part, selectedParts = [], fetchParts, showToast }) => {
@@ -18,7 +17,7 @@ const AdminConfirmDeleteDialog = ({ visible, onHide, part, selectedParts = [], f
 
             if (isBulkDelete) {
                 // Bulk delete using the delete-many endpoint
-                res = await fetch(API_ENDPOINTS.ADMIN_PARTS_DELETE_MANY, {
+                res = await fetch("/api/admin/parts/delete-many", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
@@ -30,8 +29,8 @@ const AdminConfirmDeleteDialog = ({ visible, onHide, part, selectedParts = [], f
                 });
                 successMessage = `${selectedParts.length} part berhasil dihapus`;
             } else {
-                // Single delete
-                res = await fetch(API_ENDPOINTS.ADMIN_PARTS_BY_ID(part.id), {
+                // Single delete - menggunakan API route handler yang baru
+                res = await fetch(`/api/admin/parts/${part.id}`, {
                     method: "DELETE",
                     credentials: "include"
                 });
@@ -39,7 +38,7 @@ const AdminConfirmDeleteDialog = ({ visible, onHide, part, selectedParts = [], f
             }
 
             const data = await res.json();
-            
+
             if (res.ok && data.success) {
                 showToast("success", "Berhasil", data.message || successMessage);
                 fetchParts();
@@ -56,20 +55,20 @@ const AdminConfirmDeleteDialog = ({ visible, onHide, part, selectedParts = [], f
 
     const footerContent = (
         <div className="flex justify-content-center gap-2">
-            <Button 
-                label="Batal" 
-                icon="pi pi-times" 
-                severity="secondary" 
-                outlined 
-                onClick={onHide} 
-                disabled={loading} 
+            <Button
+                label="Batal"
+                icon="pi pi-times"
+                severity="secondary"
+                outlined
+                onClick={onHide}
+                disabled={loading}
             />
-            <Button 
-                label="Ya, Hapus" 
-                icon="pi pi-trash" 
-                severity="danger" 
-                onClick={handleDelete} 
-                loading={loading} 
+            <Button
+                label="Ya, Hapus"
+                icon="pi pi-trash"
+                severity="danger"
+                onClick={handleDelete}
+                loading={loading}
             />
         </div>
     );
@@ -97,12 +96,12 @@ const AdminConfirmDeleteDialog = ({ visible, onHide, part, selectedParts = [], f
     const deleteInfo = getDeleteMessage();
 
     return (
-        <Dialog 
-            header="Konfirmasi Hapus" 
-            visible={visible} 
-            onHide={onHide} 
-            modal 
-            style={{ width: "28rem" }} 
+        <Dialog
+            header="Konfirmasi Hapus"
+            visible={visible}
+            onHide={onHide}
+            modal
+            style={{ width: "28rem" }}
             footer={footerContent}
         >
             <div className="flex flex-column align-items-center text-center gap-4 py-4">
