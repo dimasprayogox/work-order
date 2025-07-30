@@ -33,6 +33,7 @@ const PartPDFPrintDialog = ({
         onlySelected: false
     });
 
+    // PERBAIKAN: Menambahkan 'defaultSelectedColumns' dan 'selectedData' ke dependency array
     useEffect(() => {
         if (visible) {
             setForm({
@@ -42,7 +43,7 @@ const PartPDFPrintDialog = ({
                 onlySelected: selectedData.length > 0
             });
         }
-    }, [visible]);
+    }, [visible, defaultSelectedColumns, selectedData]);
 
     const handleChange = (key, value) => {
         setForm((prev) => ({ ...prev, [key]: value }));
@@ -114,13 +115,14 @@ const PartPDFPrintDialog = ({
                         inputId="onlySelected"
                         checked={form.onlySelected}
                         onChange={(e) => handleChange("onlySelected", e.checked)}
+                        disabled={selectedData.length === 0} // Disable if no data is selected
                     />
                     <label htmlFor="onlySelected" className="ml-2">Print only selected data</label>
                 </div>
             </div>
 
             {/* Footer Buttons */}
-            <div className="flex justify-end gap-2 mt-4">
+            <div className="flex justify-content-end gap-2 mt-4">
                 <Button label="Cancel" icon="pi pi-times" onClick={onHide} className="p-button-text" />
                 <Button label="Print" icon="pi pi-print" onClick={handleSubmit} />
             </div>

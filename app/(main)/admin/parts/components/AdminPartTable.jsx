@@ -4,7 +4,7 @@ import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { FilterMatchMode } from "primereact/api";
 import { ConfirmDialog } from "primereact/confirmdialog";
 
@@ -26,14 +26,14 @@ const AdminPartTable = ({
   useEffect(() => {
     setGlobalFilterValue(searchText);
     onGlobalFilterChange(searchText);
-  }, [searchText]);
+  }, [searchText, onGlobalFilterChange]);
 
-  const onGlobalFilterChange = (value) => {
+  const onGlobalFilterChange = useCallback((value) => {
     const _filters = { ...filters };
     _filters["global"].value = value;
     setFilters(_filters);
     onSearch(value);
-  };
+  },[filters, onSearch]);
 
   const handleSelectionChange = (e) => {
     onSelectionChange(e.value);

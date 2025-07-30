@@ -6,7 +6,7 @@ import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { Tag } from "primereact/tag";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { FilterMatchMode } from "primereact/api";
 
 const PartRequestTable = ({
@@ -27,14 +27,14 @@ const PartRequestTable = ({
     useEffect(() => {
         setGlobalFilterValue(searchText);
         onGlobalFilterChange(searchText);
-    }, [searchText]);
+    }, [searchText, onGlobalFilterChange]);
 
-    const onGlobalFilterChange = (value) => {
+    const onGlobalFilterChange = useCallback((value) => {
         let _filters = { ...filters };
         _filters["global"].value = value;
         setFilters(_filters);
         onSearch(value);
-    };
+    }, [filters, onSearch]);
 
     const handleSelectionChange = (e) => {
         onSelectionChange(e.value);

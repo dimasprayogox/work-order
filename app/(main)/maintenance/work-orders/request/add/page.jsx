@@ -1,4 +1,3 @@
-// app/work-request/add/page.jsx
 "use client";
 
 import React, { useState, useRef, useCallback } from "react";
@@ -12,6 +11,42 @@ import { motion } from "framer-motion";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
 
+// PERBAIKAN: Ubah nama komponen dari NewRequestDialog menjadi AddWorkOrderPage
+// dan hapus props yang tidak bisa diterima oleh komponen halaman.
+export default function AddWorkOrderPage() {
+    // State untuk mengontrol visibilitas dialog
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const toastRef = useRef(null); // Pindahkan Toast ke sini jika diperlukan
+
+    // Fungsi showToast sekarang didefinisikan di sini
+    const showToast = useCallback((severity, summary, detail) => {
+        // Implementasi toast Anda, misalnya:
+        // toastRef.current.show({ severity, summary, detail });
+        console.log(`Toast: ${severity} - ${summary}: ${detail}`);
+    }, []);
+
+    // Fungsi fetchWorkRequests sekarang didefinisikan di sini
+    const fetchWorkRequests = useCallback(() => {
+        console.log("Fetching work requests...");
+    }, []);
+
+    return (
+        <div className="p-4">
+            {/* <Toast ref={toastRef} /> */}
+            <Button label="Buat Permintaan Baru" icon="pi pi-plus" onClick={() => setIsDialogOpen(true)} />
+
+            <NewRequestDialog
+                visible={isDialogOpen}
+                onHide={() => setIsDialogOpen(false)}
+                fetchWorkRequests={fetchWorkRequests}
+                showToast={showToast}
+            />
+        </div>
+    );
+}
+
+
+// Komponen Dialog tetap sama, tetapi tidak lagi diekspor sebagai default
 const NewRequestDialog = ({ visible, onHide, fetchWorkRequests, showToast }) => {
     const [loadingSubmitRequest, setLoadingSubmitRequest] = useState(false);
     const [machines, setMachines] = useState([]);
@@ -25,6 +60,7 @@ const NewRequestDialog = ({ visible, onHide, fetchWorkRequests, showToast }) => 
     const fileInputRef = useRef(null);
     const [isHovering, setIsHovering] = useState(false);
 
+    // PERBAIKAN: Bungkus fetchMachines dengan useCallback
     const fetchMachines = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/employee/machines/available`, {
@@ -114,6 +150,7 @@ const NewRequestDialog = ({ visible, onHide, fetchWorkRequests, showToast }) => 
         }
     };
 
+    // PERBAIKAN: Tambahkan fetchMachines ke dependency array
     React.useEffect(() => {
         if (visible) {
             fetchMachines();
@@ -192,5 +229,3 @@ const NewRequestDialog = ({ visible, onHide, fetchWorkRequests, showToast }) => 
         </Dialog>
     );
 };
-
-export default NewRequestDialog;

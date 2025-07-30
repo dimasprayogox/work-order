@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Toast } from "primereact/toast";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
@@ -67,11 +67,11 @@ const PartPage = () => {
         { header: "Location", value: "location" }
     ];
 
-    // --- Core Functions ---
+       const showToast = useCallback((sev, sum, det) => {
+        toast.current?.show({ severity: sev, summary: sum, detail: det });
+    }, [])
 
-    const showToast = (sev, sum, det) => toast.current?.show({ severity: sev, summary: sum, detail: det });
-
-    const fetchParts = async () => {
+    const fetchParts = useCallback(async () => {
         setLoading(true);
         try {
             const res = await fetch(API_ENDPOINTS.PARTS, { credentials: "include" });
@@ -82,11 +82,11 @@ const PartPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [showToast]);
 
     useEffect(() => {
         fetchParts();
-    }, []);
+    }, [fetchParts]);
 
     const handleImport = async (e) => {
         const file = e.target.files?.[0];

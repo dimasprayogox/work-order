@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react"; // 1. Import useCallback
 import { Dialog } from "primereact/dialog";
 import { Dropdown } from "primereact/dropdown";
 import { Button } from "primereact/button";
@@ -26,19 +26,8 @@ export default function DelegateTechnicianDialog({
     });
     const [formErrors, setFormErrors] = useState({});
 
-    useEffect(() => {
-        if (visible) {
-            fetchTechnicians();
-            setFormData({
-                assigned_to_id: workOrder?.assigned_to_id || "",
-                scheduled_date: workOrder?.scheduled_date ? new Date(workOrder.scheduled_date) : null,
-                notes: workOrder?.notes || ""
-            });
-            setFormErrors({});
-        }
-    }, [visible, workOrder]);
-
-    const fetchTechnicians = async () => {
+    // 2. Bungkus fetchTechnicians dengan useCallback
+    const fetchTechnicians = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/manager/technicians/available`, {
                 credentials: "include"
@@ -50,9 +39,24 @@ export default function DelegateTechnicianDialog({
                 throw new Error(result.message || "Gagal mengambil daftar teknisi yang tersedia");
             }
         } catch (error) {
+            // Pastikan showToast adalah fungsi yang stabil (dibungkus useCallback di parent)
+            // atau tambahkan ke dependency array jika tidak.
             showToast("error", "Error", error.message);
         }
-    };
+    }, [showToast]); // `showToast` adalah dependensi dari fungsi ini
+
+    // 3. Tambahkan fetchTechnicians ke dependency array
+    useEffect(() => {
+        if (visible) {
+            fetchTechnicians();
+            setFormData({
+                assigned_to_id: workOrder?.assigned_to_id || "",
+                scheduled_date: workOrder?.scheduled_date ? new Date(workOrder.scheduled_date) : null,
+                notes: workOrder?.notes || ""
+            });
+            setFormErrors({});
+        }
+    }, [visible, workOrder, fetchTechnicians]); // <-- fetchTechnicians ditambahkan di sini
 
     const validateForm = () => {
         const errors = {};
