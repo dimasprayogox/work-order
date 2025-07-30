@@ -1,14 +1,12 @@
-import { Axios } from "../../../../utils/axios";
+// api/admin/users/delete-many/route.js
+import { Axios } from "../../../../utils/axios"; // Sesuaikan path jika perlu
+import { API_ENDPOINTS } from "../../../api";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
-const USERS_API_URL = process.env.NEXT_PUBLIC_API_URL ?
-    `${process.env.NEXT_PUBLIC_API_URL}/api/admin/users/delete-many` :
-    "http://localhost:3100/api/admin/users/delete-many";
-
 /**
- * Handler untuk menghapus multiple users sekaligus.
- * POST /api/admin/users/delete-many
+ * Handler untuk menghapus multiple users.
+ * @param {Request} request
  */
 export const POST = async (request) => {
     const token = request.cookies.get("authToken")?.value;
@@ -18,23 +16,15 @@ export const POST = async (request) => {
 
     try {
         const body = await request.json();
-
-        const response = await Axios.post(USERS_API_URL, body, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
+        const response = await Axios.post(API_ENDPOINTS.DELETE_USERS_MANY, body, {
+            headers: { Authorization: `Bearer ${token}` }
         });
-
         return NextResponse.json(response.data);
     } catch (err) {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API ADMIN DELETE MANY USERS]", err);
-        return NextResponse.json({
-            success: false,
-            message: "Gagal menghapus users."
-        }, { status: 500 });
+        console.error("[API USERS DELETE MANY]", err);
+        return NextResponse.json({ message: "Gagal menghapus users." }, { status: 500 });
     }
 };
