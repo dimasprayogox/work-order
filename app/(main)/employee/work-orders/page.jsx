@@ -1,12 +1,10 @@
-// app/employee/work-order/page.jsx
-
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
-import { Dialog } from "primereact/dialog"; 
+import { Dialog } from "primereact/dialog";
 import { Divider } from "primereact/divider";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
@@ -19,12 +17,10 @@ import { motion } from "framer-motion";
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 
 import WorkOrderEditModal from "./components/WorkOrderEditModal";
-import WorkOrderAddModal from "./components/WorkOrderAddModal"; 
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
+import WorkOrderAddModal from "./components/WorkOrderAddModal";
 
 const statusBodyTemplate = (rowData) => {
-    let severity = "info"; // Default
+    let severity = "info";
     let icon = "";
     let displayText = "";
 
@@ -32,16 +28,16 @@ const statusBodyTemplate = (rowData) => {
         case "open":
             severity = "danger";
             icon = "pi pi-exclamation-circle";
-            displayText = "Pending"; // Ubah dari "Open" menjadi "Pending"
+            displayText = "Pending";
             break;
         case "in_progress":
             severity = "info";
-            icon = "pi pi-spin pi-spinner"; // Ikon loading
+            icon = "pi pi-spin pi-spinner";
             displayText = "In Progress";
             break;
         case "resolved":
             severity = "success";
-            icon = "pi pi-check-circle"; // Ikon centang
+            icon = "pi pi-check-circle";
             displayText = "Resolved";
             break;
         case "closed":
@@ -58,7 +54,6 @@ const statusBodyTemplate = (rowData) => {
     return (
         <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
             <Tag
-                // Menggunakan span untuk menggabungkan ikon dan teks
                 value={<span className="flex align-items-center gap-1"><i className={icon}></i> {displayText}</span>}
                 severity={severity}
                 className="font-medium"
@@ -107,8 +102,8 @@ const WorkOrderPage = () => {
     const [selectedRequests, setSelectedRequests] = useState([]);
     const [machines, setMachines] = useState([]);
 
-    const [status, setStatus] = useState("");
-    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("");
+    const [searchText, setSearchText] = useState("");
 
     const showToast = useCallback((severity, summary, detail) => {
         toast.current.show({
@@ -126,7 +121,7 @@ const WorkOrderPage = () => {
     const fetchMyWorkRequests = useCallback(async () => {
         setLoadingWorkRequests(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/employee/issues`, {
+            const response = await fetch(`/api/employee/issues`, {
                 method: "GET",
                 credentials: "include"
             });
@@ -148,7 +143,7 @@ const WorkOrderPage = () => {
 
     const fetchMachines = useCallback(async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/employee/machines/available`, {
+            const response = await fetch(`/api/employee/machines/available`, {
                 method: "GET",
                 credentials: "include"
             });
@@ -174,8 +169,8 @@ const WorkOrderPage = () => {
 
 
     const filteredData = myWorkRequests.filter((item) => {
-        const matchesStatus = status === "" || item.status.toLowerCase() === status.toLowerCase();
-        const matchesSearch = search === "" || item.title.toLowerCase().includes(search.toLowerCase()) || (item.description && item.description.toLowerCase().includes(search.toLowerCase()));
+        const matchesStatus = statusFilter === "" || item.status.toLowerCase() === statusFilter.toLowerCase();
+        const matchesSearch = searchText === "" || item.title.toLowerCase().includes(searchText.toLowerCase()) || (item.description && item.description.toLowerCase().includes(searchText.toLowerCase()));
         return matchesStatus && matchesSearch;
     });
 
@@ -191,8 +186,9 @@ const WorkOrderPage = () => {
             icon: 'pi pi-exclamation-triangle',
             acceptClassName: 'p-button-danger',
             accept: async () => {
+                setLoading(true);
                 try {
-                    const response = await fetch(`${API_BASE_URL}/employee/issues/${rowData.id}`, {
+                    const response = await fetch(`/api/employee/issues/${rowData.id}`, {
                         method: "DELETE",
                         credentials: "include"
                     });
@@ -207,6 +203,8 @@ const WorkOrderPage = () => {
                 } catch (error) {
                     console.error("Error deleting work order:", error);
                     showToast("error", "Error", `Failed to delete work order: ${error.message}`);
+                } finally {
+                    setLoading(false);
                 }
             },
             reject: () => {
@@ -227,9 +225,10 @@ const WorkOrderPage = () => {
             icon: 'pi pi-exclamation-triangle',
             acceptClassName: 'p-button-danger',
             accept: async () => {
+                setLoading(true);
                 try {
                     const deletePromises = selectedRequests.map(request =>
-                        fetch(`${API_BASE_URL}/employee/issues/${request.id}`, {
+                        fetch(`/api/employee/issues/${request.id}`, {
                             method: "DELETE",
                             credentials: "include"
                         })
@@ -251,6 +250,8 @@ const WorkOrderPage = () => {
                 } catch (error) {
                     console.error("Error during bulk delete:", error);
                     showToast("error", "Error", `Failed to perform bulk deletion: ${error.message}`);
+                } finally {
+                    setLoading(false);
                 }
             },
             reject: () => {
@@ -270,6 +271,7 @@ const WorkOrderPage = () => {
                     tooltip="Edit"
                     tooltipOptions={{ position: 'left' }}
                     onClick={() => handleEditWorkOrder(rowData)}
+                    disabled={loading}
                 />
                 <Button
                     icon="pi pi-trash"
@@ -279,6 +281,7 @@ const WorkOrderPage = () => {
                     tooltip="Delete"
                     tooltipOptions={{ position: 'right' }}
                     onClick={() => handleDeleteWorkOrder(rowData)}
+                    disabled={loading} 
                 />
             </div>
         );
@@ -295,23 +298,22 @@ const WorkOrderPage = () => {
             <ConfirmDialog />
 
             <div className="card">
-                <h3>Work Order Page</h3>
+                <h3>Halaman Work Order Saya</h3>
 
-                <div className="flex flex-row gap-2">
-                    <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
-                    <Button size="small" label="New" icon="pi pi-plus" outlined severity="success" onClick={() => setAddWorkOrderDialogVisible(true)} />
+                <div className="flex flex-wrap gap-2 mb-4 items-center">
+                    <Button size="small" label="Buat Permintaan Baru" icon="pi pi-plus" outlined severity="success" onClick={() => setAddWorkOrderDialogVisible(true)} />
                     <Divider layout="vertical" />
-                    <Button size="small" label="Import" icon="pi pi-file-import" outlined />
-                    <Button size="small" label="Export" icon="pi pi-file-export" outlined />
-                    <Button size="small" label="Print" icon="pi pi-print" outlined />
+                    <Button size="small" label="Impor" icon="pi pi-file-import" outlined disabled />
+                    <Button size="small" label="Ekspor" icon="pi pi-file-export" outlined disabled />
+                    <Button size="small" label="Cetak" icon="pi pi-print" outlined disabled />
                     <Divider layout="vertical" />
-                    <Button size="small" label="Delete" icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedRequests.length === 0} />
+                    <Button size="small" label="Hapus Terpilih" icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedRequests.length === 0 || loading} />
                     <Divider layout="vertical" />
-                    <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={fetchMyWorkRequests} />
+                    <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={fetchMyWorkRequests} disabled={loadingWorkRequests || loading} />
                 </div>
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-6">
-                    <Panel>
+                    <Panel header="Daftar Permintaan Work Order Saya">
                         {loadingWorkRequests ? (
                             <div className="flex justify-content-center py-6">
                                 <ProgressSpinner />
@@ -325,26 +327,26 @@ const WorkOrderPage = () => {
                                 paginator
                                 rows={10}
                                 loading={loadingWorkRequests}
-                                emptyMessage="You haven't submitted any work requests yet."
+                                emptyMessage="Anda belum mengirim permintaan work order."
                                 className="border-round-lg"
                                 rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
                                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} requests"
+                                currentPageReportTemplate="Menampilkan {first} sampai {last} dari {totalRecords} permintaan"
                                 rowsPerPageOptions={[5, 10, 25]}
                                 header={
                                     <div className="flex align-items-center justify-content-between gap-2">
                                         <div>
-                                            <span className="text-xl font-bold mr-3">Work Requests</span>
-                                            <Dropdown placeholder="Filter Status" value={status} options={["", "open", "in_progress", "resolved", "closed"]} onChange={(e) => setStatus(e.value)} />
+                                            <span className="text-xl font-bold mr-3">Permintaan Work Order</span>
+                                            <Dropdown placeholder="Filter Status" value={statusFilter} options={["", "open", "in_progress", "resolved", "closed"]} onChange={(e) => setStatusFilter(e.value)} />
                                         </div>
-                                        <InputText placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} />
+                                        <InputText placeholder="Cari" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
                                     </div>
                                 }
                             >
                                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
                                 <Column
                                     field="title"
-                                    header="Issue Title"
+                                    header="Judul Isu"
                                     style={{ width: "200px" }}
                                     body={(rowData) => (
                                         <motion.div whileHover={{ x: 5 }} className="font-medium text-blue-600">
@@ -354,7 +356,7 @@ const WorkOrderPage = () => {
                                 />
                                 <Column
                                     field="description"
-                                    header="Description"
+                                    header="Deskripsi"
                                     body={(rowData) => (
                                         <>
                                             <Tooltip target=".description-tooltip" position="bottom" />
@@ -374,11 +376,11 @@ const WorkOrderPage = () => {
                                         </>
                                     )}
                                 />
-                                <Column field="machine.name" header="Machine" body={(rowData) => <Tag value={rowData.machine?.name} className="bg-gray-100 text-gray-800 font-medium" />} />
+                                <Column field="machine.name" header="Mesin" body={(rowData) => <Tag value={rowData.machine?.name} className="bg-gray-100 text-gray-800 font-medium" />} />
                                 <Column field="status" header="Status" body={statusBodyTemplate} sortable />
-                                <Column header="Photo" body={photoBodyTemplate} />
-                                <Column field="created_at" header="Submitted" body={dateBodyTemplate} />
-                                <Column header="Actions" body={actionBodyTemplate} alignFrozen="right" frozen />
+                                <Column header="Foto" body={photoBodyTemplate} />
+                                <Column field="created_at" header="Dikirim" body={dateBodyTemplate} />
+                                <Column header="Aksi" body={actionBodyTemplate} alignFrozen="right" frozen />
                             </DataTable>
                         )}
                     </Panel>
@@ -389,7 +391,7 @@ const WorkOrderPage = () => {
                     onHide={() => setAddWorkOrderDialogVisible(false)}
                     machines={machines}
                     onAddSuccess={() => {
-                        showToast("success", "Success", "Work order created successfully.");
+                        showToast("success", "Berhasil", "Permintaan work order berhasil dibuat.");
                         fetchMyWorkRequests();
                     }}
                     showToast={showToast}
@@ -404,7 +406,7 @@ const WorkOrderPage = () => {
                     workOrder={selectedWorkOrder}
                     machines={machines}
                     onUpdateSuccess={() => {
-                        showToast("success", "Success", "Work order updated successfully.");
+                        showToast("success", "Berhasil", "Permintaan work order berhasil diperbarui.");
                         fetchMyWorkRequests();
                     }}
                     showToast={showToast}

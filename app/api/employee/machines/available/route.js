@@ -10,7 +10,7 @@ export const GET = async (request) => {
     }
 
     try {
-        const response = await Axios.get(API_ENDPOINTS.MANAGER_PARTS_ANALYSIS, {
+        const response = await Axios.get(API_ENDPOINTS.EMPLOYEE_AVAILABLE_MACHINES, {
             headers: { Authorization: `Bearer ${token}` }
         });
         return NextResponse.json(response.data);
@@ -18,7 +18,7 @@ export const GET = async (request) => {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API MANAGER PARTS ANALYSIS PROXY]", err);
-        return NextResponse.json({ message: "Gagal mengambil data analisis suku cadang manajer." }, { status: 500 });
+        console.error("[API EMPLOYEE AVAILABLE MACHINES PROXY]", err);
+        return NextResponse.json({ message: "Gagal mengambil daftar mesin yang tersedia." }, { status: 500 });
     }
 };
