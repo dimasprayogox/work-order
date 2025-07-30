@@ -134,19 +134,24 @@ export const MachineController = {
         }
     },
 
+    // DELETE /machines/delete-many
     async destroyMany(req, res) {
         try {
             const { ids } = req.body;
-            
+
+            // Validasi input
             if (!ids || !Array.isArray(ids) || ids.length === 0) {
                 return res.status(400).json({
                     success: false,
-                    message: 'IDs array is required and cannot be empty'
+                    message: 'Please provide an array of machine IDs to delete'
                 });
             }
 
-            const deletedCount = await Machine.query().deleteByIds(ids);
-            
+            // Eksekusi penghapusan
+            const deletedCount = await Machine.query()
+                .delete()
+                .whereIn('id', ids);
+
             if (deletedCount === 0) {
                 return res.status(404).json({
                     success: false,
@@ -154,14 +159,15 @@ export const MachineController = {
                 });
             }
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
-                message: `${deletedCount} machines deleted successfully`,
-                data: { deletedCount, ids }
+                message: `Successfully deleted ${deletedCount} machines`,
+                deletedCount
             });
+
         } catch (err) {
             console.error("Error in MachineController.destroyMany:", err);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: 'Failed to delete machines',
                 error: err.message,
@@ -171,7 +177,7 @@ export const MachineController = {
     
     async getAvailableMachines(req, res) {
         try {
-            
+
             const machines = await Machine.query().select('id', 'name', 'status');
             res.json({ success: true, message: 'Fetched available machines', data: machines });
         } catch (err) {
