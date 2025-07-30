@@ -14,5 +14,6 @@ router.get('/:id', UserController.show);       // Get one user
 router.post('/', UserController.store);        // Create new user
 router.patch('/:id', UserController.update);     // Update user
 router.delete('/:id', UserController.destroy); // Delete user
+router.post('/delete-many', UserController.deleteMany); // Bulk delete users
 
 export default router;
