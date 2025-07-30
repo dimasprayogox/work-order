@@ -64,4 +64,10 @@ export const API_ENDPOINTS = {
     MANAGER_SCHEDULE_BY_ID: (id) => `${API_URL}/manager/schedules/${id}`,
     MANAGER_PARTS_ANALYSIS: `${API_URL}/manager/dashboard/parts/analysis`,
     MANAGER_ASSIGN_TECHNICIAN: (id) => `${API_URL}/manager/work-orders/${id}/assign-technician`,
+
+    // --- Employee Endpoints ---
+    EMPLOYEE_MY_ISSUES: `${API_URL}/employee/issues/my-issues`,
+    EMPLOYEE_ISSUES: `${API_URL}/employee/issues`,
+    EMPLOYEE_ISSUE_BY_ID: (id) => `${API_URL}/employee/issues/${id}`,
+    EMPLOYEE_AVAILABLE_MACHINES: `${API_URL}/employee/machines/available`,
 };
