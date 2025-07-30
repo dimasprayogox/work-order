@@ -12,5 +12,7 @@ router.get('/:id', MachineController.show);       // Get single machine
 router.post('/', MachineController.store);        // Create machine
 router.patch('/:id', MachineController.update);     // Update machine
 router.delete('/:id', MachineController.destroy); // Delete machine
+router.post('/delete-many', MachineController.destroyMany);
+
 
 export default router;
