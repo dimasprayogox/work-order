@@ -41,16 +41,6 @@ export const POST = async (request) => {
     try {
         const body = await request.json();
 
-        // Check if this is a batch delete operation
-        if (body.action === 'delete-many' && body.ids) {
-            const response = await Axios.post(API_ENDPOINTS.ADMIN_PART_REQUEST_DELETE_MANY, {
-                ids: body.ids
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            return NextResponse.json(response.data);
-        }
-
         // Regular POST for creating new part request
         const response = await Axios.post(API_ENDPOINTS.ADMIN_PART_REQUESTS, body, {
             headers: { Authorization: `Bearer ${token}` }
