@@ -6,7 +6,6 @@ import { Dropdown } from "primereact/dropdown";
 import { Button } from "primereact/button";
 import { classNames } from "primereact/utils";
 import { useState, useEffect } from "react";
-import { API_ENDPOINTS } from "../../../../api/api";
 
 const MachineFormDialog = ({ visible, onHide, machine, categories, fetchMachines, showToast }) => {
     const [form, setForm] = useState({
@@ -66,7 +65,7 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, fetchMachines
         setLoading(true);
         try {
             const res = await fetch(
-                machine ? `${API_ENDPOINTS.MACHINES}/${machine.id}` : API_ENDPOINTS.MACHINES,
+                machine ? `/api/admin/machines/${machine.id}` : "/api/admin/machines",
                 {
                     method: machine ? "PATCH" : "POST",
                     headers: { "Content-Type": "application/json" },

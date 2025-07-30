@@ -1,15 +1,12 @@
 // api/admin/machines/delete-many/route.js
-import { Axios } from "../../../../utils/axios";
+import { Axios } from "../../../../utils/axios"; // Sesuaikan path jika perlu
+import { API_ENDPOINTS } from "../../../api";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
-const MACHINES_API_URL = process.env.NEXT_PUBLIC_API_URL ?
-    `${process.env.NEXT_PUBLIC_API_URL}/api/admin/machines` :
-    "http://localhost:3100/api/admin/machines";
-
 /**
- * Handler untuk menghapus banyak machines sekaligus.
- * POST /api/admin/machines/delete-many
+ * Handler untuk menghapus multiple machines.
+ * @param {Request} request
  */
 export const POST = async (request) => {
     const token = request.cookies.get("authToken")?.value;
@@ -19,23 +16,15 @@ export const POST = async (request) => {
 
     try {
         const body = await request.json();
-
-        const response = await Axios.post(`${MACHINES_API_URL}/delete-many`, body, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
+        const response = await Axios.post(API_ENDPOINTS.DELETE_MANY_MACHINES, body, {
+            headers: { Authorization: `Bearer ${token}` }
         });
-
         return NextResponse.json(response.data);
     } catch (err) {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API ADMIN DELETE MANY MACHINES]", err);
-        return NextResponse.json({
-            success: false,
-            message: "Gagal menghapus mesin yang dipilih."
-        }, { status: 500 });
+        console.error("[API MACHINES DELETE MANY]", err);
+        return NextResponse.json({ message: "Gagal menghapus mesin." }, { status: 500 });
     }
 };

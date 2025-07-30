@@ -1,13 +1,8 @@
-// api/admin/users/route.js
-import { Axios } from "../../../utils/axios"; // Sesuaikan path jika perlu
+import { Axios } from "../../../utils/axios";
 import { API_ENDPOINTS } from "../../api";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
-/**
- * Handler untuk mengambil semua users.
- * @param {Request} request
- */
 export const GET = async (request) => {
     const token = request.cookies.get("authToken")?.value;
     if (!token) {
@@ -15,7 +10,7 @@ export const GET = async (request) => {
     }
 
     try {
-        const response = await Axios.get(API_ENDPOINTS.USERS, {
+        const response = await Axios.get(API_ENDPOINTS.EMPLOYEE_ISSUES, {
             headers: { Authorization: `Bearer ${token}` }
         });
         return NextResponse.json(response.data);
@@ -23,15 +18,11 @@ export const GET = async (request) => {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API USERS GET ALL]", err);
-        return NextResponse.json({ message: "Gagal mengambil data user." }, { status: 500 });
+        console.error("[API EMPLOYEE ISSUES GET PROXY]", err);
+        return NextResponse.json({ message: "Gagal mengambil daftar isu." }, { status: 500 });
     }
 };
 
-/**
- * Handler untuk membuat user baru.
- * @param {Request} request
- */
 export const POST = async (request) => {
     const token = request.cookies.get("authToken")?.value;
     if (!token) {
@@ -40,15 +31,15 @@ export const POST = async (request) => {
 
     try {
         const body = await request.json();
-        const response = await Axios.post(API_ENDPOINTS.USERS, body, {
+        const response = await Axios.post(API_ENDPOINTS.EMPLOYEE_ISSUES, body, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        return NextResponse.json(response.data, { status: 201 });
+        return NextResponse.json(response.data, { status: response.status });
     } catch (err) {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API USERS POST]", err);
-        return NextResponse.json({ message: "Gagal membuat user." }, { status: 500 });
+        console.error("[API EMPLOYEE ISSUES POST PROXY]", err);
+        return NextResponse.json({ message: "Gagal membuat isu baru." }, { status: 500 });
     }
 };

@@ -1,22 +1,16 @@
-// api/admin/users/delete-many/route.js
-import { Axios } from "../../../../utils/axios"; // Sesuaikan path jika perlu
+import { Axios } from "../../../../utils/axios";
 import { API_ENDPOINTS } from "../../../api";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
-/**
- * Handler untuk menghapus multiple users.
- * @param {Request} request
- */
-export const POST = async (request) => {
+export const GET = async (request) => {
     const token = request.cookies.get("authToken")?.value;
     if (!token) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     try {
-        const body = await request.json();
-        const response = await Axios.post(API_ENDPOINTS.DELETE_USERS_MANY, body, {
+        const response = await Axios.get(API_ENDPOINTS.EMPLOYEE_MY_ISSUES, {
             headers: { Authorization: `Bearer ${token}` }
         });
         return NextResponse.json(response.data);
@@ -24,7 +18,7 @@ export const POST = async (request) => {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API USERS DELETE MANY]", err);
-        return NextResponse.json({ message: "Gagal menghapus users." }, { status: 500 });
+        console.error("[API EMPLOYEE DASHBOARD MY ISSUES PROXY]", err);
+        return NextResponse.json({ message: "Gagal mengambil data isu karyawan." }, { status: 500 });
     }
 };

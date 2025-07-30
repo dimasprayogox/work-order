@@ -1,14 +1,13 @@
-import { Axios } from "../../../../utils/axios";
+// api/admin/users/[id]/route.js
+import { Axios } from "../../../../utils/axios"; // Sesuaikan path jika perlu
+import { API_ENDPOINTS } from "../../../api";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
-const USERS_API_URL = process.env.NEXT_PUBLIC_API_URL ?
-    `${process.env.NEXT_PUBLIC_API_URL}/api/admin/users` :
-    "http://localhost:3100/api/admin/users";
-
 /**
- * Handler untuk mengambil data user berdasarkan ID.
- * GET /api/admin/users/[id]
+ * Handler untuk mengambil user berdasarkan ID.
+ * @param {Request} request
+ * @param {Object} params
  */
 export const GET = async (request, { params }) => {
     const token = request.cookies.get("authToken")?.value;
@@ -17,7 +16,8 @@ export const GET = async (request, { params }) => {
     }
 
     try {
-        const response = await Axios.get(`${USERS_API_URL}/${params.id}`, {
+        const { id } = params;
+        const response = await Axios.get(API_ENDPOINTS.USER_BY_ID(id), {
             headers: { Authorization: `Bearer ${token}` }
         });
         return NextResponse.json(response.data);
@@ -25,17 +25,15 @@ export const GET = async (request, { params }) => {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API ADMIN GET USER BY ID]", err);
-        return NextResponse.json({
-            success: false,
-            message: "Gagal mengambil data user."
-        }, { status: 500 });
+        console.error("[API USER GET BY ID]", err);
+        return NextResponse.json({ message: "Gagal mengambil data user." }, { status: 500 });
     }
 };
 
 /**
- * Handler untuk update user berdasarkan ID.
- * PATCH /api/admin/users/[id]
+ * Handler untuk mengupdate user berdasarkan ID.
+ * @param {Request} request
+ * @param {Object} params
  */
 export const PATCH = async (request, { params }) => {
     const token = request.cookies.get("authToken")?.value;
@@ -44,31 +42,25 @@ export const PATCH = async (request, { params }) => {
     }
 
     try {
+        const { id } = params;
         const body = await request.json();
-
-        const response = await Axios.patch(`${USERS_API_URL}/${params.id}`, body, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
+        const response = await Axios.patch(API_ENDPOINTS.USER_BY_ID(id), body, {
+            headers: { Authorization: `Bearer ${token}` }
         });
-
         return NextResponse.json(response.data);
     } catch (err) {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API ADMIN PATCH USER]", err);
-        return NextResponse.json({
-            success: false,
-            message: "Gagal mengupdate user."
-        }, { status: 500 });
+        console.error("[API USER PATCH]", err);
+        return NextResponse.json({ message: "Gagal mengupdate user." }, { status: 500 });
     }
 };
 
 /**
  * Handler untuk menghapus user berdasarkan ID.
- * DELETE /api/admin/users/[id]
+ * @param {Request} request
+ * @param {Object} params
  */
 export const DELETE = async (request, { params }) => {
     const token = request.cookies.get("authToken")?.value;
@@ -77,19 +69,16 @@ export const DELETE = async (request, { params }) => {
     }
 
     try {
-        const response = await Axios.delete(`${USERS_API_URL}/${params.id}`, {
+        const { id } = params;
+        const response = await Axios.delete(API_ENDPOINTS.USER_BY_ID(id), {
             headers: { Authorization: `Bearer ${token}` }
         });
-
         return NextResponse.json(response.data);
     } catch (err) {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API ADMIN DELETE USER]", err);
-        return NextResponse.json({
-            success: false,
-            message: "Gagal menghapus user."
-        }, { status: 500 });
+        console.error("[API USER DELETE]", err);
+        return NextResponse.json({ message: "Gagal menghapus user." }, { status: 500 });
     }
 };

@@ -1,7 +1,6 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Card } from "primereact/card";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
@@ -12,8 +11,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Ba
 import { Skeleton } from "primereact/skeleton";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
+import { Toast } from "primereact/toast";
 
 const statusOptions = [
     { label: "All Status", value: "" },
@@ -23,6 +21,7 @@ const statusOptions = [
 ];
 
 const EmployeeDashboard = () => {
+    const toast = useRef(null);
     const [issues, setIssues] = useState([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -36,19 +35,21 @@ const EmployeeDashboard = () => {
     const [statusFilter, setStatusFilter] = useState("");
     const [searchText, setSearchText] = useState("");
 
-    const fetchWorkRequests = useCallback(async () => {
+    const showToast = useCallback((severity, summary, detail) => {
+        toast.current?.show({ severity, summary, detail, life: 3000 });
+    }, []);
+
+    const fetchMyIssues = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/employee/issues/my-issues`, {
+            const response = await fetch(`/api/employee/dashboard/my-issues`, {
                 method: "GET",
                 credentials: "include",
-                headers: {
-                    "Content-Type": "application/json"
-                }
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorResult = await response.json();
+                throw new Error(`HTTP error! status: ${response.status}. Detail: ${errorResult.message || JSON.stringify(errorResult.errors)}`);
             }
 
             const result = await response.json();
@@ -57,29 +58,26 @@ const EmployeeDashboard = () => {
                 throw new Error("Invalid data format from API");
             }
 
-            const workRequests = result.data;
-            setIssues(workRequests);
+            const myIssues = result.data;
+            setIssues(myIssues);
 
-            // Calculate statistics
-            const total = workRequests.length;
-            const pending = workRequests.filter((req) => req.status === "open").length;
-            const resolved = workRequests.filter((req) => req.status === "resolved").length;
-            const inProgress = workRequests.filter((req) => req.status === "in_progress").length;
+            const total = myIssues.length;
+            const pending = myIssues.filter((req) => req.status === "open").length;
+            const resolved = myIssues.filter((req) => req.status === "resolved").length;
+            const inProgress = myIssues.filter((req) => req.status === "in_progress").length;
 
             setStats({ total, pending, resolved, inProgress });
 
-            // Prepare chart data
             setChartData([
                 { name: "Pending", value: pending, color: "#ef4444" },
                 { name: "In Progress", value: inProgress, color: "#06b6d4" },
                 { name: "Completed", value: resolved, color: "#10b981" }
-            ]);
+            ].filter(item => item.value > 0));
 
-            // Prepare trend data
             const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             setTrendData(
                 months.map((month, index) => {
-                    const monthRequests = workRequests.filter((req) => {
+                    const monthRequests = myIssues.filter((req) => {
                         const reqDate = new Date(req.created_at);
                         return reqDate.getMonth() === index && reqDate.getFullYear() === new Date().getFullYear();
                     });
@@ -93,16 +91,19 @@ const EmployeeDashboard = () => {
             );
         } catch (error) {
             console.error("Error fetching work requests:", error);
+            showToast("error", "Error fetching data", error.message);
             setIssues([]);
             setStats({ total: 0, pending: 0, resolved: 0, inProgress: 0 });
+            setChartData([]);
+            setTrendData([]); 
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     useEffect(() => {
-        fetchWorkRequests();
-    }, [fetchWorkRequests]);
+        fetchMyIssues();
+    }, [fetchMyIssues]);
 
     const statusBodyTemplate = (rowData) => {
         const statusConfig = {
@@ -162,11 +163,10 @@ const EmployeeDashboard = () => {
 
     return (
         <div className="card">
-            <h2 className="font-semibold text-2xl mb-4">Dashboard</h2>
+            <Toast ref={toast} position="top-right" /> 
+            <h2 className="font-semibold text-2xl mb-4">Dashboard Karyawan</h2>
 
-            {/* Top Stats Cards */}
             <div className="grid">
-                {/* Card 1 - Total Request */}
                 <div className="col-6 md:col-3">
                     <div
                         className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden"
@@ -181,14 +181,13 @@ const EmployeeDashboard = () => {
                             <i className="pi pi-inbox text-white opacity-80" style={{ fontSize: "2rem" }}></i>
                             <h6 className="font-bold text-white mt-3 mb-1">TOTAL REQUEST</h6>
                         </div>
-                        <h3 className="text-4xl font-bold text-white my-2">{stats.total}</h3>
+                        {loading ? <Skeleton className="h-4rem w-full" /> : <h3 className="text-4xl font-bold text-white my-2">{stats.total}</h3>}
                         <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
                             <div className="bg-white h-2 rounded-full" style={{ width: "100%" }}></div>
                         </div>
                     </div>
                 </div>
 
-                {/* Card 2 - Pending Request */}
                 <div className="col-6 md:col-3">
                     <div
                         className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden"
@@ -203,14 +202,13 @@ const EmployeeDashboard = () => {
                             <i className="pi pi-clock text-white opacity-80" style={{ fontSize: "2rem" }}></i>
                             <h6 className="font-bold text-white mt-3 mb-1">PENDING</h6>
                         </div>
-                        <h3 className="text-4xl font-bold text-white my-2">{stats.pending}</h3>
+                        {loading ? <Skeleton className="h-4rem w-full" /> : <h3 className="text-4xl font-bold text-white my-2">{stats.pending}</h3>}
                         <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
-                            <div className="bg-white h-2 rounded-full" style={{ width: `${(stats.pending / stats.total) * 100}%` }}></div>
+                            <div className="bg-white h-2 rounded-full" style={{ width: `${(stats.pending / stats.total) * 100 || 0}%` }}></div>
                         </div>
                     </div>
                 </div>
 
-                {/* Card 3 - In Progress */}
                 <div className="col-6 md:col-3">
                     <div
                         className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden"
@@ -225,14 +223,13 @@ const EmployeeDashboard = () => {
                             <i className="pi pi-spinner text-white opacity-80" style={{ fontSize: "2rem" }}></i>
                             <h6 className="font-bold text-white mt-3 mb-1">IN PROGRESS</h6>
                         </div>
-                        <h3 className="text-4xl font-bold text-white my-2">{stats.inProgress}</h3>
+                        {loading ? <Skeleton className="h-4rem w-full" /> : <h3 className="text-4xl font-bold text-white my-2">{stats.inProgress}</h3>}
                         <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
-                            <div className="bg-white h-2 rounded-full" style={{ width: `${(stats.inProgress / stats.total) * 100}%` }}></div>
+                            <div className="bg-white h-2 rounded-full" style={{ width: `${(stats.inProgress / stats.total) * 100 || 0}%` }}></div>
                         </div>
                     </div>
                 </div>
 
-                {/* Card 4 - Completed */}
                 <div className="col-6 md:col-3">
                     <div
                         className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden"
@@ -247,20 +244,19 @@ const EmployeeDashboard = () => {
                             <i className="pi pi-check-circle text-white opacity-80" style={{ fontSize: "2rem" }}></i>
                             <h6 className="font-bold text-white mt-3 mb-1">COMPLETED</h6>
                         </div>
-                        <h3 className="text-4xl font-bold text-white my-2">{stats.resolved}</h3>
+                        {loading ? <Skeleton className="h-4rem w-full" /> : <h3 className="text-4xl font-bold text-white my-2">{stats.resolved}</h3>}
                         <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
-                            <div className="bg-white h-2 rounded-full" style={{ width: `${(stats.resolved / stats.total) * 100}%` }}></div>
+                            <div className="bg-white h-2 rounded-full" style={{ width: `${(stats.resolved / stats.total) * 100 || 0}%` }}></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Charts Section */}
             <div className="grid mt-4">
                 <div className="col-12 md:col-6">
                     <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ minHeight: "400px", flexDirection: "column", padding: "2rem" }}>
                         <h5 className="font-bold mb-4 self-start">Work Request Status Distribution</h5>
-                        {loading ? (
+                        {loading || chartData.length === 0 ? (
                             <ProgressSpinner />
                         ) : (
                             <div style={{ width: "100%", height: "350px" }}>
@@ -283,7 +279,7 @@ const EmployeeDashboard = () => {
                 <div className="col-12 md:col-6">
                     <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ minHeight: "400px", flexDirection: "column", padding: "2rem" }}>
                         <h5 className="font-bold mb-4 self-start">Monthly Work Request Trend</h5>
-                        {loading ? (
+                        {loading || trendData.every(d => d.issues === 0 && d.resolved === 0) ? (
                             <ProgressSpinner />
                         ) : (
                             <div style={{ width: "100%", height: "350px" }}>
@@ -304,7 +300,6 @@ const EmployeeDashboard = () => {
                 </div>
             </div>
 
-            {/* Recent Work Orders Table */}
             <div className="grid mt-4">
                 <div className="col-12">
                     <div className="card overflow-hidden">
