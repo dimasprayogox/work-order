@@ -37,13 +37,6 @@ export const up = function(knex) {
       .inTable("users")
       .onDelete("RESTRICT");
 
-    table.string("issue_id", 36).nullable();
-    table
-      .foreign("issue_id")
-      .references("id")
-      .inTable("issues")
-      .onDelete("SET NULL");
-
     table.timestamps(true, true);
   });
 };

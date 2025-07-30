@@ -7,10 +7,12 @@
     "dev": "nodemon server.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "db:reset": "npx knex migrate:rollback --all",
     "migrate:make": "npx knex migrate:make",
-    "migrate:up": "knex migrate:up",
-    "migrate:latest": "knex migrate:latest",
-    "seeds": "npx knex seed:run --specific=00_master_seed.js"
+    "migrate:up": "npx knex migrate:up",
+    "migrate:latest": "npx knex migrate:latest",
+    "seed:run": "npx knex seed:run",
+    "seed:master": "npx knex seed:run --specific=00_master_seed.js"
   },
   "keywords": [],
   "author": "",
