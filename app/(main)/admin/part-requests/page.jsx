@@ -5,6 +5,7 @@ import { Toast } from "primereact/toast";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 import { Divider } from "primereact/divider";
+import { motion } from "framer-motion";
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import jsPDF from "jspdf";
@@ -18,6 +19,39 @@ import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog";
 // Dynamic imports for print components
 const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
 const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false });
+
+// Helper functions for consistent status and priority handling
+const getStatusLabel = (status) => {
+    const statusMap = {
+        pending: "Pending",
+        approved: "Approved",
+        fulfilled: "Fulfilled",
+        rejected: "Rejected",
+    };
+    return statusMap[status] || status;
+};
+
+const getPriorityLabel = (priority) => {
+    const priorityMap = {
+        low: "Low",
+        normal: "Normal",
+        high: "High",
+        urgent: "Urgent",
+    };
+    return priorityMap[priority] || priority;
+};
+
+// Date formatter helper - consistent with technician page
+const dateBodyTemplate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleString("en-US", {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
 
 const AdminPartRequestPage = () => {
     const toast = useRef(null);
@@ -91,18 +125,6 @@ const AdminPartRequestPage = () => {
         fetchPartRequests();
     }, [fetchPartRequests]);
 
-    // Date formatter helper
-    const formatDate = (dateString) => {
-        if (!dateString) return "N/A";
-        return new Date(dateString).toLocaleString("en-US", {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
     // --- Export to Excel ---
     const exportExcel = async () => {
         if (!partRequests.length) {
@@ -120,13 +142,17 @@ const AdminPartRequestPage = () => {
 
         worksheet.addRow(headers);
 
-        // Add data
+        // Add data with consistent formatting
         partRequests.forEach(request => {
             const rowData = columnOptions
                 .filter(col => col.visible)
                 .map(col => {
                     if (col.field === 'created_at') {
-                        return formatDate(request[col.field]);
+                        return dateBodyTemplate(request[col.field]);
+                    } else if (col.field === 'status') {
+                        return getStatusLabel(request[col.field]);
+                    } else if (col.field === 'priority') {
+                        return getPriorityLabel(request[col.field]);
                     } else {
                         return request[col.field] || '';
                     }
@@ -175,7 +201,11 @@ const AdminPartRequestPage = () => {
         const data = partRequests.map(request => {
             return visibleColumns.map(col => {
                 if (col.field === 'created_at') {
-                    return formatDate(request[col.field]);
+                    return dateBodyTemplate(request[col.field]);
+                } else if (col.field === 'status') {
+                    return getStatusLabel(request[col.field]);
+                } else if (col.field === 'priority') {
+                    return getPriorityLabel(request[col.field]);
                 } else {
                     return request[col.field] || '';
                 }
@@ -378,14 +408,16 @@ const AdminPartRequestPage = () => {
                     />
                 </div>
 
-                <PartRequestTable
-                    partRequests={partRequests}
-                    loading={loading}
-                    selectedRequests={selectedRequests}
-                    onSelectionChange={setSelectedRequests}
-                    onViewDetail={handleViewDetail}
-                    onDelete={handleDelete}
-                />
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                    <PartRequestTable
+                        partRequests={partRequests}
+                        loading={loading}
+                        selectedRequests={selectedRequests}
+                        onSelectionChange={setSelectedRequests}
+                        onViewDetail={handleViewDetail}
+                        onDelete={handleDelete}
+                    />
+                </motion.div>
 
                 <PartRequestDetailDialog
                     visible={isDetailOpen}
