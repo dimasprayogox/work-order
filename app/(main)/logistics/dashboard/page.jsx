@@ -58,7 +58,7 @@ const LogisticsDashboardPage = () => {
 
     return (
         <div className="card">
-            <h2 className="font-semibold text-2xl mb-4">Dashboard</h2>
+            <h2 className="font-semibold text-2xl mb-4">Logistics</h2>
 
             <div className="grid">
                 <PartSummary title="TOTAL PARTS" value={data.part_summary.total_parts} icon="total" color="total" />

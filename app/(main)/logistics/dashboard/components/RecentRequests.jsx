@@ -1,54 +1,67 @@
 "use client";
-
 import { useEffect, useState, useRef } from "react";
 import { DataTable, Column } from "primereact";
 import StatusBadge from "./status/StatusBadge";
 import { InputText } from "primereact/inputtext";
-import { API_ENDPOINTS } from "../../../../api/api";
 import { Toast } from "primereact/toast";
 
 const RecentRequests = () => {
     const [searchText, setSearchText] = useState("");
-    const [data, setRequests] = useState([]);
+    const [allData, setAllData] = useState([]); // Simpan semua data
+    const [filteredData, setFilteredData] = useState([]); // Data yang difilter
     const [loading, setLoading] = useState(true);
     const toast = useRef(null);
 
     const fetchRequests = async () => {
         setLoading(true);
         try {
-            const res = await fetch(API_ENDPOINTS.PART_REQUESTS, { credentials: "include" });
-            const data = await res.json();
-
-            const oneWeekAgo = new Date();
-            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-            const recentData = (data.data || []).filter((item) => {
-                const itemDate = new Date(item.created_at);
-                return itemDate >= oneWeekAgo;
-            });
-
-            setRequests(recentData);
-            
+            const res = await fetch("/api/logistics/part-request");
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || "Gagal mengambil data request");
+            }
+            const result = await res.json();
+            setAllData(result.data || []);
         } catch (err) {
-            toast.current.show({ severity: "error", summary: "Error", detail: "Gagal mengambil data request" });
+            toast.current?.show({
+                severity: "error",
+                summary: "Error",
+                detail: err.message
+            });
         } finally {
             setLoading(false);
         }
     };
 
+    // Filter data 1 minggu terakhir + search text
+    useEffect(() => {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+        const filtered = allData.filter((item) => {
+            // Filter tanggal (1 minggu terakhir)
+            const itemDate = new Date(item.created_at);
+            const isWithinWeek = itemDate >= oneWeekAgo;
+
+            // Filter search text
+            const searchLower = searchText.toLowerCase();
+            const matchesSearch =
+                item.requestedBy?.full_name?.toLowerCase().includes(searchLower) ||
+                itemDate.toLocaleDateString().toLowerCase().includes(searchLower) ||
+                item.status?.toLowerCase().includes(searchLower) ||
+                item.part_name?.toLowerCase().includes(searchLower);
+
+            return isWithinWeek && matchesSearch;
+        });
+
+        setFilteredData(filtered);
+    }, [allData, searchText]);
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString();
     };
 
-    const filteredData = data.filter((item) => {
-        const searchLower = searchText.toLowerCase();
-        return (
-            item.requestedBy?.full_name?.toLowerCase().includes(searchLower) || formatDate(item.created_at).toLowerCase().includes(searchLower) || item.status?.toLowerCase().includes(searchLower) || item.part_name?.toLowerCase().includes(searchLower)
-        );
-    });
-
-        const requestedByTemplate = (rowData) => rowData.requestedBy?.full_name || "-";
+    const requestedByTemplate = (rowData) => rowData.requestedBy?.full_name || "-";
 
     useEffect(() => {
         fetchRequests();
@@ -57,8 +70,8 @@ const RecentRequests = () => {
     return (
         <div className="col-12 md:col-6">
             <Toast ref={toast} />
-            <div className="card flex flex-column p-3 " style={{ minHeight: "420px", maxHeight: "420px", height: "100%" }}>
-                <h5 className="font-bold mb-4 self-start pt-2 pb-4 text-center">Recent Requests</h5>
+            <div className="card flex flex-column p-3" style={{ minHeight: "420px", maxHeight: "420px", height: "100%" }}>
+                <h5 className="font-bold mb-4 self-start pt-2 pb-4 text-center">Recent Requests (1 Week)</h5>
                 <DataTable
                     loading={loading}
                     value={filteredData}
