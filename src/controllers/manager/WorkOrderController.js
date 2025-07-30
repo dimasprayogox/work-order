@@ -77,19 +77,6 @@ export const WorkOrderController = {
                 return res.status(404).json({ success: false, message: "Work Order not found" });
             }
 
-            // Logika perubahan status:
-            // Jika assigned_to_id ditambahkan DAN status saat ini pending, ubah ke in_progress
-            if (data.assigned_to_id && existingWO.status === 'pending') {
-                data.status = 'in_progress';
-            } 
-            // Jika status yang diminta adalah 'completed' DAN status saat ini 'in_progress', set completed_at
-            else if (data.status === 'completed' && existingWO.status === 'in_progress') {
-                data.completed_at = new Date(); // Set waktu selesai
-            } else if (data.status && !['pending', 'in_progress', 'completed'].includes(data.status)) {
-                // Menolak update status ke nilai yang tidak diizinkan jika status berasal dari frontend
-                return res.status(400).json({ success: false, message: "Status tidak valid." });
-            }
-
             if (data.scheduled_date) {
                 const newDate = new Date(data.scheduled_date);
                 const now = new Date();
