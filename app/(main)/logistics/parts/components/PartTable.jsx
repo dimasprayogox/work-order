@@ -4,30 +4,37 @@ import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { FilterMatchMode } from "primereact/api";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 
-const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSelectionChange = () => {}, onSearch = () => {}, searchText = "" }) => {
+const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSelectionChange = () => {}, onSearch, searchText }) => {
     const [filters, setFilters] = useState({
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS }
+        global: { value: searchText || null, matchMode: FilterMatchMode.CONTAINS }
     });
-    const [globalFilterValue, setGlobalFilterValue] = useState("");
+
     const [selectAll, setSelectAll] = useState(false);
     const [currentFirst, setCurrentFirst] = useState(0);
     const [currentRows, setCurrentRows] = useState(10);
 
-    useEffect(() => {
-        setGlobalFilterValue(searchText);
-        onGlobalFilterChange(searchText);
-    }, [searchText]);
+    const onGlobalFilterChange = useCallback(
+        (value) => {
+            setFilters((prevFilters) => ({
+                ...prevFilters,
+                global: { ...prevFilters.global, value }
+            }));
+            setGlobalFilterValue(value);
+            onSearch(value);
+        },
+        [onSearch]
+    );
 
-    const onGlobalFilterChange = (value) => {
-        let _filters = { ...filters };
-        _filters["global"].value = value;
-        setFilters(_filters);
-        onSearch(value);
-    };
+     useEffect(() => {
+         setFilters((prevFilters) => ({
+             ...prevFilters,
+             global: { ...prevFilters.global, value: searchText || null }
+         }));
+     }, [searchText]);
 
     const handleSelectionChange = (e) => {
         onSelectionChange(e.value);
@@ -35,13 +42,7 @@ const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSel
 
     const handleSelectAllChange = (e) => {
         const checked = e.checked;
-        let selected = [];
-
-        if (checked) {
-            // hanya pilih item yang ada di halaman saat ini
-            selected = parts.slice(currentFirst, currentFirst + currentRows);
-        }
-
+        let selected = checked ? parts.slice(currentFirst, currentFirst + currentRows) : [];
         setSelectAll(checked);
         onSelectionChange(selected);
     };
@@ -54,25 +55,17 @@ const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSel
     const actionBodyTemplate = (rowData) => (
         <div className="flex gap-2">
             <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onEdit(rowData)} tooltip="Edit" />
-            <Button icon="pi pi-trash" rounded outlined severity="danger" className="p-button-sm" onClick={() => onDelete(rowData)} tooltip="delete" />
+            <Button icon="pi pi-trash" rounded outlined severity="danger" className="p-button-sm" onClick={() => onDelete(rowData)} tooltip="Delete" />
         </div>
     );
 
     const header = (
         <div className="flex flex-wrap align-items-center justify-content-between gap-2">
             <span className="text-xl font-bold">Parts Inventory</span>
-
             <div className="flex gap-2">
                 <span className="p-input-icon-left">
                     <i className="pi pi-search" />
-                    <InputText
-                        value={globalFilterValue}
-                        onChange={(e) => {
-                            setGlobalFilterValue(e.target.value);
-                            onGlobalFilterChange(e.target.value);
-                        }}
-                        placeholder="Search"
-                    />
+                    <InputText value={searchText} onChange={(e) => onSearch(e.target.value)} placeholder="Search" />{" "}
                 </span>
             </div>
         </div>
@@ -81,7 +74,6 @@ const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSel
     return (
         <div>
             <ConfirmDialog />
-
             <DataTable
                 selectAll={selectAll}
                 onSelectAllChange={handleSelectAllChange}

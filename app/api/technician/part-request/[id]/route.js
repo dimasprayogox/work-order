@@ -6,11 +6,11 @@ import { isAxiosError } from "axios";
 /**
  * Handler untuk mengambil detail part request berdasarkan ID.
  * @param {Request} request
- * @param {{ params: { id: string } }} { params }
+ * @param {{ context.params: { id: string } }} context
  */
-export const GET = async (request, { params }) => {
+export const GET = async (request, context) => {
     // FIX: Nama parameter harus 'id' sesuai dengan nama folder '[id]'
-    const { id } = params;
+    const { id } = context.params;
     const token = request.cookies.get("authToken")?.value;
 
     if (!token) {
@@ -18,7 +18,7 @@ export const GET = async (request, { params }) => {
     }
 
     try {
-        // FIX: Gunakan 'id' yang didapat dari params
+        // FIX: Gunakan 'id' yang didapat dari context.params
         const response = await Axios.get(API_ENDPOINTS.TECHNICIAN_PART_REQUEST_BY_ID(id), {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -35,10 +35,10 @@ export const GET = async (request, { params }) => {
 /**
  * Handler untuk menghapus part request berdasarkan ID.
  * @param {Request} request
- * @param {{ params: { id: string } }} { params }
+ * @param {{ context.params: { id: string } }} context
  */
-export const DELETE = async (request, { params }) => {
-    const { id } = params;
+export const DELETE = async (request, context) => {
+    const { id } = context.params;
     const token = request.cookies.get("authToken")?.value;
 
     if (!token) {

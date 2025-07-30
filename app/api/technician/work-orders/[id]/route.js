@@ -6,10 +6,10 @@ import { isAxiosError } from "axios";
 /**
  * Handler untuk memperbarui work order teknisi berdasarkan ID.
  * @param {Request} request - Objek request dari Next.js.
- * @param {{ params: { id: string } }} { params } - Parameter dinamis dari URL.
+ * @param {{ context.params: { id: string } }} context - Parameter dinamis dari URL.
  */
-export const PATCH = async (request, { params }) => {
-    const { id } = params; // Ambil ID dari URL
+export const PATCH = async (request, context) => {
+    const { id } = context.params; // Ambil ID dari URL
     const token = request.cookies.get("authToken")?.value;
 
     if (!token) {

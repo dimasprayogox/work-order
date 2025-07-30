@@ -102,6 +102,7 @@ export default function PartRequestPage() {
         { field: 'created_at', header: 'Requested At', visible: true }
     ]);
 
+    const [tempPrintConfig, setTempPrintConfig] = useState(null);
     const showToast = useCallback((severity, summary, detail) => {
         toast.current?.show({ severity, summary, detail, life: 3000 });
     }, []);
@@ -178,71 +179,69 @@ export default function PartRequestPage() {
     };
 
     // --- Export to PDF ---
-    const exportPdf = () => {
-        const doc = new jsPDF({
-            orientation: printConfig.orientation,
-            unit: printConfig.unit,
-            format: printConfig.format
-        });
+    const exportPdf = (config = null) => {
+            const currentConfig = config || printConfig;
 
-        const visibleColumns = columnOptions.filter(col => col.visible);
+            const doc = new jsPDF({
+                orientation: currentConfig.orientation,
+                unit: currentConfig.unit,
+                format: currentConfig.format
+            });
 
-        const headers = visibleColumns.map(col => col.header);
-        const data = partRequests.map(request => {
-            return visibleColumns.map(col => {
-                if (col.field === 'created_at') {
-                    return dateBodyTemplate(request.created_at);
-                } else if (col.field === 'status') {
-                    const statusMap = {
-                        pending: "Pending",
-                        approved: "Approved",
-                        fulfilled: "Fulfilled",
-                        rejected: "Rejected"
-                    };
-                    return statusMap[request.status] || request.status.toUpperCase();
-                } else if (col.field.includes('.')) {
-                    // Handle nested properties
-                    const fields = col.field.split('.');
-                    let value = request;
-                    fields.forEach(field => {
-                        value = value?.[field];
-                    });
-                    return value;
-                } else {
-                    return request[col.field];
+            const visibleColumns = columnOptions.filter(col => col.visible);
+
+            const headers = visibleColumns.map(col => col.header);
+             const data = partRequests.map(request => {
+                return visibleColumns.map(col => {
+                    if (col.field === 'created_at') {
+                        return dateBodyTemplate(request.created_at);
+                    } else if (col.field === 'status') {
+                        const statusMap = {
+                            pending: "Pending",
+                            approved: "Approved",
+                            fulfilled: "Fulfilled",
+                            rejected: "Rejected"
+                        };
+                        return statusMap[request.status] || request.status.toUpperCase();
+                    } else if (col.field.includes('.')) {
+                        // Handle nested properties
+                        const fields = col.field.split('.');
+                        let value = request;
+                        fields.forEach(field => {
+                            value = value?.[field];
+                        });
+                        return value;
+                    } else {
+                        return request[col.field];
+                    }
+                });
+            });
+
+            doc.text('Work Orders Report', currentConfig.marginLeft, currentConfig.marginTop);
+
+            autoTable(doc, {
+                startY: currentConfig.marginTop + 10,
+                head: [headers],
+                body: data,
+                margin: {
+                    left: currentConfig.marginLeft,
+                    right: currentConfig.marginRight,
+                    top: currentConfig.marginTop + 10,
+                    bottom: currentConfig.marginBottom
                 }
             });
-        });
 
-        doc.text('Part Requests Report', printConfig.marginLeft, printConfig.marginTop);
-
-        autoTable(doc, {
-            startY: printConfig.marginTop + 10,
-            head: [headers],
-            body: data,
-            margin: {
-                left: printConfig.marginLeft,
-                right: printConfig.marginRight,
-                top: printConfig.marginTop + 10,
-                bottom: printConfig.marginBottom
-            }
-        });
-
-        const pdfBlob = doc.output('blob');
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        setPdfUrl(pdfUrl);
-        setJsPdfPreviewOpen(true);
-    };
-
-    // --- Print Handler ---
-    const handlePrint = () => {
-        exportPdf();
-    };
+            const pdfBlob = doc.output('blob');
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            setPdfUrl(pdfUrl);
+            setJsPdfPreviewOpen(true);
+        };
 
     // --- Adjust Print Margins ---
-    const handleAdjust = (newConfig) => {
+     const handleAdjust = (newConfig) => {
         setPrintConfig(newConfig);
-        exportPdf();
+        setTempPrintConfig(newConfig);
+        exportPdf(newConfig); // Immediately generate PDF with new config
     };
 
     // --- Delete multiple requests ---
@@ -420,6 +419,7 @@ export default function PartRequestPage() {
                             onClick={confirmDeleteSelected}
                             disabled={isDeleteDisabled}
                         />
+                        <Divider layout="vertical" />
                         <Button
                             size="small"
                             label="Refresh"
@@ -480,6 +480,7 @@ export default function PartRequestPage() {
             />
 
             <AdjustPrintMarginLaporan
+                key={adjustDialog ? 'open' : 'closed'}
                 adjustDialog={adjustDialog}
                 setAdjustDialog={setAdjustDialog}
                 handleAdjust={handleAdjust}

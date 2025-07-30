@@ -9,6 +9,25 @@ export function middleware(request) {
 
     const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
 
+    const roleDashboards = {
+        admin: "/dashboard/admin",
+        employee: "/employee/dashboard",
+        technician: "/technician/dashboard",
+        manager: "/manager/dashboard",
+        logistics: "/logistics/dashboard"
+    };
+
+    const allowedRolesForPaths = {
+        "/dashboard/admin": ["admin"],
+        "/employee/dashboard": ["employee"],
+        "/technician/dashboard": ["technician"],
+        "/manager/dashboard": ["manager"],
+        "/logistics/dashboard": ["logistics"],
+        "/master": ["admin", "manager"],
+        "/monitor": ["admin", "technician", "manager"],
+        "/profile": ["admin", "employee", "technician", "manager", "logistics"]
+    };
+
     if (isPublicPath) {
         return NextResponse.next();
     }
@@ -17,12 +36,37 @@ export function middleware(request) {
         return NextResponse.redirect(new URL("/auth/login", request.url));
     }
 
+    let userRole = null;
     try {
-        jwtDecode(authToken); 
+        const decodedToken = jwtDecode(authToken);
+        userRole = decodedToken.role;
     } catch (error) {
         const response = NextResponse.redirect(new URL("/auth/login", request.url));
         response.cookies.delete("authToken");
         return response;
+    }
+
+    if (pathname === "/" || pathname === "/index" || pathname === "/dashboard" || pathname === "/dashboard/") {
+        const redirectPath = roleDashboards[userRole];
+        if (redirectPath) {
+            return NextResponse.redirect(new URL(redirectPath, request.url));
+        }
+        return NextResponse.redirect(new URL("/access-denied", request.url));
+    }
+
+    let isRoleSpecificRoute = false;
+    let allowedRoles = [];
+
+    for (const pathPrefix in allowedRolesForPaths) {
+        if (pathname.startsWith(pathPrefix)) {
+            isRoleSpecificRoute = true;
+            allowedRoles = allowedRolesForPaths[pathPrefix];
+            break;
+        }
+    }
+
+    if (isRoleSpecificRoute && !allowedRoles.includes(userRole)) {
+        return NextResponse.redirect(new URL("/access-denied", request.url));
     }
 
     return NextResponse.next();

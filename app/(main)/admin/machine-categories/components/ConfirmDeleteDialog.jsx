@@ -2,7 +2,6 @@
 
 import { Dialog } from "primereact/dialog";
 import { Button } from "primereact/button";
-import { API_ENDPOINTS } from "../../../../api/api";
 import { useState } from "react";
 
 const ConfirmDeleteDialog = ({
@@ -22,7 +21,8 @@ const ConfirmDeleteDialog = ({
         try {
             let res;
             if (isBulkDelete) {
-                res = await fetch(`${API_ENDPOINTS.MACHINE_CATEGORIES}/delete-many`, {
+                // Menggunakan API route handler untuk delete many
+                res = await fetch("/api/admin/machine-categories/delete-many", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
@@ -33,7 +33,8 @@ const ConfirmDeleteDialog = ({
                     })
                 });
             } else {
-                res = await fetch(`${API_ENDPOINTS.MACHINE_CATEGORIES}/${category.id}`, {
+                // Menggunakan API route handler untuk delete single
+                res = await fetch(`/api/admin/machine-categories/${category.id}`, {
                     method: "DELETE",
                     credentials: "include"
                 });

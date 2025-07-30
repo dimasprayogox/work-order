@@ -1,4 +1,3 @@
-// app/work-request/edit/page.jsx
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
@@ -13,6 +12,7 @@ import { Toast } from "primereact/toast";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
 
+// This is now a regular component, not a page.
 const EditRequestDialog = ({ visible, onHide, request, fetchWorkRequests, showToast }) => {
     const [loading, setLoading] = useState(false);
     const [machines, setMachines] = useState([]);
@@ -25,8 +25,8 @@ const EditRequestDialog = ({ visible, onHide, request, fetchWorkRequests, showTo
     const [formErrors, setFormErrors] = useState({});
     const fileInputRef = useRef(null);
     const [isHovering, setIsHovering] = useState(false);
-    const toast = useRef(null);
 
+    // PERBAIKAN: Bungkus fetchMachines dengan useCallback
     const fetchMachines = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/employee/machines/available`, {
@@ -83,7 +83,7 @@ const EditRequestDialog = ({ visible, onHide, request, fetchWorkRequests, showTo
 
         try {
             const response = await fetch(`${API_BASE_URL}/employee/issues/${request.id}`, {
-                method: "PATCH",
+                method: "PATCH", // Using PATCH for partial updates is common
                 body: formDataToSend,
                 credentials: "include"
             });
@@ -104,13 +104,14 @@ const EditRequestDialog = ({ visible, onHide, request, fetchWorkRequests, showTo
         }
     };
 
+    // PERBAIKAN: Tambahkan fetchMachines ke dependency array
     useEffect(() => {
         if (visible && request) {
             setFormData({
                 machine_id: request.machine_id,
                 title: request.title,
                 description: request.description,
-                photo: null
+                photo: null // Reset photo field on open
             });
             fetchMachines();
         }
@@ -124,59 +125,107 @@ const EditRequestDialog = ({ visible, onHide, request, fetchWorkRequests, showTo
     );
 
     return (
-        <>
-            <Toast ref={toast} position="top-right" />
-            <Dialog header="Edit Work Request" visible={visible} style={{ width: "min(90vw, 600px)", borderRadius: "16px" }} modal className="p-fluid shadow-2xl" onHide={onHide} footer={renderFooter}>
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-                    <div className="field mb-4">
-                        <label htmlFor="machine_id" className="font-bold mb-2 block">
-                            Machine
-                        </label>
-                        <Dropdown id="machine_id" value={formData.machine_id} options={machines} onChange={(e) => handleChange(e, "machine_id")} placeholder="Select Machine" className={formErrors.machine_id ? "p-invalid" : ""} />
-                        {formErrors.machine_id && <Message severity="error" text={formErrors.machine_id} className="mt-2" />}
-                    </div>
+        <Dialog header="Edit Work Request" visible={visible} style={{ width: "min(90vw, 600px)", borderRadius: "16px" }} modal className="p-fluid shadow-2xl" onHide={onHide} footer={renderFooter}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                <div className="field mb-4">
+                    <label htmlFor="machine_id" className="font-bold mb-2 block">
+                        Machine
+                    </label>
+                    <Dropdown id="machine_id" value={formData.machine_id} options={machines} onChange={(e) => handleChange(e, "machine_id")} placeholder="Select Machine" className={formErrors.machine_id ? "p-invalid" : ""} />
+                    {formErrors.machine_id && <Message severity="error" text={formErrors.machine_id} className="mt-2" />}
+                </div>
 
-                    <div className="field mb-4">
-                        <label htmlFor="title" className="font-bold mb-2 block">
-                            Title
-                        </label>
-                        <InputText id="title" value={formData.title} onChange={(e) => handleChange(e, "title")} className={formErrors.title ? "p-invalid" : ""} />
-                        {formErrors.title && <Message severity="error" text={formErrors.title} className="mt-2" />}
-                    </div>
+                <div className="field mb-4">
+                    <label htmlFor="title" className="font-bold mb-2 block">
+                        Title
+                    </label>
+                    <InputText id="title" value={formData.title} onChange={(e) => handleChange(e, "title")} className={formErrors.title ? "p-invalid" : ""} />
+                    {formErrors.title && <Message severity="error" text={formErrors.title} className="mt-2" />}
+                </div>
 
-                    <div className="field mb-4">
-                        <label htmlFor="description" className="font-bold mb-2 block">
-                            Description
-                        </label>
-                        <InputTextarea id="description" rows={5} value={formData.description} onChange={(e) => handleChange(e, "description")} className={formErrors.description ? "p-invalid" : ""} autoResize />
-                        {formErrors.description && <Message severity="error" text={formErrors.description} className="mt-2" />}
-                    </div>
+                <div className="field mb-4">
+                    <label htmlFor="description" className="font-bold mb-2 block">
+                        Description
+                    </label>
+                    <InputTextarea id="description" rows={5} value={formData.description} onChange={(e) => handleChange(e, "description")} className={formErrors.description ? "p-invalid" : ""} autoResize />
+                    {formErrors.description && <Message severity="error" text={formErrors.description} className="mt-2" />}
+                </div>
 
-                    <div className="field mb-4">
-                        <label htmlFor="photo" className="font-bold mb-2 block">
-                            Photo (Optional)
-                        </label>
-                        <motion.div
-                            className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-blue-500 transition-colors"
-                            onClick={() => fileInputRef.current.click()}
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
-                        >
-                            <input type="file" accept="image/*" onChange={handleFileChange} ref={fileInputRef} className="hidden" />
-                            <i className={`pi pi-cloud-upload text-3xl mb-2 transition-colors ${isHovering ? "text-blue-500" : "text-gray-500"}`} />
-                            <p className={`mb-0 transition-colors ${isHovering ? "text-blue-500" : "text-gray-600"}`}>{formData.photo ? formData.photo.name : "Click to upload photo"}</p>
-                        </motion.div>
-                        {request?.photo_url && !formData.photo && (
-                            <div className="mt-2">
-                                <p className="text-sm text-gray-500">Current photo:</p>
-                                <img src={request.photo_url} alt="Current" className="mt-1 border-round" style={{ width: "100px", height: "100px", objectFit: "cover" }} />
-                            </div>
-                        )}
-                    </div>
-                </motion.div>
-            </Dialog>
-        </>
+                <div className="field mb-4">
+                    <label htmlFor="photo" className="font-bold mb-2 block">
+                        Photo (Optional)
+                    </label>
+                    <motion.div
+                        className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-blue-500 transition-colors"
+                        onClick={() => fileInputRef.current.click()}
+                        onMouseEnter={() => setIsHovering(true)}
+                        onMouseLeave={() => setIsHovering(false)}
+                    >
+                        <input type="file" accept="image/*" onChange={handleFileChange} ref={fileInputRef} className="hidden" />
+                        <i className={`pi pi-cloud-upload text-3xl mb-2 transition-colors ${isHovering ? "text-blue-500" : "text-gray-500"}`} />
+                        <p className={`mb-0 transition-colors ${isHovering ? "text-blue-500" : "text-gray-600"}`}>{formData.photo ? formData.photo.name : "Click to upload a new photo"}</p>
+                    </motion.div>
+                    {request?.photo_url && !formData.photo && (
+                        <div className="mt-2">
+                            <p className="text-sm text-gray-500">Current photo:</p>
+                            <img src={request.photo_url} alt="Current" className="mt-1 border-round" style={{ width: "100px", height: "100px", objectFit: "cover" }} />
+                        </div>
+                    )}
+                </div>
+            </motion.div>
+        </Dialog>
     );
 };
 
-export default EditRequestDialog;
+// This is the actual page component. It should not receive props.
+export default function EditWorkRequestPage() {
+    // In a real application, you would fetch the specific request data here
+    // based on a URL parameter (e.g., /work-request/edit/123)
+    const [requestData, setRequestData] = useState(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const toast = useRef(null);
+
+    // Dummy fetch function for demonstration
+    const fetchWorkRequests = useCallback(() => {
+        console.log("Refetching work requests...");
+    }, []);
+
+    const showToast = useCallback((severity, summary, detail) => {
+        toast.current?.show({ severity, summary, detail });
+    }, []);
+
+    // Effect to open the dialog once data is "loaded"
+    useEffect(() => {
+        // Simulate fetching data for a specific request
+        const mockRequest = {
+            id: 1,
+            machine_id: 2,
+            title: "Mesin Berisik",
+            description: "Mesin mengeluarkan suara aneh saat beroperasi pada kecepatan tinggi.",
+            photo_url: "https://placehold.co/400x400?text=Old+Photo"
+        };
+        setRequestData(mockRequest);
+        setIsDialogOpen(true);
+    }, []);
+
+
+    return (
+        <div className="p-4">
+            <Toast ref={toast} />
+            <h1>Edit Work Request</h1>
+            <p>Loading edit form...</p>
+
+            {/* The dialog is controlled by the page's state */}
+            {requestData && (
+                <EditRequestDialog
+                    visible={isDialogOpen}
+                    onHide={() => setIsDialogOpen(false)}
+                    request={requestData}
+                    fetchWorkRequests={fetchWorkRequests}
+                    showToast={showToast}
+                />
+            )}
+        </div>
+    );
+}
+

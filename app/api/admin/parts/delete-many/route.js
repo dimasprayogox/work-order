@@ -1,15 +1,12 @@
 // api/admin/parts/delete-many/route.js
-import { Axios } from "../../../../utils/axios";
+import { Axios } from "../../../../utils/axios"; // Sesuaikan path jika perlu
+import { API_ENDPOINTS } from "../../../api";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
-const ADMIN_PARTS_DELETE_MANY_API_URL = process.env.NEXT_PUBLIC_API_URL ? 
-    `${process.env.NEXT_PUBLIC_API_URL}/api/admin/parts/delete-many` : 
-    "http://localhost:3100/api/admin/parts/delete-many";
-
 /**
- * Handler untuk menghapus multiple parts (admin).
- * POST /api/admin/parts/delete-many
+ * Handler untuk menghapus multiple parts.
+ * @param {Request} request
  */
 export const POST = async (request) => {
     const token = request.cookies.get("authToken")?.value;
@@ -19,30 +16,15 @@ export const POST = async (request) => {
 
     try {
         const body = await request.json();
-
-        if (!body.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
-            return NextResponse.json({
-                success: false,
-                message: "Invalid input: 'ids' must be a non-empty array of part IDs."
-            }, { status: 400 });
-        }
-
-        const response = await Axios.post(ADMIN_PARTS_DELETE_MANY_API_URL, body, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
+        const response = await Axios.post(API_ENDPOINTS.ADMIN_PARTS_DELETE_MANY, body, {
+            headers: { Authorization: `Bearer ${token}` }
         });
-
         return NextResponse.json(response.data);
     } catch (err) {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API ADMIN DELETE MANY PARTS]", err);
-        return NextResponse.json({
-            success: false,
-            message: "Gagal menghapus parts."
-        }, { status: 500 });
+        console.error("[API ADMIN PARTS DELETE MANY]", err);
+        return NextResponse.json({ message: "Gagal menghapus parts." }, { status: 500 });
     }
 };

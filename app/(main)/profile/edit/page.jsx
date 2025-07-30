@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Card } from "primereact/card";
 import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
@@ -25,50 +25,53 @@ function EditProfilePage() {
     const fileInputRef = useRef(null);
     const router = useRouter();
 
-    // Fetch profile data on component mount
-    useEffect(() => {
-        const fetchProfile = async () => {
-            setIsLoading(true);
-            try {
-                const res = await fetch("http://localhost:3100/api/user-detail", {
-                    credentials: "include"
-                });
+    // PERBAIKAN 1: Bungkus fungsi fetch dengan useCallback
+    const fetchProfile = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            // Gunakan path relatif, bukan URL hardcoded
+            const res = await fetch("/api/user-detail", {
+                credentials: "include"
+            });
 
-                if (res.ok) {
-                    const result = await res.json();
-                    // Convert date string to Date object for the Calendar component
-                    const fetchedProfile = {
-                        ...result.data,
-                        date_of_birth: result.data.date_of_birth ? new Date(result.data.date_of_birth) : null
-                    };
-                    setProfile(fetchedProfile);
-                    setPreviewUrl(fetchedProfile.profile_photo_url); // Set initial preview from fetched data
-                } else if (res.status === 401) {
-                    toast.current.show({ severity: "warn", summary: "Sesi Habis", detail: "Silakan login kembali.", life: 3000 });
-                    router.push("/auth/login");
-                } else {
-                    throw new Error("Gagal memuat data profil.");
-                }
-            } catch (err) {
-                console.error("Gagal mengambil data profil:", err);
-                toast.current.show({ severity: "error", summary: "Error", detail: err.message || "Terjadi kesalahan jaringan.", life: 3000 });
-                setProfile(null); // Set profile to null on error to show failure screen
-            } finally {
-                setIsLoading(false);
+            if (res.ok) {
+                const result = await res.json();
+                const fetchedProfile = {
+                    ...result.data,
+                    date_of_birth: result.data.date_of_birth ? new Date(result.data.date_of_birth) : null
+                };
+                setProfile(fetchedProfile);
+                setPreviewUrl(fetchedProfile.profile_photo_url);
+            } else if (res.status === 401) {
+                toast.current.show({ severity: "warn", summary: "Sesi Habis", detail: "Silakan login kembali.", life: 3000 });
+                router.push("/auth/login");
+            } else {
+                throw new Error("Gagal memuat data profil.");
             }
-        };
+        } catch (err) {
+            console.error("Gagal mengambil data profil:", err);
+            toast.current.show({ severity: "error", summary: "Error", detail: err.message || "Terjadi kesalahan jaringan.", life: 3000 });
+            setProfile(null);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [router]); // Tambahkan router sebagai dependensi
 
+    // PERBAIKAN 2: Gunakan useCallback di dependency array
+    useEffect(() => {
         fetchProfile();
+    }, [fetchProfile]);
 
-        // Cleanup function to revoke blob URL on component unmount
+    // PERBAIKAN 3: Pisahkan useEffect untuk cleanup URL untuk menghindari loop
+    useEffect(() => {
+        // Fungsi cleanup ini akan berjalan setiap kali previewUrl berubah,
+        // dan juga saat komponen di-unmount, untuk mencegah memory leak.
         return () => {
             if (previewUrl && previewUrl.startsWith("blob:")) {
                 URL.revokeObjectURL(previewUrl);
             }
         };
-        // CRITICAL FIX: The dependency array should be empty.
-        // Adding `previewUrl` here would cause an infinite loop of fetching.
-    }, []);
+    }, [previewUrl]);
 
     // Handlers for form input changes
     const handleChange = (e) => {
@@ -84,10 +87,7 @@ function EditProfilePage() {
         const file = event.target.files[0];
         if (file) {
             setSelectedFile(file);
-            // Create a new preview URL and revoke the old one if it exists
-            if (previewUrl && previewUrl.startsWith("blob:")) {
-                URL.revokeObjectURL(previewUrl);
-            }
+            // Buat URL preview baru. useEffect di atas akan membersihkan URL lama secara otomatis.
             setPreviewUrl(URL.createObjectURL(file));
         }
     };
@@ -98,28 +98,20 @@ function EditProfilePage() {
         setIsSaving(true);
 
         const formData = new FormData();
+        Object.keys(profile).forEach(key => {
+            if (key === 'date_of_birth' && profile[key]) {
+                formData.append(key, profile[key].toISOString().split("T")[0]);
+            } else if (profile[key] !== null && key !== 'profile_photo_url') {
+                formData.append(key, profile[key]);
+            }
+        });
 
-        // Append only the fields that should be updated
-        formData.append("full_name", profile.full_name || "");
-        formData.append("username", profile.username || "");
-        formData.append("email", profile.email || "");
-        formData.append("phone_number", profile.phone_number || "");
-        formData.append("address", profile.address || "");
-        formData.append("city", profile.city || "");
-        formData.append("bio", profile.bio || "");
-
-        // Format date to YYYY-MM-DD for the backend
-        if (profile.date_of_birth) {
-            formData.append("date_of_birth", profile.date_of_birth.toISOString().split("T")[0]);
-        }
-
-        // Append photo only if a new one is selected
         if (selectedFile) {
             formData.append("photo", selectedFile);
         }
 
         try {
-            const res = await fetch("http://localhost:3100/api/user-detail", {
+            const res = await fetch("/api/user-detail", {
                 method: "PUT",
                 body: formData,
                 credentials: "include"
@@ -134,7 +126,6 @@ function EditProfilePage() {
                     detail: "Profil berhasil diperbarui!",
                     life: 2000
                 });
-                // Navigate back to profile page after a short delay to let user see the toast
                 setTimeout(() => {
                     router.push("/profile");
                 }, 1500);
@@ -196,7 +187,7 @@ function EditProfilePage() {
                             className="mb-3"
                             style={{ width: "120px", height: "120px" }}
                             onImageError={(e) => {
-                                e.target.src = "https://placehold.co/120x120?text=No+Image";
+                                e.target.src = "https://placehold.co/120x120/EFEFEF/787878?text=No+Image";
                             }}
                         />
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: "none" }} />

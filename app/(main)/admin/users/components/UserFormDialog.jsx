@@ -8,7 +8,6 @@ import { Checkbox } from "primereact/checkbox";
 import { Button } from "primereact/button";
 import { classNames } from "primereact/utils";
 import { useState, useEffect } from "react";
-import { API_ENDPOINTS } from "../../../../api/api";
 
 const UserFormDialog = ({ visible, onHide, user, fetchUsers, showToast }) => {
     const [form, setForm] = useState({
@@ -87,7 +86,8 @@ const UserFormDialog = ({ visible, onHide, user, fetchUsers, showToast }) => {
                 delete payload.password;
             }
 
-            const url = user ? `${API_ENDPOINTS.USERS}/${user.id}` : API_ENDPOINTS.USERS;
+            // Menggunakan API route handler yang baru
+            const url = user ? `/api/admin/users/${user.id}` : "/api/admin/users";
             const method = user ? "PATCH" : "POST";
 
             const res = await fetch(url, {

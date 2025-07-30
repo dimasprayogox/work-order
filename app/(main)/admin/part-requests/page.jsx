@@ -1,25 +1,61 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Toast } from "primereact/toast";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
-import { Dropdown } from "primereact/dropdown";
-import { MultiSelect } from "primereact/multiselect";
-import { Checkbox } from "primereact/checkbox";
-import { ConfirmDialog } from "primereact/confirmdialog";
 import { Divider } from "primereact/divider";
-import * as XLSX from "xlsx";
+import { motion } from "framer-motion";
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import dynamic from "next/dynamic";
 
 import PartRequestTable from "./components/PartRequestTable";
 import PartRequestDetailDialog from "./components/PartRequestDetailDialog";
 import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog";
-import { API_ENDPOINTS } from "../../../api/api";
+
+// Dynamic imports for print components
+const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
+const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false });
+
+// Helper functions for consistent status and priority handling
+const getStatusLabel = (status) => {
+    const statusMap = {
+        pending: "Pending",
+        approved: "Approved",
+        fulfilled: "Fulfilled",
+        rejected: "Rejected",
+    };
+    return statusMap[status] || status;
+};
+
+const getPriorityLabel = (priority) => {
+    const priorityMap = {
+        low: "Low",
+        normal: "Normal",
+        high: "High",
+        urgent: "Urgent",
+    };
+    return priorityMap[priority] || priority;
+};
+
+// Date formatter helper - consistent with technician page
+const dateBodyTemplate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleString("en-US", {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
 
 const AdminPartRequestPage = () => {
     const toast = useRef(null);
+    const fileInputRef = useRef(null);
 
     const [partRequests, setPartRequests] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -28,53 +64,46 @@ const AdminPartRequestPage = () => {
 
     const [isDetailOpen, setDetailOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
-    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
-    const [isPrintOptionsOpen, setPrintOptionsOpen] = useState(false);
-    const [isPreviewOpen, setPreviewOpen] = useState(false);
-
+    // Print and export states
+    const [adjustDialog, setAdjustDialog] = useState(false);
+    const [jsPdfPreviewOpen, setJsPdfPreviewOpen] = useState(false);
+    const [pdfUrl, setPdfUrl] = useState("");
+    const [fileName, setFileName] = useState("PartRequests");
     const [printConfig, setPrintConfig] = useState({
-        paperSize: "a4",
-        orientation: "portrait",
-        columns: ["id", "requested_by", "status", "created_at", "items_count"],
-        onlySelected: false,
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        marginLeft: 10,
+        marginRight: 10,
+        marginTop: 10,
+        marginBottom: 10
     });
+    const [columnOptions, setColumnOptions] = useState([
+        { field: 'id', header: 'ID', visible: true },
+        { field: 'requested_by', header: 'Requested By', visible: true },
+        { field: 'status', header: 'Status', visible: true },
+        { field: 'priority', header: 'Priority', visible: true },
+        { field: 'work_order_id', header: 'Work Order', visible: true },
+        { field: 'items_count', header: 'Items Count', visible: true },
+        { field: 'total_quantity', header: 'Total Quantity', visible: true },
+        { field: 'created_at', header: 'Created Date', visible: true },
+        { field: 'note', header: 'Note', visible: true }
+    ]);
 
-    const columnOptions = [
-        { header: "ID", value: "id" },
-        { header: "Requested By", value: "requested_by" },
-        { header: "Status", value: "status" },
-        { header: "Priority", value: "priority" },
-        { header: "Work Order", value: "work_order_id" },
-        { header: "Items Count", value: "items_count" },
-        { header: "Total Quantity", value: "total_quantity" },
-        { header: "Created Date", value: "created_at" },
-        { header: "Note", value: "note" },
-    ];
+    const showToast = useCallback((severity, summary, detail) => {
+        toast.current?.show({ severity, summary, detail, life: 3000 });
+    }, []);
 
-    const paperSizes = [
-        { label: "A4", value: "a4" },
-        { label: "Letter", value: "letter" },
-        { label: "Legal", value: "legal" },
-    ];
-
-    const orientations = [
-        { label: "Portrait", value: "portrait" },
-        { label: "Landscape", value: "landscape" },
-    ];
-
-    const showToast = (sev, sum, det) =>
-        toast.current.show({ severity: sev, summary: sum, detail: det });
-
-    const fetchPartRequests = async () => {
+    const fetchPartRequests = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(API_ENDPOINTS.ADMIN_PART_REQUESTS, {
+            // Menggunakan API route handler
+            const res = await fetch("/api/admin/part-requests", {
                 credentials: "include"
             });
             const body = await res.json();
             if (res.ok) {
-                // Process data to add computed fields
                 const processedData = (body.data || []).map(request => ({
                     ...request,
                     items_count: request.items?.length || 0,
@@ -85,34 +114,186 @@ const AdminPartRequestPage = () => {
             } else {
                 showToast("error", "Error", body.message || "Gagal mengambil data part requests");
             }
-        } catch (error) {
+        } catch (err) {
             showToast("error", "Error", "Gagal mengambil data part requests");
         } finally {
             setLoading(false);
         }
-    };
+    }, [showToast]);
 
     useEffect(() => {
         fetchPartRequests();
-    }, []);
+    }, [fetchPartRequests]);
+
+    // --- Export to Excel ---
+    const exportExcel = async () => {
+        if (!partRequests.length) {
+            showToast("warn", "Warning", "Tidak ada data untuk diekspor");
+            return;
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Part Requests');
+
+        // Add headers
+        const headers = columnOptions
+            .filter(col => col.visible)
+            .map(col => col.header);
+
+        worksheet.addRow(headers);
+
+        // Add data with consistent formatting
+        partRequests.forEach(request => {
+            const rowData = columnOptions
+                .filter(col => col.visible)
+                .map(col => {
+                    if (col.field === 'created_at') {
+                        return dateBodyTemplate(request[col.field]);
+                    } else if (col.field === 'status') {
+                        return getStatusLabel(request[col.field]);
+                    } else if (col.field === 'priority') {
+                        return getPriorityLabel(request[col.field]);
+                    } else {
+                        return request[col.field] || '';
+                    }
+                });
+
+            worksheet.addRow(rowData);
+        });
+
+        // Style headers
+        worksheet.getRow(1).eachCell((cell) => {
+            cell.font = { bold: true };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFE0E0E0' }
+            };
+        });
+
+        // Auto-fit columns
+        worksheet.columns.forEach(column => {
+            column.width = 20;
+        });
+
+        // Generate Excel file
+        const buffer = await workbook.xlsx.writeBuffer();
+        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0,10)}.xlsx`);
+        showToast("success", "Success", "Data berhasil diekspor ke Excel");
+    };
+
+    // --- Export to PDF ---
+    const exportPdf = () => {
+        if (!partRequests.length) {
+            showToast("warn", "Warning", "Tidak ada data untuk cetak");
+            return;
+        }
+
+        const doc = new jsPDF({
+            orientation: printConfig.orientation,
+            unit: printConfig.unit,
+            format: printConfig.format
+        });
+
+        const visibleColumns = columnOptions.filter(col => col.visible);
+
+        const headers = visibleColumns.map(col => col.header);
+        const data = partRequests.map(request => {
+            return visibleColumns.map(col => {
+                if (col.field === 'created_at') {
+                    return dateBodyTemplate(request[col.field]);
+                } else if (col.field === 'status') {
+                    return getStatusLabel(request[col.field]);
+                } else if (col.field === 'priority') {
+                    return getPriorityLabel(request[col.field]);
+                } else {
+                    return request[col.field] || '';
+                }
+            });
+        });
+
+        doc.text('Part Requests Report', printConfig.marginLeft, printConfig.marginTop);
+
+        autoTable(doc, {
+            startY: printConfig.marginTop + 10,
+            head: [headers],
+            body: data,
+            margin: {
+                left: printConfig.marginLeft,
+                right: printConfig.marginRight,
+                top: printConfig.marginTop + 10,
+                bottom: printConfig.marginBottom
+            },
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [71, 85, 105] }
+        });
+
+        const pdfBlob = doc.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        setPdfUrl(pdfUrl);
+        setJsPdfPreviewOpen(true);
+    };
+
+    // --- Print Handler ---
+    const handlePrint = () => {
+        exportPdf();
+    };
+
+    // --- Adjust Print Margins ---
+    const handleAdjust = (newConfig) => {
+        setPrintConfig(newConfig);
+        exportPdf();
+    };
 
     const handleImport = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         try {
-            const reader = new FileReader();
-            reader.onload = async (evt) => {
-                const wb = XLSX.read(evt.target.result, { type: "binary" });
-                const ws = wb.Sheets[wb.SheetNames[0]];
-                const data = XLSX.utils.sheet_to_json(ws);
+            const workbook = new ExcelJS.Workbook();
+            const buffer = await file.arrayBuffer();
+            await workbook.xlsx.load(buffer);
 
-                showToast("info", "Import", "Import functionality not implemented for part requests");
-            };
-            reader.readAsBinaryString(file);
+            const worksheet = workbook.getWorksheet(1);
+            const data = [];
+
+            worksheet.eachRow((row, rowNumber) => {
+                if (rowNumber === 1) return; // Skip header row
+
+                const rowData = {};
+                row.eachCell((cell, colNumber) => {
+                    const headers = ['priority', 'work_order_id', 'note'];
+                    if (headers[colNumber - 1]) {
+                        rowData[headers[colNumber - 1]] = cell.value;
+                    }
+                });
+
+                if (rowData.priority || rowData.work_order_id) {
+                    data.push(rowData);
+                }
+            });
+
+            for (const item of data) {
+                // Menggunakan API route handler
+                const res = await fetch("/api/admin/part-requests", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify(item),
+                });
+                const body = await res.json();
+                if (!res.ok) throw new Error(body.message || "Import gagal");
+            }
+
+            showToast("success", "Import Sukses", `${data.length} data berhasil diimpor`);
+            fetchPartRequests();
+
         } catch (err) {
             showToast("error", "Import Gagal", err.message);
         }
+
+        // Reset file input
+        e.target.value = '';
     };
 
     const handleDelete = (request) => {
@@ -125,7 +306,10 @@ const AdminPartRequestPage = () => {
             showToast("warn", "Warning", "Tidak ada part request yang dipilih");
             return;
         }
-        setDeleteConfirmOpen(true);
+
+        // Set data untuk ConfirmDeleteDialog dan buka dialog
+        setSelectedRequest(null); // Clear single selection karena ini untuk multiple delete
+        setDeleteOpen(true); // Buka ConfirmDeleteDialog
     };
 
     const handleViewDetail = (request) => {
@@ -133,139 +317,35 @@ const AdminPartRequestPage = () => {
         setDetailOpen(true);
     };
 
-    const openPrintOptions = () => {
-        if (!partRequests.length)
-            return showToast("warn", "Peringatan", "Tidak ada data untuk cetak");
-        setPrintOptionsOpen(true);
+    // Clear selection after successful operations
+    const handleDeleteSuccess = () => {
+        setSelectedRequests([]);
+        setSelectedRequest(null);
+        setDeleteOpen(false);
+        fetchPartRequests();
     };
-
-    const generatePDF = () => {
-        const { paperSize, orientation, columns, onlySelected } = printConfig;
-        const sourceData =
-            onlySelected && selectedRequests.length > 0 ? selectedRequests : partRequests;
-        const headers = columns.map(
-            (c) => columnOptions.find((o) => o.value === c)?.header || c
-        );
-        const rows = sourceData.map((request) =>
-            columns.map((c) => {
-                let value = request[c];
-                if (c === 'created_at' && value) {
-                    value = new Date(value).toLocaleDateString();
-                }
-                return value ?? "";
-            })
-        );
-
-        const doc = new jsPDF({ unit: "mm", format: paperSize, orientation });
-        doc.text("Daftar Part Requests", 14, 14);
-        autoTable(doc, {
-            startY: 20,
-            head: [headers],
-            body: rows,
-            styles: { fontSize: 8 },
-        });
-        return doc;
-    };
-
-    const handlePreview = () => setPreviewOpen(true);
-    const handlePrint = () => {
-        generatePDF().save("part-requests.pdf");
-        setPrintOptionsOpen(false);
-        setPreviewOpen(false);
-    };
-
-    const renderPrintOptions = () => (
-        <Dialog
-            header="Print PDF Options"
-            visible={isPrintOptionsOpen}
-            onHide={() => setPrintOptionsOpen(false)}
-            modal
-            className="p-fluid"
-            style={{ width: "30rem" }}
-            breakpoints={{ "960px": "75vw", "641px": "90vw" }}
-        >
-            <div className="field grid mb-4">
-                <label className="col-12 mb-2 font-medium">Paper Size</label>
-                <div className="col-12">
-                    <Dropdown
-                        value={printConfig.paperSize}
-                        options={paperSizes}
-                        onChange={(e) =>
-                            setPrintConfig((prev) => ({ ...prev, paperSize: e.value }))
-                        }
-                        placeholder="Pilih ukuran"
-                    />
-                </div>
-            </div>
-
-            <div className="field grid mb-4">
-                <label className="col-12 mb-2 font-medium">Orientation</label>
-                <div className="col-12">
-                    <Dropdown
-                        value={printConfig.orientation}
-                        options={orientations}
-                        onChange={(e) =>
-                            setPrintConfig((prev) => ({ ...prev, orientation: e.value }))
-                        }
-                        placeholder="Pilih orientasi"
-                    />
-                </div>
-            </div>
-
-            <div className="field grid mb-4">
-                <label className="col-12 mb-2 font-medium">Columns to Print</label>
-                <div className="col-12">
-                    <MultiSelect
-                        value={printConfig.columns}
-                        options={columnOptions}
-                        onChange={(e) =>
-                            setPrintConfig((prev) => ({ ...prev, columns: e.value }))
-                        }
-                        optionLabel="header"
-                        placeholder="Pilih kolom"
-                        display="chip"
-                    />
-                </div>
-            </div>
-
-            <div className="field grid mb-4">
-                <div className="col-12">
-                    <Checkbox
-                        checked={printConfig.onlySelected}
-                        onChange={(e) =>
-                            setPrintConfig((prev) => ({
-                                ...prev,
-                                onlySelected: e.checked,
-                            }))
-                        }
-                    />
-                    <label className="ml-2">Print only selected data</label>
-                </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-                <Button label="Preview" icon="pi pi-eye" onClick={handlePreview} />
-                <Button label="Print PDF" icon="pi pi-print" onClick={handlePrint} />
-            </div>
-        </Dialog>
-    );
 
     return (
         <div className="p-4">
             <Toast ref={toast} position="top-right" />
-            <ConfirmDialog />
 
             <input
                 type="file"
+                ref={fileInputRef}
                 accept=".xlsx,.xls"
                 onChange={handleImport}
                 style={{ display: "none" }}
-                ref={(ref) => (window.__fileInputImportPartRequest = ref)}
             />
 
             <div className="card">
-                <h3 className="mb-4">Admin - Part Request Management</h3>
-                <div className="flex flex-row gap-2 mb-4">
+                <div className="flex justify-content-between items-start mb-4">
+                    <div>
+                        <h3 className="text-2xl font-semibold">Admin - Part Request Management</h3>
+                        <p className="text-sm text-gray-500">Kelola permintaan part dalam sistem.</p>
+                    </div>
+                </div>
+
+                <div className="flex flex-row flex-wrap items-center gap-2 mb-4">
                     <Button
                         size="small"
                         label="Back"
@@ -273,73 +353,78 @@ const AdminPartRequestPage = () => {
                         outlined
                         disabled
                     />
+                    <Button
+                        size="small"
+                        label="New"
+                        icon="pi pi-plus"
+                        outlined
+                        severity="success"
+                        disabled={true}
+                        onClick={() => {
+                            setSelectedRequest(null);
+                            setDetailOpen(true);
+                        }}
+                    />
                     <Divider layout="vertical" />
                     <Button
+                        size="small"
                         label="Import"
                         icon="pi pi-file-import"
                         outlined
-                        severity="info"
-                        onClick={() => window.__fileInputImportPartRequest?.click()}
-                    />
-                    <Button
-                        label="Export"
-                        icon="pi pi-file-excel"
-                        outlined
-                        severity="success"
-                        onClick={() => {
-                            if (!partRequests.length)
-                                return showToast(
-                                    "warn",
-                                    "Peringatan",
-                                    "Tidak ada data untuk diekspor"
-                                );
-                            const ws = XLSX.utils.json_to_sheet(partRequests);
-                            const wb = XLSX.utils.book_new();
-                            XLSX.utils.book_append_sheet(wb, ws, "PartRequests");
-                            XLSX.writeFile(wb, "part-requests-data.xlsx");
-                        }}
-                    />
-                    <Button
-                        label="Print"
-                        icon="pi pi-print"
-                        outlined
-                        severity="help"
-                        onClick={openPrintOptions}
+                        onClick={() => fileInputRef.current?.click()}
                     />
                     <Button
                         size="small"
-                        label={`Delete ${
-                            selectedRequests.length > 0
-                                ? `(${selectedRequests.length})`
-                                : ""
-                        }`}
-                        icon="pi pi-trash"
+                        label="Export"
+                        icon="pi pi-file-export"
                         outlined
+                        onClick={exportExcel}
+                    />
+                    <Button
+                        size="small"
+                        label="Print"
+                        icon="pi pi-print"
+                        outlined
+                        onClick={() => setAdjustDialog(true)}
+                    />
+                    <Divider layout="vertical" />
+                    <Button
+                        size="small"
+                        label={`Delete${selectedRequests.length > 0 ? ` (${selectedRequests.length})` : ''}`}
+                        icon="pi pi-trash"
                         severity="danger"
+                        outlined
                         onClick={handleDeleteSelected}
                         disabled={selectedRequests.length === 0}
                     />
                     <Divider layout="vertical" />
                     <Button
+                        size="small"
                         label="Refresh"
                         icon="pi pi-refresh"
                         outlined
                         onClick={fetchPartRequests}
+                        disabled={loading}
                     />
                 </div>
 
-                <PartRequestTable
-                    partRequests={partRequests}
-                    loading={loading}
-                    selectedRequests={selectedRequests}
-                    onSelectionChange={setSelectedRequests}
-                    onViewDetail={handleViewDetail}
-                    onDelete={handleDelete}
-                />
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                    <PartRequestTable
+                        partRequests={partRequests}
+                        loading={loading}
+                        selectedRequests={selectedRequests}
+                        onSelectionChange={setSelectedRequests}
+                        onViewDetail={handleViewDetail}
+                        onDelete={handleDelete}
+                    />
+                </motion.div>
 
                 <PartRequestDetailDialog
                     visible={isDetailOpen}
-                    onHide={() => setDetailOpen(false)}
+                    onHide={() => {
+                        setDetailOpen(false);
+                        setSelectedRequest(null);
+                    }}
                     request={selectedRequest}
                     fetchPartRequests={fetchPartRequests}
                     showToast={showToast}
@@ -349,33 +434,33 @@ const AdminPartRequestPage = () => {
                     visible={isDeleteOpen}
                     request={selectedRequest}
                     selectedRequests={selectedRequests}
-                    onHide={() => setDeleteOpen(false)}
+                    onHide={() => {
+                        setDeleteOpen(false);
+                        setSelectedRequest(null);
+                    }}
                     fetchPartRequests={fetchPartRequests}
                     showToast={showToast}
+                    onDeleteSuccess={handleDeleteSuccess}
                 />
 
-                {renderPrintOptions()}
+                <AdjustPrintMarginLaporan
+                    adjustDialog={adjustDialog}
+                    setAdjustDialog={setAdjustDialog}
+                    handleAdjust={handleAdjust}
+                    excel={exportExcel}
+                    columnOptions={columnOptions}
+                    printConfig={printConfig}
+                    setPrintConfig={setPrintConfig}
+                />
 
                 <Dialog
-                    header="PDF Preview"
-                    visible={isPreviewOpen}
+                    visible={jsPdfPreviewOpen}
+                    onHide={() => setJsPdfPreviewOpen(false)}
                     modal
-                    maximized
-                    style={{ width: "80vw", height: "80vh" }}
-                    onHide={() => setPreviewOpen(false)}
-                    footer={
-                        <Button
-                            label="Download PDF"
-                            icon="pi pi-download"
-                            onClick={handlePrint}
-                        />
-                    }
+                    style={{ width: '90vw', height: '90vh' }}
+                    header="PDF Preview"
                 >
-                    <iframe
-                        title="preview"
-                        src={URL.createObjectURL(generatePDF().output("blob"))}
-                        style={{ width: "100%", height: "100%", border: "none" }}
-                    />
+                    <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
                 </Dialog>
             </div>
         </div>

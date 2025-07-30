@@ -9,14 +9,10 @@ import { Divider } from "primereact/divider";
 import PartTable from "./components/PartTable";
 import PartFormDialog from "./components/PartFormDialog";
 import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog";
-
-
 import { useRouter } from "next/navigation";
-
 
 const PartPage = () => {
     const router = useRouter();
-    // Refs
     const toast = useRef(null);
 
     // State
@@ -24,15 +20,15 @@ const PartPage = () => {
     const [loading, setLoading] = useState(false);
     const [selectedPart, setSelectedPart] = useState(null);
     const [selectedParts, setSelectedParts] = useState([]);
-
     const [isFormOpen, setFormOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
+    const [searchText, setSearchText] = useState("");
 
+    const showToast = useCallback((sev, sum, det) => {
+        toast.current?.show({ severity: sev, summary: sum, detail: det });
+    }, []);
 
-    // --- Core Functions ---
-
-    const showToast = (sev, sum, det) => toast.current?.show({ severity: sev, summary: sum, detail: det });
-
+    // Deklarasikan fetchParts di sini agar bisa digunakan di seluruh komponen
     const fetchParts = useCallback(async () => {
         setLoading(true);
         try {
@@ -49,21 +45,30 @@ const PartPage = () => {
 
     useEffect(() => {
         fetchParts();
-    }, []);
+    }, [fetchParts]);
+
+     const handleRefresh = () => {
+         fetchParts();
+         setSearchText(""); 
+     };
+
+     const handleSearch = (value) => {
+         setSearchText(value);
+     };
 
     const handleDelete = (part) => {
-      setSelectedPart(part);
-      setDeleteOpen(true);
+        setSelectedPart(part);
+        setDeleteOpen(true);
     };
 
-  const handleDeleteSelected = () => {
-     if (selectedParts.length === 0) {
-         showToast("warn", "Peringatan", "Tidak ada part yang dipilih");
-         return;
-     }
-     setSelectedPart(null);
-     setDeleteOpen(true);
-  };
+    const handleDeleteSelected = () => {
+        if (selectedParts.length === 0) {
+            showToast("warn", "Peringatan", "Tidak ada part yang dipilih");
+            return;
+        }
+        setSelectedPart(null);
+        setDeleteOpen(true);
+    };
 
     return (
         <div className="p-4">
@@ -72,19 +77,31 @@ const PartPage = () => {
             <div className="card">
                 <h3 className="mb-4">Manajemen Parts</h3>
                 <div className="flex flex-row gap-2 mb-4">
-                    <Button label="Back" icon="pi pi-arrow-left" outlined onClick={() => router.push("/dashboard")}/>
+                    <Button label="Back" icon="pi pi-arrow-left" outlined onClick={() => router.push("/dashboard")} />
                     <Button label="New" icon="pi pi-plus" outlined severity="success" onClick={() => setFormOpen(true)} />
                     <Divider layout="vertical" />
-                    <Button label="Import" icon="pi pi-file-import" outlined  />
-                    <Button label="Export" icon="pi pi-file-excel" outlined  />
-                    <Button label="Print" icon="pi pi-print" outlined  />
+                    <Button label="Import" icon="pi pi-file-import" outlined />
+                    <Button label="Export" icon="pi pi-file-excel" outlined />
+                    <Button label="Print" icon="pi pi-print" outlined />
                     <Divider layout="vertical" />
                     <Button size="small" label={`Delete (${selectedParts.length})`} icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedParts.length === 0} />
                     <Divider layout="vertical" />
-                    <Button label="Refresh" icon="pi pi-refresh" outlined onClick={fetchParts} />
+                    <Button label="Refresh" icon="pi pi-refresh" outlined onClick={handleRefresh} />
                 </div>
 
-                <PartTable parts={parts} loading={loading} selectedParts={selectedParts} onSelectionChange={setSelectedParts} onEdit={(p) => { setSelectedPart(p); setFormOpen(true); }} onDelete={handleDelete} />
+                <PartTable
+                    parts={parts}
+                    loading={loading}
+                    selectedParts={selectedParts}
+                    onSelectionChange={setSelectedParts}
+                    onEdit={(p) => {
+                        setSelectedPart(p);
+                        setFormOpen(true);
+                    }}
+                    onDelete={handleDelete}
+                    searchText={searchText}
+                    onSearch={handleSearch}
+                />
 
                 {/* Dialogs */}
                 <PartFormDialog visible={isFormOpen} onHide={() => setFormOpen(false)} part={selectedPart} fetchParts={fetchParts} showToast={showToast} />
@@ -96,14 +113,13 @@ const PartPage = () => {
                         setSelectedPart(null);
                     }}
                     part={selectedPart}
-                    selectedParts={selectedParts} // <-- INI YANG MEMPERBAIKI ERROR
+                    selectedParts={selectedParts}
                     fetchParts={() => {
                         fetchParts();
-                        setSelectedParts([]); // Kosongkan seleksi setelah berhasil
+                        setSelectedParts([]);
                     }}
                     showToast={showToast}
                 />
-        
             </div>
         </div>
     );

@@ -1,4 +1,4 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "localhost:3100";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100";
 
 export const API_ENDPOINTS = {
     // Auth
@@ -8,10 +8,10 @@ export const API_ENDPOINTS = {
     // Work Request
     GETALLWORKREQUEST: `${API_URL}/work-request`,
 
-    // Work Order
+    // Work Order (General)
     GETALLWORKORDER: `${API_URL}/work-order`,
 
-    // Schedule Maintenancec List
+    // Schedule Maintenance List (General)
     GETALLSCHEDULEMAINTENANCE: `${API_URL}/schedule-maintenance-list`,
 
     // Continent
@@ -31,17 +31,10 @@ export const API_ENDPOINTS = {
     GET_TECHNICIAN_WORK_ORDERS: `${API_URL}/technician/work-orders`,
     TECHNICIAN_WORK_ORDER_BY_ID: (id) => `${API_URL}/technician/work-orders/${id}`,
     TECHNICIAN_PART_REQUEST_BASE: `${API_URL}/technician/part-request`,
-    TECHNICIAN_PART_REQUEST_BY_ID: (workOrderId) => `${API_URL}/technician/part-request/${workOrderId}`,
-    TECHNICIAN_PART_BASE: `${API_URL}/technician/part-request/part`,
-    GET_TECHNICIAN_DASHBOARD_OVERVIEW: `${API_URL}/technician/dashboard/overview`,
-    GET_TECHNICIAN_OVERDUE_WORK_ORDERS: `${API_URL}/technician/dashboard/work-orders/overdue`,
-    GET_TECHNICIAN_WORK_ORDERS: `${API_URL}/technician/work-orders`,
-    TECHNICIAN_WORK_ORDER_BY_ID: (id) => `${API_URL}/technician/work-orders/${id}`,
-    TECHNICIAN_PART_REQUEST_BASE: `${API_URL}/technician/part-request`,
     TECHNICIAN_PART_REQUEST_BY_ID: (id) => `${API_URL}/technician/part-request/${id}`,
     TECHNICIAN_PART_BASE: `${API_URL}/technician/part-request/part`,
 
-    //logistics
+    // Logistics
     LOGISTICS_DASHBOARD: `${API_URL}/logistics/dashboard`,
     LOGISTICS_PARTS: `${API_URL}/logistics/parts`,
     LOGISTICS_DELETE_PARTS_MANY: `${API_URL}/logistics/parts/delete-many`,
@@ -69,5 +62,19 @@ export const API_ENDPOINTS = {
     ADMIN_PART_REQUEST_BY_ID: (id) => `${API_URL}/admin/part-requests/${id}`,
     ADMIN_PART_REQUEST_STATUS: (id) => `${API_URL}/admin/part-requests/${id}/status`,
     ADMIN_PART_REQUEST_DELETE_MANY: `${API_URL}/admin/part-requests/delete-many`,
-};
 
+    // --- Manager Endpoints ---
+    MANAGER_DASHBOARD_OVERVIEW: `${API_URL}/manager/dashboard/overview`,
+    MANAGER_WORK_ORDERS: `${API_URL}/manager/work-orders`,
+    MANAGER_WORK_ORDER_BY_ID: (id) => `${API_URL}/manager/work-orders/${id}`,
+    MANAGER_MAINTENANCE_SCHEDULES: `${API_URL}/manager/schedules`,
+    MANAGER_SCHEDULE_BY_ID: (id) => `${API_URL}/manager/schedules/${id}`,
+    MANAGER_PARTS_ANALYSIS: `${API_URL}/manager/dashboard/parts/analysis`,
+    MANAGER_ASSIGN_TECHNICIAN: (id) => `${API_URL}/manager/work-orders/${id}/assign-technician`,
+
+    // --- Employee Endpoints ---
+    EMPLOYEE_MY_ISSUES: `${API_URL}/employee/issues/my-issues`,
+    EMPLOYEE_ISSUES: `${API_URL}/employee/issues`,
+    EMPLOYEE_ISSUE_BY_ID: (id) => `${API_URL}/employee/issues/${id}`,
+    EMPLOYEE_AVAILABLE_MACHINES: `${API_URL}/employee/machines/available`
+};

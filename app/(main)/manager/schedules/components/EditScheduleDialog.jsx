@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
@@ -50,9 +50,9 @@ export default function EditScheduleDialog({ visible, onHide, schedule, showToas
             setFormErrors({});
             fetchMachines();
         }
-    }, [visible, schedule]);
+    }, [visible, schedule, fetchMachines]);
 
-    const fetchMachines = async () => {
+    const fetchMachines = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/manager/machines`, {
                 credentials: "include"
@@ -66,7 +66,7 @@ export default function EditScheduleDialog({ visible, onHide, schedule, showToas
         } catch (error) {
             showToast("error", "Error", error.message);
         }
-    };
+    }, [showToast]);
 
     const validateForm = () => {
         const errors = {};

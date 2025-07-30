@@ -1,12 +1,10 @@
-// app/employee/work-order/page.jsx
-
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
-import { Dialog } from "primereact/dialog"; 
+import { Dialog } from "primereact/dialog";
 import { Divider } from "primereact/divider";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
@@ -18,13 +16,21 @@ import { Panel } from "primereact/panel";
 import { motion } from "framer-motion";
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 
-import WorkOrderEditModal from "./components/WorkOrderEditModal";
-import WorkOrderAddModal from "./components/WorkOrderAddModal"; 
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import dynamic from "next/dynamic";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
+import WorkOrderEditModal from "./components/WorkOrderEditModal";
+import WorkOrderAddModal from "./components/WorkOrderAddModal";
+import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog"; // <--- Perubahan di sini: Nama file & import
+
+const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
+const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false });
 
 const statusBodyTemplate = (rowData) => {
-    let severity = "info"; // Default
+    let severity = "info";
     let icon = "";
     let displayText = "";
 
@@ -32,16 +38,16 @@ const statusBodyTemplate = (rowData) => {
         case "open":
             severity = "danger";
             icon = "pi pi-exclamation-circle";
-            displayText = "Pending"; // Ubah dari "Open" menjadi "Pending"
+            displayText = "Pending";
             break;
         case "in_progress":
             severity = "info";
-            icon = "pi pi-spin pi-spinner"; // Ikon loading
+            icon = "pi pi-spin pi-spinner";
             displayText = "In Progress";
             break;
         case "resolved":
             severity = "success";
-            icon = "pi pi-check-circle"; // Ikon centang
+            icon = "pi pi-check-circle";
             displayText = "Resolved";
             break;
         case "closed":
@@ -58,7 +64,6 @@ const statusBodyTemplate = (rowData) => {
     return (
         <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
             <Tag
-                // Menggunakan span untuk menggabungkan ikon dan teks
                 value={<span className="flex align-items-center gap-1"><i className={icon}></i> {displayText}</span>}
                 severity={severity}
                 className="font-medium"
@@ -96,19 +101,51 @@ const dateBodyTemplate = (rowData) => {
     return rowData.created_at ? new Date(rowData.created_at).toLocaleString("id-ID") : "N/A";
 };
 
+const columnOptionsForExport = [
+    { field: 'title', header: 'Judul Isu', visible: true },
+    { field: 'description', header: 'Deskripsi', visible: true },
+    { field: 'machine.name', header: 'Mesin', visible: true },
+    { field: 'status', header: 'Status', visible: true },
+    { field: 'created_at', header: 'Dikirim', visible: true },
+];
+
+const statusMapForExport = {
+    open: "Pending",
+    in_progress: "In Progress",
+    resolved: "Resolved",
+    closed: "Closed",
+};
+
 const WorkOrderPage = () => {
     const toast = useRef(null);
     const [addWorkOrderDialogVisible, setAddWorkOrderDialogVisible] = useState(false);
     const [editWorkOrderDialogVisible, setEditWorkOrderDialogVisible] = useState(false);
     const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
+    const [deleteWorkOrderDialogVisible, setDeleteWorkOrderDialogVisible] = useState(false);
+
     const [loading, setLoading] = useState(false);
     const [loadingWorkRequests, setLoadingWorkRequests] = useState(true);
     const [myWorkRequests, setMyWorkRequests] = useState([]);
     const [selectedRequests, setSelectedRequests] = useState([]);
     const [machines, setMachines] = useState([]);
 
-    const [status, setStatus] = useState("");
-    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("");
+    const [searchText, setSearchText] = useState("");
+
+    const fileInputRef = useRef(null);
+    const [adjustDialog, setAdjustDialog] = useState(false);
+    const [jsPdfPreviewOpen, setJsPdfPreviewOpen] = useState(false);
+    const [pdfUrl, setPdfUrl] = useState("");
+    const [fileName, setFileName] = useState("EmployeeWorkOrders");
+    const [printConfig, setPrintConfig] = useState({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        marginLeft: 10,
+        marginRight: 10,
+        marginTop: 10,
+        marginBottom: 10
+    });
 
     const showToast = useCallback((severity, summary, detail) => {
         toast.current.show({
@@ -126,7 +163,7 @@ const WorkOrderPage = () => {
     const fetchMyWorkRequests = useCallback(async () => {
         setLoadingWorkRequests(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/employee/issues`, {
+            const response = await fetch(`/api/employee/issues`, {
                 method: "GET",
                 credentials: "include"
             });
@@ -148,7 +185,7 @@ const WorkOrderPage = () => {
 
     const fetchMachines = useCallback(async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/employee/machines/available`, {
+            const response = await fetch(`/api/employee/machines/available`, {
                 method: "GET",
                 credentials: "include"
             });
@@ -172,10 +209,9 @@ const WorkOrderPage = () => {
         }
     }, [showToast]);
 
-
     const filteredData = myWorkRequests.filter((item) => {
-        const matchesStatus = status === "" || item.status.toLowerCase() === status.toLowerCase();
-        const matchesSearch = search === "" || item.title.toLowerCase().includes(search.toLowerCase()) || (item.description && item.description.toLowerCase().includes(search.toLowerCase()));
+        const matchesStatus = statusFilter === "" || item.status.toLowerCase() === statusFilter.toLowerCase();
+        const matchesSearch = searchText === "" || item.title.toLowerCase().includes(searchText.toLowerCase()) || (item.description && item.description.toLowerCase().includes(searchText.toLowerCase()));
         return matchesStatus && matchesSearch;
     });
 
@@ -185,35 +221,14 @@ const WorkOrderPage = () => {
     };
 
     const handleDeleteWorkOrder = (rowData) => {
-        confirmDialog({
-            message: `Are you sure you want to delete the work order "${rowData.title}"?`,
-            header: 'Confirm Deletion',
-            icon: 'pi pi-exclamation-triangle',
-            acceptClassName: 'p-button-danger',
-            accept: async () => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/employee/issues/${rowData.id}`, {
-                        method: "DELETE",
-                        credentials: "include"
-                    });
-
-                    if (!response.ok) {
-                        const errorResult = await response.json();
-                        throw new Error(errorResult.message || "Failed to delete work order.");
-                    }
-
-                    showToast("success", "Deleted", `Work order "${rowData.title}" has been deleted.`);
-                    fetchMyWorkRequests();
-                } catch (error) {
-                    console.error("Error deleting work order:", error);
-                    showToast("error", "Error", `Failed to delete work order: ${error.message}`);
-                }
-            },
-            reject: () => {
-                showToast("info", "Cancelled", "Work order deletion cancelled.");
-            }
-        });
+        setSelectedWorkOrder(rowData);
+        setDeleteWorkOrderDialogVisible(true);
     };
+
+    const onWorkOrderDeleted = useCallback(() => {
+        setDeleteWorkOrderDialogVisible(false);
+        fetchMyWorkRequests();
+    }, [fetchMyWorkRequests]);
 
     const handleDeleteSelected = () => {
         if (selectedRequests.length === 0) {
@@ -227,9 +242,10 @@ const WorkOrderPage = () => {
             icon: 'pi pi-exclamation-triangle',
             acceptClassName: 'p-button-danger',
             accept: async () => {
+                setLoading(true);
                 try {
                     const deletePromises = selectedRequests.map(request =>
-                        fetch(`${API_BASE_URL}/employee/issues/${request.id}`, {
+                        fetch(`/api/employee/issues/${request.id}`, {
                             method: "DELETE",
                             credentials: "include"
                         })
@@ -251,6 +267,8 @@ const WorkOrderPage = () => {
                 } catch (error) {
                     console.error("Error during bulk delete:", error);
                     showToast("error", "Error", `Failed to perform bulk deletion: ${error.message}`);
+                } finally {
+                    setLoading(false);
                 }
             },
             reject: () => {
@@ -270,6 +288,7 @@ const WorkOrderPage = () => {
                     tooltip="Edit"
                     tooltipOptions={{ position: 'left' }}
                     onClick={() => handleEditWorkOrder(rowData)}
+                    disabled={loading}
                 />
                 <Button
                     icon="pi pi-trash"
@@ -279,10 +298,168 @@ const WorkOrderPage = () => {
                     tooltip="Delete"
                     tooltipOptions={{ position: 'right' }}
                     onClick={() => handleDeleteWorkOrder(rowData)}
+                    disabled={loading}
                 />
             </div>
         );
     };
+
+    const exportExcel = async () => {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Work Orders');
+
+        const headers = columnOptionsForExport
+            .filter(col => col.visible)
+            .map(col => col.header);
+
+        worksheet.addRow(headers);
+
+        myWorkRequests.forEach(wo => {
+            const rowData = columnOptionsForExport
+                .filter(col => col.visible)
+                .map(col => {
+                    if (col.field === 'machine.name') {
+                        return wo.machine?.name || 'N/A';
+                    } else if (col.field.includes('_at')) {
+                        return wo[col.field] ? new Date(wo[col.field]).toLocaleString("id-ID") : "N/A";
+                    } else if (col.field === 'status') {
+                        return statusMapForExport[wo.status] || wo.status;
+                    } else {
+                        return wo[col.field];
+                    }
+                });
+            worksheet.addRow(rowData);
+        });
+
+        worksheet.getRow(1).eachCell((cell) => {
+            cell.font = { bold: true };
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        showToast("success", "Ekspor Berhasil", "Data berhasil diekspor ke Excel.");
+    };
+
+    const exportPdf = (config = null) => {
+        const currentConfig = config || printConfig;
+
+        const doc = new jsPDF({
+            orientation: currentConfig.orientation,
+            unit: currentConfig.unit,
+            format: currentConfig.format
+        });
+
+        const visibleColumns = columnOptionsForExport.filter(col => col.visible);
+
+        const headers = visibleColumns.map(col => col.header);
+        const data = myWorkRequests.map(wo => {
+            return visibleColumns.map(col => {
+                if (col.field === 'machine.name') {
+                    return wo.machine?.name || 'N/A';
+                } else if (col.field.includes('_at')) {
+                    return wo[col.field] ? new Date(wo[col.field]).toLocaleString("id-ID") : "N/A";
+                } else if (col.field === 'status') {
+                    return statusMapForExport[wo.status] || wo.status;
+                } else {
+                    return wo[col.field];
+                }
+            });
+        });
+
+        doc.text('Laporan Work Order Karyawan', currentConfig.marginLeft, currentConfig.marginTop);
+
+        autoTable(doc, {
+            startY: currentConfig.marginTop + 10,
+            head: [headers],
+            body: data,
+            margin: {
+                left: currentConfig.marginLeft,
+                right: currentConfig.marginRight,
+                top: currentConfig.marginTop + 10,
+                bottom: currentConfig.marginBottom
+            }
+        });
+
+        const pdfBlob = doc.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        setPdfUrl(pdfUrl);
+        setJsPdfPreviewOpen(true);
+        showToast("success", "Ekspor Berhasil", "Laporan berhasil dibuat dalam format PDF.");
+    };
+
+    const handlePrint = () => {
+        setAdjustDialog(true);
+    };
+
+    const handleAdjust = (newConfig) => {
+        setPrintConfig(newConfig);
+        setAdjustDialog(false);
+        exportPdf(newConfig);
+    };
+
+    const handleImport = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setLoading(true);
+        try {
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = async () => {
+                const buffer = reader.result;
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(buffer);
+                const worksheet = workbook.getWorksheet(1);
+                const jsonData = [];
+                const headerRow = worksheet.getRow(1);
+
+                worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+                    if (rowNumber > 1) {
+                        let rowObject = {};
+                        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                            const headerCell = headerRow.getCell(colNumber);
+                            if (headerCell && headerCell.value) {
+                                const fieldName = headerCell.value.toString().toLowerCase().replace(/ /g, '_');
+                                rowObject[fieldName] = cell.value;
+                            }
+                        });
+                        jsonData.push(rowObject);
+                    }
+                });
+
+                for (const item of jsonData) {
+                    const payload = {
+                        title: item.judul_isu || item.issue_title || item.title,
+                        description: item.deskripsi || item.description,
+                        machine_id: item.id_mesin || item.machine_id,
+                        priority: item.prioritas || item.priority || 'medium',
+                        status: 'open',
+                    };
+
+                    const res = await fetch('/api/employee/issues', {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) {
+                        const body = await res.json();
+                        throw new Error(body.message || `Gagal mengimpor item: ${item.title || 'Tidak diketahui'}`);
+                    }
+                }
+
+                showToast("success", "Impor Berhasil", "Data berhasil diimpor.");
+                await fetchMyWorkRequests();
+            };
+        } catch (err) {
+            showToast("error", "Impor Gagal", err.message);
+        } finally {
+            setLoading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }
+    };
+
 
     useEffect(() => {
         fetchMyWorkRequests();
@@ -295,23 +472,49 @@ const WorkOrderPage = () => {
             <ConfirmDialog />
 
             <div className="card">
-                <h3>Work Order Page</h3>
+                <h3>Halaman Work Order Saya</h3>
 
-                <div className="flex flex-row gap-2">
-                    <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
-                    <Button size="small" label="New" icon="pi pi-plus" outlined severity="success" onClick={() => setAddWorkOrderDialogVisible(true)} />
+                <div className="flex flex-wrap gap-2 mb-4 items-center">
+                    <Button size="small" label="Buat Permintaan Baru" icon="pi pi-plus" outlined severity="success" onClick={() => setAddWorkOrderDialogVisible(true)} />
                     <Divider layout="vertical" />
-                    <Button size="small" label="Import" icon="pi pi-file-import" outlined />
-                    <Button size="small" label="Export" icon="pi pi-file-export" outlined />
-                    <Button size="small" label="Print" icon="pi pi-print" outlined />
+                    <Button
+                        size="small"
+                        label="Impor"
+                        icon="pi pi-file-import"
+                        outlined
+                        onClick={() => fileInputRef.current?.click()}
+                        tooltip="Impor dari Excel"
+                        tooltipOptions={{ position: 'bottom' }}
+                        disabled={loading}
+                    />
+                    <Button
+                        size="small"
+                        label="Ekspor"
+                        icon="pi pi-file-export"
+                        outlined
+                        onClick={exportExcel}
+                        tooltip="Ekspor ke Excel"
+                        tooltipOptions={{ position: 'bottom' }}
+                        disabled={loading}
+                    />
+                    <Button
+                        size="small"
+                        label="Cetak"
+                        icon="pi pi-print"
+                        outlined
+                        onClick={handlePrint}
+                        tooltip="Cetak Laporan PDF"
+                        tooltipOptions={{ position: 'bottom' }}
+                        disabled={loading}
+                    />
                     <Divider layout="vertical" />
-                    <Button size="small" label="Delete" icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedRequests.length === 0} />
+                    <Button size="small" label="Hapus Terpilih" icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedRequests.length === 0 || loading} />
                     <Divider layout="vertical" />
-                    <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={fetchMyWorkRequests} />
+                    <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={fetchMyWorkRequests} disabled={loadingWorkRequests || loading} />
                 </div>
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-6">
-                    <Panel>
+                    <Panel header="Daftar Permintaan Work Order Saya">
                         {loadingWorkRequests ? (
                             <div className="flex justify-content-center py-6">
                                 <ProgressSpinner />
@@ -325,26 +528,26 @@ const WorkOrderPage = () => {
                                 paginator
                                 rows={10}
                                 loading={loadingWorkRequests}
-                                emptyMessage="You haven't submitted any work requests yet."
+                                emptyMessage="Anda belum mengirim permintaan work order."
                                 className="border-round-lg"
                                 rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
                                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} requests"
+                                currentPageReportTemplate="Menampilkan {first} sampai {last} dari {totalRecords} permintaan"
                                 rowsPerPageOptions={[5, 10, 25]}
                                 header={
                                     <div className="flex align-items-center justify-content-between gap-2">
                                         <div>
-                                            <span className="text-xl font-bold mr-3">Work Requests</span>
-                                            <Dropdown placeholder="Filter Status" value={status} options={["", "open", "in_progress", "resolved", "closed"]} onChange={(e) => setStatus(e.value)} />
+                                            <span className="text-xl font-bold mr-3">Permintaan Work Order</span>
+                                            <Dropdown placeholder="Filter Status" value={statusFilter} options={["", "open", "in_progress", "resolved", "closed"]} onChange={(e) => setStatusFilter(e.value)} />
                                         </div>
-                                        <InputText placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} />
+                                        <InputText placeholder="Cari" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
                                     </div>
                                 }
                             >
                                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
                                 <Column
                                     field="title"
-                                    header="Issue Title"
+                                    header="Judul Isu"
                                     style={{ width: "200px" }}
                                     body={(rowData) => (
                                         <motion.div whileHover={{ x: 5 }} className="font-medium text-blue-600">
@@ -354,7 +557,7 @@ const WorkOrderPage = () => {
                                 />
                                 <Column
                                     field="description"
-                                    header="Description"
+                                    header="Deskripsi"
                                     body={(rowData) => (
                                         <>
                                             <Tooltip target=".description-tooltip" position="bottom" />
@@ -374,11 +577,11 @@ const WorkOrderPage = () => {
                                         </>
                                     )}
                                 />
-                                <Column field="machine.name" header="Machine" body={(rowData) => <Tag value={rowData.machine?.name} className="bg-gray-100 text-gray-800 font-medium" />} />
+                                <Column field="machine.name" header="Mesin" body={(rowData) => <Tag value={rowData.machine?.name} className="bg-gray-100 text-gray-800 font-medium" />} />
                                 <Column field="status" header="Status" body={statusBodyTemplate} sortable />
-                                <Column header="Photo" body={photoBodyTemplate} />
-                                <Column field="created_at" header="Submitted" body={dateBodyTemplate} />
-                                <Column header="Actions" body={actionBodyTemplate} alignFrozen="right" frozen />
+                                <Column header="Foto" body={photoBodyTemplate} />
+                                <Column field="created_at" header="Dikirim" body={dateBodyTemplate} />
+                                <Column header="Aksi" body={actionBodyTemplate} alignFrozen="right" frozen />
                             </DataTable>
                         )}
                     </Panel>
@@ -389,7 +592,7 @@ const WorkOrderPage = () => {
                     onHide={() => setAddWorkOrderDialogVisible(false)}
                     machines={machines}
                     onAddSuccess={() => {
-                        showToast("success", "Success", "Work order created successfully.");
+                        showToast("success", "Berhasil", "Permintaan work order berhasil dibuat.");
                         fetchMyWorkRequests();
                     }}
                     showToast={showToast}
@@ -404,11 +607,46 @@ const WorkOrderPage = () => {
                     workOrder={selectedWorkOrder}
                     machines={machines}
                     onUpdateSuccess={() => {
-                        showToast("success", "Success", "Work order updated successfully.");
+                        showToast("success", "Berhasil", "Permintaan work order berhasil diperbarui.");
                         fetchMyWorkRequests();
                     }}
                     showToast={showToast}
                 />
+
+                <ConfirmDeleteDialog // <--- Perubahan di sini: Menggunakan komponen ConfirmDeleteDialog yang baru
+                    visible={deleteWorkOrderDialogVisible}
+                    onHide={() => setDeleteWorkOrderDialogVisible(false)}
+                    workOrder={selectedWorkOrder}
+                    onDeleted={onWorkOrderDeleted}
+                    showToast={showToast}
+                />
+
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={handleImport}
+                    accept=".xlsx,.xls"
+                />
+
+                <AdjustPrintMarginLaporan
+                    key={adjustDialog ? 'open' : 'closed'}
+                    adjustDialog={adjustDialog}
+                    setAdjustDialog={setAdjustDialog}
+                    handleAdjust={handleAdjust}
+                    printConfig={printConfig}
+                    setPrintConfig={setPrintConfig}
+                />
+
+                <Dialog
+                    visible={jsPdfPreviewOpen}
+                    onHide={() => setJsPdfPreviewOpen(false)}
+                    modal
+                    style={{ width: '90vw', height: '90vh' }}
+                    header="Pratinjau Laporan PDF"
+                >
+                    <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
+                </Dialog>
             </div>
         </div>
     );

@@ -2,7 +2,6 @@
 
 import { Dialog } from "primereact/dialog";
 import { Button } from "primereact/button";
-import { API_ENDPOINTS } from "../../../../api/api";
 import { useState } from "react";
 
 const ConfirmDeleteDialog = ({
@@ -11,7 +10,8 @@ const ConfirmDeleteDialog = ({
     request,
     selectedRequests = [],
     fetchPartRequests,
-    showToast
+    showToast,
+    onDeleteSuccess
 }) => {
     const [loading, setLoading] = useState(false);
 
@@ -22,19 +22,20 @@ const ConfirmDeleteDialog = ({
         try {
             let res;
             if (isBulkDelete) {
-                res = await fetch(API_ENDPOINTS.ADMIN_PART_REQUESTS, {
+                // Menggunakan API route handler untuk bulk delete
+                res = await fetch("/api/admin/part-requests/delete-many", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
                     credentials: "include",
                     body: JSON.stringify({
-                        action: 'delete-many',
                         ids: selectedRequests.map((r) => r.id)
                     })
                 });
             } else {
-                res = await fetch(API_ENDPOINTS.ADMIN_PART_REQUEST_BY_ID(request.id), {
+                // Menggunakan API route handler untuk single delete
+                res = await fetch(`/api/admin/part-requests/${request.id}`, {
                     method: "DELETE",
                     credentials: "include"
                 });
@@ -48,8 +49,14 @@ const ConfirmDeleteDialog = ({
                 : "Part request berhasil dihapus";
 
             showToast("success", "Berhasil", successMessage);
-            fetchPartRequests();
-            onHide();
+
+            // Call success callback if provided, otherwise use default behavior
+            if (onDeleteSuccess) {
+                onDeleteSuccess();
+            } else {
+                fetchPartRequests();
+                onHide();
+            }
         } catch (error) {
             showToast("error", "Gagal", error.message);
         } finally {

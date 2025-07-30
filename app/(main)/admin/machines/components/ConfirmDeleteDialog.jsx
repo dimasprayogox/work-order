@@ -2,7 +2,6 @@
 
 import { Dialog } from "primereact/dialog";
 import { Button } from "primereact/button";
-import { API_ENDPOINTS } from "../../../../api/api";
 import { useState } from "react";
 
 const ConfirmDeleteDialog = ({ visible, onHide, machine, selectedMachines = [], fetchMachines, showToast }) => {
@@ -15,7 +14,7 @@ const ConfirmDeleteDialog = ({ visible, onHide, machine, selectedMachines = [], 
         try {
             let res;
             if (isBulkDelete) {
-                res = await fetch(`${API_ENDPOINTS.MACHINES}/delete-many`, {
+                res = await fetch("/api/admin/machines/delete-many", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
@@ -26,7 +25,7 @@ const ConfirmDeleteDialog = ({ visible, onHide, machine, selectedMachines = [], 
                     })
                 });
             } else {
-                res = await fetch(`${API_ENDPOINTS.MACHINES}/${machine.id}`, {
+                res = await fetch(`/api/admin/machines/${machine.id}`, {
                     method: "DELETE",
                     credentials: "include"
                 });

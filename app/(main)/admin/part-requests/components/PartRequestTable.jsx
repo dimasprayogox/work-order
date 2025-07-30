@@ -5,7 +5,8 @@ import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { Tag } from "primereact/tag";
-import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { useState, useEffect, useCallback } from "react";
 import { FilterMatchMode } from "primereact/api";
 
 const PartRequestTable = ({
@@ -26,49 +27,70 @@ const PartRequestTable = ({
     useEffect(() => {
         setGlobalFilterValue(searchText);
         onGlobalFilterChange(searchText);
-    }, [searchText]);
+    }, [searchText, onGlobalFilterChange]);
 
-    const onGlobalFilterChange = (value) => {
+    const onGlobalFilterChange = useCallback((value) => {
         let _filters = { ...filters };
         _filters["global"].value = value;
         setFilters(_filters);
         onSearch(value);
-    };
+    }, [filters, onSearch]);
 
     const handleSelectionChange = (e) => {
         onSelectionChange(e.value);
     };
 
-    const getStatusSeverity = (status) => {
-        switch (status) {
-            case 'pending':
-                return 'warning';
-            case 'approved':
-                return 'info';
-            case 'rejected':
-                return 'danger';
-            case 'fulfilled':
-                return 'success';
-            default:
-                return 'secondary';
-        }
+    // Consistent status template with motion animation like technician page
+    const statusBodyTemplate = (rowData) => {
+        const statusConfig = {
+            'pending': { color: '#f97316', bgColor: 'bg-orange-100', textColor: 'text-orange-800', icon: 'pi-clock', severity: 'warning' },
+            'approved': { color: '#06b6d4', bgColor: 'bg-cyan-100', textColor: 'text-cyan-800', icon: 'pi-spin pi-spinner', severity: 'info' },
+            'fulfilled': { color: '#10b981', bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check-circle', severity: 'success' },
+            'rejected': { color: '#ef4444', bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle', severity: 'danger' },
+        };
+
+        const config = statusConfig[rowData.status] || { bgColor: 'bg-gray-100', textColor: 'text-gray-800', icon: 'pi-question', severity: 'secondary' };
+
+        return (
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                    <i className={`pi ${config.icon}`}></i>
+                    <span className="font-medium">{getStatusLabel(rowData.status)}</span>
+                </div>
+            </motion.div>
+        );
     };
 
-    const statusBodyTemplate = (rowData) => (
-        <Tag value={rowData.status} severity={getStatusSeverity(rowData.status)} />
-    );
-
+    // Consistent priority template with motion animation
     const priorityBodyTemplate = (rowData) => {
         const priority = rowData.priority || 'normal';
-        const severity = priority === 'urgent' ? 'danger' : priority === 'high' ? 'warning' : 'info';
-        return <Tag value={priority} severity={severity} />;
+        const priorityConfig = {
+            'low': { color: '#10b981', bgColor: 'bg-green-100', textColor: 'text-green-800', severity: 'success' },
+            'normal': { color: '#06b6d4', bgColor: 'bg-cyan-100', textColor: 'text-cyan-800', severity: 'info' },
+            'high': { color: '#f97316', bgColor: 'bg-orange-100', textColor: 'text-orange-800', severity: 'warning' },
+            'urgent': { color: '#ef4444', bgColor: 'bg-red-100', textColor: 'text-red-800', severity: 'danger' },
+        };
+
+        const config = priorityConfig[priority] || priorityConfig['normal'];
+
+        return (
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                    <span className="font-medium">{getPriorityLabel(priority)}</span>
+                </div>
+            </motion.div>
+        );
     };
 
+    // Date template consistent with technician page
     const dateBodyTemplate = (rowData) => {
-        return new Date(rowData.created_at).toLocaleDateString('id-ID', {
-            year: 'numeric',
+        if (!rowData.created_at) return "N/A";
+        return new Date(rowData.created_at).toLocaleString("en-US", {
+            day: '2-digit',
             month: 'short',
-            day: 'numeric'
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
     };
 
@@ -89,6 +111,7 @@ const PartRequestTable = ({
                 className="p-button-sm"
                 onClick={() => onViewDetail(rowData)}
                 tooltip="View Detail"
+                tooltipOptions={{ position: "top" }}
                 severity="info"
             />
             <Button
@@ -99,6 +122,8 @@ const PartRequestTable = ({
                 className="p-button-sm"
                 onClick={() => onDelete(rowData)}
                 tooltip="Delete"
+                tooltipOptions={{ position: "top" }}
+                disabled={rowData.status !== 'pending'} // Consistent with technician page logic
             />
         </div>
     );
@@ -122,6 +147,27 @@ const PartRequestTable = ({
             </div>
         </div>
     );
+
+    // Helper functions for consistent labeling
+    const getStatusLabel = (status) => {
+        const statusMap = {
+            pending: "Pending",
+            approved: "Approved",
+            fulfilled: "Fulfilled",
+            rejected: "Rejected",
+        };
+        return statusMap[status] || status;
+    };
+
+    const getPriorityLabel = (priority) => {
+        const priorityMap = {
+            low: "Low",
+            normal: "Normal",
+            high: "High",
+            urgent: "Urgent",
+        };
+        return priorityMap[priority] || priority;
+    };
 
     return (
         <div>
@@ -161,14 +207,14 @@ const PartRequestTable = ({
                     field="status"
                     header="Status"
                     body={statusBodyTemplate}
-                    style={{ width: "100px" }}
+                    style={{ width: "140px" }}
                     sortable
                 />
                 <Column
                     field="priority"
                     header="Priority"
                     body={priorityBodyTemplate}
-                    style={{ width: "100px" }}
+                    style={{ width: "120px" }}
                     sortable
                 />
                 <Column
@@ -195,7 +241,7 @@ const PartRequestTable = ({
                     field="created_at"
                     header="Created Date"
                     body={dateBodyTemplate}
-                    style={{ width: "120px" }}
+                    style={{ width: "150px" }}
                     sortable
                 />
                 <Column

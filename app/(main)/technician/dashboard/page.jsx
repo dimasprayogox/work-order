@@ -7,9 +7,10 @@ import { Tag } from "primereact/tag";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
-import { Toast } from "primereact/toast"; // Tambahkan import Toast
+import { Toast } from "primereact/toast";
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Image } from "primereact/image"; // 👈 Perubahan 1: Import komponen Image
 
 // Opsi filter disesuaikan dengan nilai data asli
 const statusOptions = [
@@ -93,8 +94,24 @@ const TechnicianDashboardPage = () => {
         fetchData();
     }, [showToast]);
 
+    const photoBodyTemplate = (rowData) => {
+        const photoUrl = rowData.issue?.photo_url;
+        if (photoUrl) {
+            return (
+                <Image
+                    src={photoUrl}
+                    alt="Issue Photo"
+                    width="60"
+                    height="60"
+                    preview
+                    imageClassName="rounded-md object-cover"
+                />
+            );
+        }
+        return <div className="flex items-center justify-center h-[60px] w-[60px] bg-gray-100 rounded-md text-gray-400 text-xs">No Photo</div>;
+    };
+
     const statusBodyTemplate = (rowData) => {
-        // Kunci disesuaikan dengan nilai data asli
         const statusConfig = {
             'pending': { label: 'Pending', color: '#f97316', bgColor: 'bg-orange-100', textColor: 'text-orange-800', icon: 'pi-clock' },
             'in_progress': { label: 'In Progress', color: '#06b6d4', bgColor: 'bg-cyan-100', textColor: 'text-cyan-800', icon: 'pi-spin pi-spinner' },
@@ -125,7 +142,7 @@ const TechnicianDashboardPage = () => {
         const woDesc = wo.description || '';
 
         const matchesStatus = !statusFilter || woStatus === statusFilter;
-        const matchesSearch = !searchText || woId.toLowerCase().includes(searchText.toLowerCase()) || woDesc.toLowerCase().includes(searchText.toLowerCase());
+        const matchesSearch = !searchText || String(woId).toLowerCase().includes(searchText.toLowerCase()) || woDesc.toLowerCase().includes(searchText.toLowerCase());
         return matchesStatus && matchesSearch;
     });
 
@@ -141,34 +158,34 @@ const TechnicianDashboardPage = () => {
             {/* Top Stats Cards */}
             <div className="grid">
                  <StatCard
-                     title="Total Work Order"
-                     value={stats.total}
-                     icon="pi-inbox"
-                     bgColor="#4f46e5" // Warna solid
-                     percentage={100}
+                    title="Total Work Order"
+                    value={stats.total}
+                    icon="pi-inbox"
+                    bgColor="#4f46e5"
+                    percentage={100}
                  />
                  <StatCard
-                     title="Pending"
-                     value={stats.pending}
-                     icon="pi-clock"
-                     bgColor="#ef4444" // Warna solid
-                     percentage={(stats.pending / stats.total) * 100}
+                    title="Pending"
+                    value={stats.pending}
+                    icon="pi-clock"
+                    bgColor="#ef4444"
+                    percentage={(stats.pending / stats.total) * 100}
                  />
                  <StatCard
-                     title="In Progress"
-                     value={stats.inProgress}
-                     icon="pi-spinner"
-                     bgColor="#06b6d4" // Warna solid
-                     percentage={(stats.inProgress / stats.total) * 100}
+                    title="In Progress"
+                    value={stats.inProgress}
+                    icon="pi-spinner"
+                    bgColor="#06b6d4"
+                    percentage={(stats.inProgress / stats.total) * 100}
                  />
                  <StatCard
-                     title="Completed"
-                     value={stats.completed}
-                     icon="pi-check-circle"
-                     bgColor="#10b981" // Warna solid
-                     percentage={(stats.completed / stats.total) * 100}
+                    title="Completed"
+                    value={stats.completed}
+                    icon="pi-check-circle"
+                    bgColor="#10b981"
+                    percentage={(stats.completed / stats.total) * 100}
                  />
-             </div>
+            </div>
 
              {/* Charts Section */}
             <div className="grid mt-4">
@@ -226,11 +243,12 @@ const TechnicianDashboardPage = () => {
                                 </div>
                             }
                         >
-                            <Column field="id" header="ID" sortable />
-                            <Column field="description" header="Deskripsi" sortable />
-                            <Column field="asset.name" header="Aset" sortable />
-                            <Column header="Status" body={statusBodyTemplate} sortable sortField="status" />
-                            <Column header="Prioritas" body={priorityBodyTemplate} sortable sortField="priority" />
+                            <Column header="Photo" body={photoBodyTemplate} style={{ width: '100px' }} />
+                            <Column field="id" header="Id" sortable />
+                            <Column field="description" header="Deskripsi" style={{ width: '200px' }} />
+                            <Column header="Priority" body={priorityBodyTemplate} sortable sortField="priority" />
+                            <Column header="Status" body={statusBodyTemplate} sortField="status" />
+                            <Column field="created_at" header="Requested At" sortable body={(rowData) => new Date(rowData.created_at).toLocaleDateString()} />
                         </DataTable>
                     </div>
                 </div>
@@ -241,24 +259,24 @@ const TechnicianDashboardPage = () => {
 
 // Helper component untuk stat cards
  const StatCard = ({ title, value, icon, bgColor, percentage }) => (
-     <div className="col-6 md:col-3">
-         <div
-             className="flex flex-column justify-content-between p-3 overflow-hidden h-full"
-             style={{
-                 borderRadius: "12px",
-                 boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-                 backgroundColor: bgColor // Menggunakan backgroundColor untuk satu warna solid
-             }}
-         >
-             <div className="text-center w-full">
-                 <i className={`pi ${icon} text-white opacity-80`} style={{ fontSize: "2rem" }}></i>
-                 <h6 className="font-bold text-white mt-3 mb-1 uppercase text-sm">{title}</h6>
-             </div>
-             <h3 className="text-4xl font-bold text-white my-2 text-center">{isNaN(value) ? 0 : value}</h3>
-             <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
-                 <div className="bg-white h-2 rounded-full" style={{ width: `${isNaN(percentage) ? 0 : percentage}%` }}></div>
-             </div>
-         </div>
+    <div className="col-6 md:col-3">
+        <div
+            className="flex flex-column justify-content-between p-3 overflow-hidden h-full"
+            style={{
+                borderRadius: "12px",
+                boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                backgroundColor: bgColor
+            }}
+        >
+            <div className="text-center w-full">
+                <i className={`pi ${icon} text-white opacity-80`} style={{ fontSize: "2rem" }}></i>
+                <h6 className="font-bold text-white mt-3 mb-1 uppercase text-sm">{title}</h6>
+            </div>
+            <h3 className="text-4xl font-bold text-white my-2 text-center">{isNaN(value) ? 0 : value}</h3>
+            <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
+                <div className="bg-white h-2 rounded-full" style={{ width: `${isNaN(percentage) ? 0 : percentage}%` }}></div>
+            </div>
+        </div>
      </div>
  );
 

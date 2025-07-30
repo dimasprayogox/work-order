@@ -1,15 +1,9 @@
-import { Axios } from "../../../../utils/axios"; // Sesuaikan path jika perlu
+import { Axios } from "../../../../utils/axios";
 import { API_ENDPOINTS } from "../../../api";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
-/**
- * Handler untuk mengambil detail part request berdasarkan ID.
- * @param {Request} request
- * @param {{ params: { id: string } }} { params }
- */
-export const GET = async (request, { params }) => {
-    // FIX: Nama parameter harus 'id' sesuai dengan nama folder '[id]'
+export async function GET(request, { params }) {
     const { id } = params;
     const token = request.cookies.get("authToken")?.value;
 
@@ -18,7 +12,6 @@ export const GET = async (request, { params }) => {
     }
 
     try {
-        // FIX: Gunakan 'id' yang didapat dari params
         const response = await Axios.get(API_ENDPOINTS.LOGISTICS_PARTS_BY_ID(id), {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -30,9 +23,9 @@ export const GET = async (request, { params }) => {
         console.error("[API LOGISTICS PARTS GET BY ID]", err);
         return NextResponse.json({ message: "Gagal mengambil detail parts." }, { status: 500 });
     }
-};
+}
 
-export const PATCH = async (request, { params }) => {
+export async function PATCH(request, { params }) {
     const { id } = params;
     const token = request.cookies.get("authToken")?.value;
 
@@ -53,14 +46,9 @@ export const PATCH = async (request, { params }) => {
         console.error("[API LOGISTICS PARTS PUT]", err);
         return NextResponse.json({ message: "Gagal mengupdate data part." }, { status: 500 });
     }
-};
+}
 
-/**
- * Handler untuk menghapus part request berdasarkan ID.
- * @param {Request} request
- * @param {{ params: { id: string } }} { params }
- */
-export const DELETE = async (request, { params }) => {
+export async function DELETE(request, { params }) {
     const { id } = params;
     const token = request.cookies.get("authToken")?.value;
 
@@ -80,4 +68,4 @@ export const DELETE = async (request, { params }) => {
         console.error("[API LOGISTICS PART DELETE]", err);
         return NextResponse.json({ message: "Gagal menghapus parts." }, { status: 500 });
     }
-};
+}

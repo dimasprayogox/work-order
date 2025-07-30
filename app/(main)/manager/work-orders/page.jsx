@@ -1,3 +1,4 @@
+// my-project/app/(main)/manager/work-orders/page.jsx
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -26,16 +27,14 @@ import {
     statusBodyTemplate as commonStatusBodyTemplate,
     dateBodyTemplate as commonDateBodyTemplate,
     technicianBodyTemplate
-} from "./components/WorkOrderTable";
+} from "./components/WorkOrderTable"; // Sesuaikan path jika ini adalah komponen terpisah
 
 import DelegateTechnicianDialog from "./components/DelegateTechnicianDialog";
 import WorkOrderDetailsDialog from "./components/WorkOrderDetailsDialog";
-import CreateWorkOrderDialog from "./components/CreateWorkOrderDialog"; // Import komponen dialog baru
+import CreateWorkOrderDialog from "./components/CreateWorkOrderDialog";
 
 const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
 const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false });
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
 
 const statusMapForExport = {
     pending: "Pending",
@@ -57,9 +56,9 @@ export default function WorkOrderPage() {
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState("");
     const [searchText, setSearchText] = useState("");
-    
+
     const [assignDialogVisible, setAssignDialogVisible] = useState(false);
-    const [createWorkOrderDialogVisible, setCreateWorkOrderDialogVisible] = useState(false); // State baru untuk dialog buat WO
+    const [createWorkOrderDialogVisible, setCreateWorkOrderDialogVisible] = useState(false);
     const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
     const [viewDetailsDialogVisible, setViewDetailsDialogVisible] = useState(false);
 
@@ -100,9 +99,7 @@ export default function WorkOrderPage() {
     const fetchWorkOrders = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/manager/work-orders`, {
-                credentials: "include"
-            });
+            const response = await fetch(`/api/manager/work-orders`); // Menggunakan proxy API Next.js
             if (!response.ok) throw new Error((await response.json()).message || "Gagal mengambil daftar Work Order.");
             const result = await response.json();
             setWorkOrders(result.data || []);
@@ -118,7 +115,7 @@ export default function WorkOrderPage() {
         fetchWorkOrders();
     }, [fetchWorkOrders]);
 
-    const handleWorkOrderCreated = useCallback(() => { // Fungsi baru untuk setelah WO dibuat
+    const handleWorkOrderCreated = useCallback(() => {
         showToast("success", "Berhasil", "Work Order baru berhasil dibuat.");
         setCreateWorkOrderDialogVisible(false);
         fetchWorkOrders();
@@ -127,7 +124,7 @@ export default function WorkOrderPage() {
     const handleTechnicianAssigned = useCallback((updatedWorkOrder) => {
         showToast("success", "Berhasil", "Teknisi berhasil ditugaskan.");
         setAssignDialogVisible(false);
-        
+
         setWorkOrders(prevOrders =>
             prevOrders.map(order =>
                 order.id === updatedWorkOrder.id
@@ -150,9 +147,8 @@ export default function WorkOrderPage() {
                 setLoading(true);
                 try {
                     for (const wo of selectedWorkOrders) {
-                        const response = await fetch(`${API_BASE_URL}/manager/work-orders/${wo.id}`, {
+                        const response = await fetch(`/api/manager/work-orders/${wo.id}`, { // Menggunakan proxy API Next.js
                             method: "DELETE",
-                            credentials: "include"
                         });
                         if (!response.ok) {
                             const result = await response.json();
@@ -233,7 +229,7 @@ export default function WorkOrderPage() {
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
-        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0,10)}.xlsx`);
+        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
         showToast("success", "Ekspor Berhasil", "Data berhasil diekspor ke Excel.");
     };
 
@@ -333,11 +329,10 @@ export default function WorkOrderPage() {
                         scheduled_date: item.scheduled_date ? new Date(item.scheduled_date).toISOString() : undefined,
                     };
 
-                    const res = await fetch(`${API_BASE_URL}/manager/work-orders`, {
+                    const res = await fetch(`/api/manager/work-orders`, { // Menggunakan proxy API Next.js
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload),
-                        credentials: "include"
                     });
                     if (!res.ok) {
                         const body = await res.json();
@@ -408,7 +403,7 @@ export default function WorkOrderPage() {
                     <div className="flex flex-wrap gap-2">
                         <Button
                             size="small"
-                            label="Buat Work Order Baru" // Tombol baru
+                            label="Buat Work Order Baru"
                             icon="pi pi-plus"
                             className="p-button-primary"
                             onClick={() => setCreateWorkOrderDialogVisible(true)}
@@ -525,12 +520,11 @@ export default function WorkOrderPage() {
                 workOrder={selectedWorkOrder}
             />
 
-            {/* Dialog baru untuk membuat Work Order */}
             <CreateWorkOrderDialog
                 visible={createWorkOrderDialogVisible}
                 onHide={() => setCreateWorkOrderDialogVisible(false)}
                 showToast={showToast}
-                onWorkOrderCreated={handleWorkOrderCreated} // Callback setelah WO berhasil dibuat
+                onWorkOrderCreated={handleWorkOrderCreated}
             />
 
             <input
