@@ -329,6 +329,7 @@ const AdminPartRequestPage = () => {
                         icon="pi pi-plus"
                         outlined
                         severity="success"
+                        disabled={true}
                         onClick={() => {
                             setSelectedRequest(null);
                             setDetailOpen(true);
