@@ -10,7 +10,8 @@ const ConfirmDeleteDialog = ({
     request,
     selectedRequests = [],
     fetchPartRequests,
-    showToast
+    showToast,
+    onDeleteSuccess
 }) => {
     const [loading, setLoading] = useState(false);
 
@@ -22,14 +23,13 @@ const ConfirmDeleteDialog = ({
             let res;
             if (isBulkDelete) {
                 // Menggunakan API route handler untuk bulk delete
-                res = await fetch("/api/admin/part-requests", {
+                res = await fetch("/api/admin/part-requests/delete-many", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
                     credentials: "include",
                     body: JSON.stringify({
-                        action: 'delete-many',
                         ids: selectedRequests.map((r) => r.id)
                     })
                 });
@@ -49,8 +49,14 @@ const ConfirmDeleteDialog = ({
                 : "Part request berhasil dihapus";
 
             showToast("success", "Berhasil", successMessage);
-            fetchPartRequests();
-            onHide();
+
+            // Call success callback if provided, otherwise use default behavior
+            if (onDeleteSuccess) {
+                onDeleteSuccess();
+            } else {
+                fetchPartRequests();
+                onHide();
+            }
         } catch (error) {
             showToast("error", "Gagal", error.message);
         } finally {
