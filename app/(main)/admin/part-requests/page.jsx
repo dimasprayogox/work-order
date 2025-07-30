@@ -287,6 +287,14 @@ const AdminPartRequestPage = () => {
         setDetailOpen(true);
     };
 
+    // Clear selection after successful operations
+    const handleDeleteSuccess = () => {
+        setSelectedRequests([]);
+        setSelectedRequest(null);
+        setDeleteOpen(false);
+        fetchPartRequests();
+    };
+
     return (
         <div className="p-4">
             <Toast ref={toast} position="top-right" />
@@ -399,6 +407,7 @@ const AdminPartRequestPage = () => {
                     }}
                     fetchPartRequests={fetchPartRequests}
                     showToast={showToast}
+                    onDeleteSuccess={handleDeleteSuccess}
                 />
 
                 <AdjustPrintMarginLaporan
