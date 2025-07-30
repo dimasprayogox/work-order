@@ -7,7 +7,6 @@ import { InputTextarea } from "primereact/inputtextarea";
 import { Button } from "primereact/button";
 import { classNames } from "primereact/utils";
 import { useState, useEffect } from "react";
-import { API_ENDPOINTS } from "../../../../api/api";
 
 const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast }) => {
   const [form, setForm] = useState({
@@ -63,9 +62,10 @@ const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast }) =
 
     setLoading(true);
     try {
+      // Menggunakan API route handler yang baru
       const endpoint = part
-        ? API_ENDPOINTS.ADMIN_PARTS_BY_ID(part.id)
-        : API_ENDPOINTS.ADMIN_PARTS;
+        ? `/api/admin/parts/${part.id}`
+        : "/api/admin/parts";
 
       const method = part ? "PATCH" : "POST";
 
