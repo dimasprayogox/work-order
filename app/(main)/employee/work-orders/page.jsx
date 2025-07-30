@@ -16,8 +16,18 @@ import { Panel } from "primereact/panel";
 import { motion } from "framer-motion";
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import dynamic from "next/dynamic";
+
 import WorkOrderEditModal from "./components/WorkOrderEditModal";
 import WorkOrderAddModal from "./components/WorkOrderAddModal";
+import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog"; // <--- Perubahan di sini: Nama file & import
+
+const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
+const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false });
 
 const statusBodyTemplate = (rowData) => {
     let severity = "info";
@@ -91,11 +101,28 @@ const dateBodyTemplate = (rowData) => {
     return rowData.created_at ? new Date(rowData.created_at).toLocaleString("id-ID") : "N/A";
 };
 
+const columnOptionsForExport = [
+    { field: 'title', header: 'Judul Isu', visible: true },
+    { field: 'description', header: 'Deskripsi', visible: true },
+    { field: 'machine.name', header: 'Mesin', visible: true },
+    { field: 'status', header: 'Status', visible: true },
+    { field: 'created_at', header: 'Dikirim', visible: true },
+];
+
+const statusMapForExport = {
+    open: "Pending",
+    in_progress: "In Progress",
+    resolved: "Resolved",
+    closed: "Closed",
+};
+
 const WorkOrderPage = () => {
     const toast = useRef(null);
     const [addWorkOrderDialogVisible, setAddWorkOrderDialogVisible] = useState(false);
     const [editWorkOrderDialogVisible, setEditWorkOrderDialogVisible] = useState(false);
     const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
+    const [deleteWorkOrderDialogVisible, setDeleteWorkOrderDialogVisible] = useState(false);
+
     const [loading, setLoading] = useState(false);
     const [loadingWorkRequests, setLoadingWorkRequests] = useState(true);
     const [myWorkRequests, setMyWorkRequests] = useState([]);
@@ -104,6 +131,21 @@ const WorkOrderPage = () => {
 
     const [statusFilter, setStatusFilter] = useState("");
     const [searchText, setSearchText] = useState("");
+
+    const fileInputRef = useRef(null);
+    const [adjustDialog, setAdjustDialog] = useState(false);
+    const [jsPdfPreviewOpen, setJsPdfPreviewOpen] = useState(false);
+    const [pdfUrl, setPdfUrl] = useState("");
+    const [fileName, setFileName] = useState("EmployeeWorkOrders");
+    const [printConfig, setPrintConfig] = useState({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        marginLeft: 10,
+        marginRight: 10,
+        marginTop: 10,
+        marginBottom: 10
+    });
 
     const showToast = useCallback((severity, summary, detail) => {
         toast.current.show({
@@ -167,7 +209,6 @@ const WorkOrderPage = () => {
         }
     }, [showToast]);
 
-
     const filteredData = myWorkRequests.filter((item) => {
         const matchesStatus = statusFilter === "" || item.status.toLowerCase() === statusFilter.toLowerCase();
         const matchesSearch = searchText === "" || item.title.toLowerCase().includes(searchText.toLowerCase()) || (item.description && item.description.toLowerCase().includes(searchText.toLowerCase()));
@@ -180,38 +221,14 @@ const WorkOrderPage = () => {
     };
 
     const handleDeleteWorkOrder = (rowData) => {
-        confirmDialog({
-            message: `Are you sure you want to delete the work order "${rowData.title}"?`,
-            header: 'Confirm Deletion',
-            icon: 'pi pi-exclamation-triangle',
-            acceptClassName: 'p-button-danger',
-            accept: async () => {
-                setLoading(true);
-                try {
-                    const response = await fetch(`/api/employee/issues/${rowData.id}`, {
-                        method: "DELETE",
-                        credentials: "include"
-                    });
-
-                    if (!response.ok) {
-                        const errorResult = await response.json();
-                        throw new Error(errorResult.message || "Failed to delete work order.");
-                    }
-
-                    showToast("success", "Deleted", `Work order "${rowData.title}" has been deleted.`);
-                    fetchMyWorkRequests();
-                } catch (error) {
-                    console.error("Error deleting work order:", error);
-                    showToast("error", "Error", `Failed to delete work order: ${error.message}`);
-                } finally {
-                    setLoading(false);
-                }
-            },
-            reject: () => {
-                showToast("info", "Cancelled", "Work order deletion cancelled.");
-            }
-        });
+        setSelectedWorkOrder(rowData);
+        setDeleteWorkOrderDialogVisible(true);
     };
+
+    const onWorkOrderDeleted = useCallback(() => {
+        setDeleteWorkOrderDialogVisible(false);
+        fetchMyWorkRequests();
+    }, [fetchMyWorkRequests]);
 
     const handleDeleteSelected = () => {
         if (selectedRequests.length === 0) {
@@ -281,11 +298,168 @@ const WorkOrderPage = () => {
                     tooltip="Delete"
                     tooltipOptions={{ position: 'right' }}
                     onClick={() => handleDeleteWorkOrder(rowData)}
-                    disabled={loading} 
+                    disabled={loading}
                 />
             </div>
         );
     };
+
+    const exportExcel = async () => {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Work Orders');
+
+        const headers = columnOptionsForExport
+            .filter(col => col.visible)
+            .map(col => col.header);
+
+        worksheet.addRow(headers);
+
+        myWorkRequests.forEach(wo => {
+            const rowData = columnOptionsForExport
+                .filter(col => col.visible)
+                .map(col => {
+                    if (col.field === 'machine.name') {
+                        return wo.machine?.name || 'N/A';
+                    } else if (col.field.includes('_at')) {
+                        return wo[col.field] ? new Date(wo[col.field]).toLocaleString("id-ID") : "N/A";
+                    } else if (col.field === 'status') {
+                        return statusMapForExport[wo.status] || wo.status;
+                    } else {
+                        return wo[col.field];
+                    }
+                });
+            worksheet.addRow(rowData);
+        });
+
+        worksheet.getRow(1).eachCell((cell) => {
+            cell.font = { bold: true };
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        showToast("success", "Ekspor Berhasil", "Data berhasil diekspor ke Excel.");
+    };
+
+    const exportPdf = (config = null) => {
+        const currentConfig = config || printConfig;
+
+        const doc = new jsPDF({
+            orientation: currentConfig.orientation,
+            unit: currentConfig.unit,
+            format: currentConfig.format
+        });
+
+        const visibleColumns = columnOptionsForExport.filter(col => col.visible);
+
+        const headers = visibleColumns.map(col => col.header);
+        const data = myWorkRequests.map(wo => {
+            return visibleColumns.map(col => {
+                if (col.field === 'machine.name') {
+                    return wo.machine?.name || 'N/A';
+                } else if (col.field.includes('_at')) {
+                    return wo[col.field] ? new Date(wo[col.field]).toLocaleString("id-ID") : "N/A";
+                } else if (col.field === 'status') {
+                    return statusMapForExport[wo.status] || wo.status;
+                } else {
+                    return wo[col.field];
+                }
+            });
+        });
+
+        doc.text('Laporan Work Order Karyawan', currentConfig.marginLeft, currentConfig.marginTop);
+
+        autoTable(doc, {
+            startY: currentConfig.marginTop + 10,
+            head: [headers],
+            body: data,
+            margin: {
+                left: currentConfig.marginLeft,
+                right: currentConfig.marginRight,
+                top: currentConfig.marginTop + 10,
+                bottom: currentConfig.marginBottom
+            }
+        });
+
+        const pdfBlob = doc.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        setPdfUrl(pdfUrl);
+        setJsPdfPreviewOpen(true);
+        showToast("success", "Ekspor Berhasil", "Laporan berhasil dibuat dalam format PDF.");
+    };
+
+    const handlePrint = () => {
+        setAdjustDialog(true);
+    };
+
+    const handleAdjust = (newConfig) => {
+        setPrintConfig(newConfig);
+        setAdjustDialog(false);
+        exportPdf(newConfig);
+    };
+
+    const handleImport = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setLoading(true);
+        try {
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = async () => {
+                const buffer = reader.result;
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(buffer);
+                const worksheet = workbook.getWorksheet(1);
+                const jsonData = [];
+                const headerRow = worksheet.getRow(1);
+
+                worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+                    if (rowNumber > 1) {
+                        let rowObject = {};
+                        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                            const headerCell = headerRow.getCell(colNumber);
+                            if (headerCell && headerCell.value) {
+                                const fieldName = headerCell.value.toString().toLowerCase().replace(/ /g, '_');
+                                rowObject[fieldName] = cell.value;
+                            }
+                        });
+                        jsonData.push(rowObject);
+                    }
+                });
+
+                for (const item of jsonData) {
+                    const payload = {
+                        title: item.judul_isu || item.issue_title || item.title,
+                        description: item.deskripsi || item.description,
+                        machine_id: item.id_mesin || item.machine_id,
+                        priority: item.prioritas || item.priority || 'medium',
+                        status: 'open',
+                    };
+
+                    const res = await fetch('/api/employee/issues', {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) {
+                        const body = await res.json();
+                        throw new Error(body.message || `Gagal mengimpor item: ${item.title || 'Tidak diketahui'}`);
+                    }
+                }
+
+                showToast("success", "Impor Berhasil", "Data berhasil diimpor.");
+                await fetchMyWorkRequests();
+            };
+        } catch (err) {
+            showToast("error", "Impor Gagal", err.message);
+        } finally {
+            setLoading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }
+    };
+
 
     useEffect(() => {
         fetchMyWorkRequests();
@@ -303,9 +477,36 @@ const WorkOrderPage = () => {
                 <div className="flex flex-wrap gap-2 mb-4 items-center">
                     <Button size="small" label="Buat Permintaan Baru" icon="pi pi-plus" outlined severity="success" onClick={() => setAddWorkOrderDialogVisible(true)} />
                     <Divider layout="vertical" />
-                    <Button size="small" label="Impor" icon="pi pi-file-import" outlined disabled />
-                    <Button size="small" label="Ekspor" icon="pi pi-file-export" outlined disabled />
-                    <Button size="small" label="Cetak" icon="pi pi-print" outlined disabled />
+                    <Button
+                        size="small"
+                        label="Impor"
+                        icon="pi pi-file-import"
+                        outlined
+                        onClick={() => fileInputRef.current?.click()}
+                        tooltip="Impor dari Excel"
+                        tooltipOptions={{ position: 'bottom' }}
+                        disabled={loading}
+                    />
+                    <Button
+                        size="small"
+                        label="Ekspor"
+                        icon="pi pi-file-export"
+                        outlined
+                        onClick={exportExcel}
+                        tooltip="Ekspor ke Excel"
+                        tooltipOptions={{ position: 'bottom' }}
+                        disabled={loading}
+                    />
+                    <Button
+                        size="small"
+                        label="Cetak"
+                        icon="pi pi-print"
+                        outlined
+                        onClick={handlePrint}
+                        tooltip="Cetak Laporan PDF"
+                        tooltipOptions={{ position: 'bottom' }}
+                        disabled={loading}
+                    />
                     <Divider layout="vertical" />
                     <Button size="small" label="Hapus Terpilih" icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedRequests.length === 0 || loading} />
                     <Divider layout="vertical" />
@@ -411,6 +612,41 @@ const WorkOrderPage = () => {
                     }}
                     showToast={showToast}
                 />
+
+                <ConfirmDeleteDialog // <--- Perubahan di sini: Menggunakan komponen ConfirmDeleteDialog yang baru
+                    visible={deleteWorkOrderDialogVisible}
+                    onHide={() => setDeleteWorkOrderDialogVisible(false)}
+                    workOrder={selectedWorkOrder}
+                    onDeleted={onWorkOrderDeleted}
+                    showToast={showToast}
+                />
+
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={handleImport}
+                    accept=".xlsx,.xls"
+                />
+
+                <AdjustPrintMarginLaporan
+                    key={adjustDialog ? 'open' : 'closed'}
+                    adjustDialog={adjustDialog}
+                    setAdjustDialog={setAdjustDialog}
+                    handleAdjust={handleAdjust}
+                    printConfig={printConfig}
+                    setPrintConfig={setPrintConfig}
+                />
+
+                <Dialog
+                    visible={jsPdfPreviewOpen}
+                    onHide={() => setJsPdfPreviewOpen(false)}
+                    modal
+                    style={{ width: '90vw', height: '90vh' }}
+                    header="Pratinjau Laporan PDF"
+                >
+                    <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
+                </Dialog>
             </div>
         </div>
     );
