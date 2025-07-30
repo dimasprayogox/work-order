@@ -1,6 +1,5 @@
 "use client";
 
-import { Card } from "primereact/card";
 import RequestsChart from "./charts/RequestsChart";
 
 const PartRequestSummary = ({ data }) => {

@@ -2,7 +2,6 @@
 
 import { Dialog } from "primereact/dialog";
 import { Button } from "primereact/button";
-import { API_ENDPOINTS } from "../../../../api/api";
 import { useState } from "react";
 
 const ConfirmDeleteDialog = ({ visible, onHide, part, selectedParts = [], fetchParts, showToast }) => {
@@ -15,18 +14,14 @@ const ConfirmDeleteDialog = ({ visible, onHide, part, selectedParts = [], fetchP
         try {
             let res;
             if (isBulkDelete) {
-                res = await fetch(`${API_ENDPOINTS.DELETE_PARTS_MANY}`, {
+                res = await fetch("/api/logistics/parts", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify({
-                        ids: selectedParts.map((p) => p.id)
-                    })
+                    body: JSON.stringify({ ids: selectedParts.map((p) => p.id) })
                 });
             } else {
-                res = await fetch(`${API_ENDPOINTS.PARTS}/${part.id}`, {
+                res = await fetch(`/api/logistics/parts/${part.id}`, {
                     method: "DELETE",
                     credentials: "include"
                 });
@@ -49,7 +44,7 @@ const ConfirmDeleteDialog = ({ visible, onHide, part, selectedParts = [], fetchP
 
     const footerContent = (
         <div className="flex justify-content-end gap-2">
-            <Button label="Batal"  severity="secondary" outlined onClick={onHide} disabled={loading} />
+            <Button label="Batal" severity="secondary" outlined onClick={onHide} disabled={loading} />
             <Button label="Ya, Hapus" severity="danger" onClick={handleDelete} loading={loading} />
         </div>
     );

@@ -4,11 +4,11 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recha
 
 const RequestsChart = ({ data }) => {
     const pieData = [
-        { name: "Pending", value: data.pending, color: "#fbbf24" },
-        { name: "Approved", value: data.approved, color: "#60a5fa" },
-        { name: "Fulfilled", value: data.fulfilled, color: "#34d399" },
-        { name: "Rejected", value: data.rejected, color: "#f87171" }
-    ];
+        { name: "Pending", value: data.pending, color: "#f97316" },
+        { name: "Approved", value: data.approved, color: "#3b82f6" },
+        { name: "Fulfilled", value: data.fulfilled, color: "#10b981" },
+        { name: "Rejected", value: data.rejected, color: "#ef4444" }
+    ]; 
 
     return (
         <ResponsiveContainer width="100%" height={350}>

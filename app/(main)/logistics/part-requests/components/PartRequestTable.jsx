@@ -6,7 +6,7 @@ import { Dropdown } from "primereact/dropdown";
 import { InputText } from "primereact/inputtext";
 import { useState, useEffect } from "react";
 import { FilterMatchMode } from "primereact/api";
-import StatusBadge from "../../dashboard/components/status/StatusBadge"; // Import your custom StatusBadge
+import StatusBadge from "../../dashboard/components/status/StatusBadge"; 
 
 const statusOptions = [
     { label: "All Status", value: "" },
@@ -87,7 +87,7 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
             stripedRows
             emptyMessage="Tidak ada permintaan parts ditemukan"
             filters={filters}
-            globalFilterFields={["requestedBy.name", "note", "status", "items.part.name"]}
+            globalFilterFields={["requestedBy.full_name", "note", "status", "items.part.name"]}
             className="border-round-lg"
             rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"

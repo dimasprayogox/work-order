@@ -6,7 +6,6 @@ import { InputNumber } from "primereact/inputnumber";
 import { Button } from "primereact/button";
 import { classNames } from "primereact/utils";
 import { useState, useEffect } from "react";
-import { API_ENDPOINTS } from "../../../../api/api";
 
 const PartFormDialog = ({ visible, onHide, part, fetchParts, showToast }) => {
     const [form, setForm] = useState({
@@ -42,7 +41,7 @@ const PartFormDialog = ({ visible, onHide, part, fetchParts, showToast }) => {
     const handleSubmit = async () => {
         setLoading(true);
         try {
-            const res = await fetch(part ? `${API_ENDPOINTS.PARTS}/${part.id}` : API_ENDPOINTS.PARTS, {
+            const res = await fetch(part ? `/api/logistics/parts/${part.id}` : "/api/logistics/parts", {
                 method: part ? "PATCH" : "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",

@@ -21,6 +21,9 @@ export const API_ENDPOINTS = {
     GETALLPARTSFORECASTER: `${API_URL}/parts-forecaster`,
 
 
+    // Employee
+    
+
 
     // --- Technician Endpoints ---
     GET_TECHNICIAN_DASHBOARD_OVERVIEW: `${API_URL}/technician/dashboard/overview`,
@@ -40,11 +43,13 @@ export const API_ENDPOINTS = {
 
     //logistics
     LOGISTICS_DASHBOARD: `${API_URL}/logistics/dashboard`,
-    PARTS: `${API_URL}/logistics/parts`,
-    DELETE_PARTS_MANY: `${API_URL}/logistics/parts/delete-many`,
-    PART_REQUESTS: `${API_URL}/logistics/part-requests`,
-    TOP_USED_PARTS: `${API_URL}/logistics/part-usage/top-used-parts`,
-    USAGE_LOG: `${API_URL}/logistics/part-usage/usage-log`,
+    LOGISTICS_PARTS: `${API_URL}/logistics/parts`,
+    LOGISTICS_DELETE_PARTS_MANY: `${API_URL}/logistics/parts/delete-many`,
+    LOGISTICS_PART_REQUESTS: `${API_URL}/logistics/part-requests`,
+    LOGISTICS_PART_REQUEST_BY_ID: (id) => `${API_URL}/logistics/part-requests/${id}`,
+    LOGISTICS_TOP_USED_PARTS: `${API_URL}/logistics/part-usage/top-used-parts`,
+    LOGISTICS_USAGE_LOG: `${API_URL}/logistics/part-usage/usage-log`,
+    LOGISTICS_PARTS_BY_ID: (id) => `${API_URL}/logistics/parts/${id}`,
 
     // Admin
     USERS: `${API_URL}/admin/users`,

@@ -1,47 +1,60 @@
 "use client";
-
-import React, { useEffect, useState } from "react";
-import { Toast } from "primereact/toast";
+import React, { useState, useEffect, useRef } from "react";
 import { Card } from "primereact/card";
 import TopUsedPartsTable from "./components/TopUsedPartsTable";
 import UsageLogTable from "./components/UsageLogTable";
-import { API_ENDPOINTS } from "../../../api/api";
+import { Toast } from "primereact/toast";
 
 const PartUsagePage = () => {
     const [topUsedParts, setTopUsedParts] = useState([]);
     const [usageLogs, setUsageLogs] = useState([]);
-    const [loading, setLoading] = useState(false);
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const topRes = await fetch(API_ENDPOINTS.TOP_USED_PARTS, { credentials: "include" });
-            const topData = await topRes.json();
-
-            const logRes = await fetch(API_ENDPOINTS.USAGE_LOG, { credentials: "include" });
-            const logData = await logRes.json();
-
-            setTopUsedParts(topData.data || []);
-            setUsageLogs(logData.data || []);
-        } catch (err) {
-            console.error("Gagal mengambil data:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const [loading, setLoading] = useState(true);
+    const toast = useRef(null);
 
     useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [topPartsResult, usageLogsResult] = await Promise.all([fetch("/api/logistics/top-used"), fetch("/api/logistics/usage-log")]);
+
+                const topPartsData = await topPartsResult.json();
+                const usageLogsData = await usageLogsResult.json();
+
+                if (topPartsData.success) {
+                    setTopUsedParts(topPartsData.data || []);
+                } else {
+                    throw new Error(topPartsData.message || "Failed to fetch top used parts");
+                }
+
+                if (usageLogsData.success) {
+                    setUsageLogs(usageLogsData.data || []);
+                } else {
+                    throw new Error(usageLogsData.message || "Failed to fetch usage logs");
+                }
+            } catch (err) {
+                console.error("Error fetching data:", err);
+                toast.current?.show({
+                    severity: "error",
+                    summary: "Error",
+                    detail: err.message || "Gagal memuat data"
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchData();
     }, []);
 
     return (
         <div className="p-5 space-y-6">
+            <Toast ref={toast} />
             <Card title="Top 10 Part Terpakai">
-                <TopUsedPartsTable data={topUsedParts} loading={loading} />
+                <TopUsedPartsTable data={topUsedParts} loading={loading} error={null} />
             </Card>
 
             <Card title="Log Penggunaan Part" className="mt-6">
-                <UsageLogTable data={usageLogs} loading={loading} />
+                <UsageLogTable data={usageLogs} loading={loading} error={null} />
             </Card>
         </div>
     );

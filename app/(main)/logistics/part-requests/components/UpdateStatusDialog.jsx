@@ -5,13 +5,11 @@ import { InputNumber } from "primereact/inputnumber";
 import { Button } from "primereact/button";
 import { Message } from "primereact/message";
 import { useState, useEffect } from "react";
-import { API_ENDPOINTS } from "../../../../api/api";
 
 const UpdateStatusDialog = ({ visible, onHide, request, fetchRequests, showToast }) => {
     const [note, setNote] = useState("");
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [submitStatus, setSubmitStatus] = useState(null);
 
     useEffect(() => {
         if (request) {
@@ -44,40 +42,45 @@ const UpdateStatusDialog = ({ visible, onHide, request, fetchRequests, showToast
         setItems(newItems);
     };
 
-    const handleSubmit = async () => {
-        if (!submitStatus) return;
+    const handleSubmit = async (statusToSubmit) => {
+        if (!statusToSubmit || !request?.id) {
+            showToast("error", "Error", "Invalid request data");
+            return;
+        }
 
         setLoading(true);
         try {
             const payload = {
-                status: submitStatus,
-                note,
+                status: statusToSubmit,
+                note: note || undefined, // Menggunakan undefined jika note kosong
                 items: items.map((item) => ({
                     item_id: item.id,
-                    quantity_approved: item.approved
+                    quantity_approved: statusToSubmit === "rejected" ? 0 : item.approved
                 }))
             };
 
-            const res = await fetch(`${API_ENDPOINTS.PART_REQUESTS}/${request.id}`, {
+            console.log("Submitting payload:", payload); // Debugging
+
+            const res = await fetch(`/api/logistics/part-request/${request.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include",
                 body: JSON.stringify(payload)
             });
 
             if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.message || "Update failed");
+                const error = await res.json().catch(() => ({}));
+                throw new Error(error.message || `HTTP error! status: ${res.status}`);
             }
 
+            const data = await res.json();
             showToast("success", "Success", "Status updated successfully");
             fetchRequests();
             onHide();
         } catch (err) {
-            showToast("error", "Error", err.message);
+            console.error("Submit error:", err);
+            showToast("error", "Error", err.message || "Failed to update status");
         } finally {
             setLoading(false);
-            setSubmitStatus(null);
         }
     };
 
@@ -118,29 +121,9 @@ const UpdateStatusDialog = ({ visible, onHide, request, fetchRequests, showToast
                 <div className="flex justify-end gap-2 mt-4">
                     <Button label="Close" icon="pi pi-times" onClick={onHide} className="p-button-secondary" />
 
-                    {request?.status === "pending" && (
-                        <Button
-                            label="Reject"
-                            icon="pi pi-times-circle"
-                            className="p-button-danger"
-                            onClick={() => {
-                                setSubmitStatus("rejected");
-                                handleSubmit();
-                            }}
-                            disabled={loading}
-                        />
-                    )}
+                    {request?.status === "pending" && <Button label="Reject" icon="pi pi-times-circle" className="p-button-danger" onClick={() => handleSubmit("rejected")} disabled={loading} />}
 
-                    <Button
-                        label={request?.status === "pending" ? "Approve" : "Fulfilled"}
-                        icon="pi pi-check"
-                        onClick={() => {
-                            const statusToSet = request?.status === "pending" ? "approved" : "fulfilled";
-                            setSubmitStatus(statusToSet);
-                            handleSubmit();
-                        }}
-                        loading={loading}
-                    />
+                    <Button label={request?.status === "pending" ? "Approve" : "Fulfilled"} icon="pi pi-check" onClick={() => handleSubmit(request?.status === "pending" ? "approved" : "fulfilled")} loading={loading} />
                 </div>
             </div>
         </Dialog>

@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Toast } from "primereact/toast";
 import { Button } from "primereact/button";
 import { Divider } from "primereact/divider";
 import PartRequestTable from "./components/PartRequestTable";
 import UpdateStatusDialog from "./components/UpdateStatusDialog";
-import { API_ENDPOINTS } from "../../../api/api";
 import { useRouter } from "next/navigation";
 
 const PartRequestPage = () => {
@@ -18,18 +17,26 @@ const PartRequestPage = () => {
     const [searchText, setSearchText] = useState("");
     const toast = useRef(null);
 
-    const fetchRequests = async () => {
-        setLoading(true);
+    const showToast = useCallback((severity, summary, detail) => {
+        toast.current?.show({ severity, summary, detail, life: 3000 });
+    }, []);
+
+    const fetchRequests = useCallback(async () => {
+        setLoading(true); 
         try {
-            const res = await fetch(API_ENDPOINTS.PART_REQUESTS, { credentials: "include" });
-            const data = await res.json();
-            setRequests(data.data || []);
+            const res = await fetch("/api/logistics/part-request");
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || "Gagal mengambil data request");
+            }
+            const result = await res.json();
+            setRequests(result.data || []); 
         } catch (err) {
-            toast.current.show({ severity: "error", summary: "Error", detail: "Gagal mengambil data request" });
+            showToast("error", "Error", err.message);
         } finally {
             setLoading(false);
         }
-    };
+    }, [showToast]);
 
     const handleUpdateStatus = (req) => {
         setSelectedRequest(req);
@@ -47,7 +54,7 @@ const PartRequestPage = () => {
 
     useEffect(() => {
         fetchRequests();
-    }, []);
+    }, [fetchRequests]);
 
     return (
         <div className="p-4">

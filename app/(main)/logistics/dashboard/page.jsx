@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getLogisticsDashboard } from "../../../api/logistics/dashboard/routes";
 import { ProgressSpinner } from "primereact/progressspinner";
 import PartSummary from "./components/PartSummary";
 import PartRequestSummary from "./components/PartRequestSummary";
@@ -11,21 +10,38 @@ import RecentRequests from "./components/RecentRequests";
 const LogisticsDashboardPage = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const dashboardData = await getLogisticsDashboard();
-                setData(dashboardData);
-            } catch (error) {
-                console.error("Error loading dashboard:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+     useEffect(() => {
+            const fetchData = async () => {
+                try {
+                    const res = await fetch("/api/logistics/dashboard");
 
-        fetchData();
-    }, []);
+                    if (!res.ok) {
+                        const errorData = await res.json();
+                        throw new Error(errorData.message || "Gagal memuat data dashboard");
+                    }
+
+                    const responseWrapper = await res.json();
+
+                    if (responseWrapper.success && responseWrapper.data) {
+                        // --- INI PERBAIKANNYA ---
+                        // Simpan HANYA bagian 'data' dari respons ke dalam state
+                        setData(responseWrapper.data);
+                    } else {
+                        throw new Error(responseWrapper.message || "Format data dari API tidak valid");
+                    }
+                } catch (error) {
+                    console.error("Error loading dashboard:", error);
+                    setError(error.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+    
+            fetchData();
+        }, []);
+    
 
     if (loading) {
         return (

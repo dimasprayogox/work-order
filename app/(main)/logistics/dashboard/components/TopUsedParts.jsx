@@ -6,8 +6,6 @@ import { Column } from "primereact/column";
 import { useEffect, useState, useRef } from "react";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { Toast } from "primereact/toast";
-import { API_ENDPOINTS } from "../../../../api/api";
-
 
 const TopUsedParts = () => {
     const [partsData, setPartsData] = useState([]);
@@ -18,13 +16,21 @@ const TopUsedParts = () => {
     const fetchTopUsedParts = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_ENDPOINTS.TOP_USED_PARTS}`, { credentials: "include" });
+            const res = await fetch("/api/logistics/top-used", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+
             if (!res.ok) {
                 throw new Error("Failed to fetch top used parts");
             }
+
             const response = await res.json();
 
-            if (response.success && response.data) {
+            console.log("DATA AKTUAL DARI API:", response);
+            if (response.success && Array.isArray(response.data)) {
                 const transformedData = response.data.map((item) => ({
                     id: item.part_id,
                     name: item.part?.name || "Part Tidak Dikenal",
@@ -36,7 +42,7 @@ const TopUsedParts = () => {
                 }));
                 setPartsData(transformedData);
             } else {
-                throw new Error("Invalid data format received");
+                throw new Error("Format data yang diterima tidak valid");
             }
         } catch (err) {
             console.error("Error fetching top used parts:", err);
@@ -44,7 +50,7 @@ const TopUsedParts = () => {
             toast.current?.show({
                 severity: "error",
                 summary: "Error",
-                detail: "Gagal mengambil data part yang sering digunakan"
+                detail: err.message // Tampilkan pesan error yang lebih dinamis
             });
         } finally {
             setLoading(false);
@@ -85,7 +91,7 @@ const TopUsedParts = () => {
         <div className="col-12 md:col-12">
             <Toast ref={toast} />
             <div className="card flex flex-column p-3 ">
-                 <h5 className="font-bold mb-4 self-start pt-2 pb-4 text-center">Top 10 Used Parts</h5>
+                <h5 className="font-bold mb-4 self-start pt-2 pb-4 text-center">Top 10 Used Parts</h5>
                 <DataTable
                     value={partsData}
                     paginator
