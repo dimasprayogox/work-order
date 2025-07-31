@@ -44,6 +44,6 @@
     "sass": "^1.63.4"
   },
   "overrides": {
-    "pdfjs-dist": "5.4.54"
+    "pdfjs-dist": "^5.4.54"
   }
 }
