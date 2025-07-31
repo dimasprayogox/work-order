@@ -22,22 +22,26 @@ const PartRequestTable = ({
     const [filters, setFilters] = useState({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS }
     });
-    const [globalFilterValue, setGlobalFilterValue] = useState("");
+    const [globalFilterValue, setGlobalFilterValue] = useState(searchText);
 
-    // Gunakan useCallback dengan dependency yang tepat (sama seperti MachineTable)
-    const onGlobalFilterChange = useCallback((value) => {
-        setFilters((prevFilters) => ({
-            ...prevFilters,
-            global: { ...prevFilters.global, value },
-        }));
-        onSearch(value);
-    }, [onSearch]);
-
-    // Sertakan onGlobalFilterChange dalam dependency array (sama seperti MachineTable)
+    // useEffect yang diperbaiki - sama seperti MachineCategoryTable
     useEffect(() => {
         setGlobalFilterValue(searchText);
-        onGlobalFilterChange(searchText);
-    }, [searchText, onGlobalFilterChange]);
+        setFilters((prevFilters) => ({
+            ...prevFilters,
+            global: { ...prevFilters.global, value: searchText },
+        }));
+    }, [searchText]);
+
+    const onGlobalFilterChange = (value) => {
+        // Update filter DataTable secara lokal
+        const _filters = { ...filters };
+        _filters['global'].value = value;
+        setFilters(_filters);
+
+        // Informasikan ke parent component tentang perubahan search text
+        onSearch(value);
+    };
 
     const handleSelectionChange = (e) => {
         onSelectionChange(e.value);
@@ -141,8 +145,9 @@ const PartRequestTable = ({
                     <InputText
                         value={globalFilterValue}
                         onChange={(e) => {
-                            setGlobalFilterValue(e.target.value);
-                            onGlobalFilterChange(e.target.value);
+                            const value = e.target.value;
+                            setGlobalFilterValue(value);
+                            onGlobalFilterChange(value);
                         }}
                         placeholder="Search"
                     />
