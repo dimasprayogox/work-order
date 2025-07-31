@@ -188,70 +188,71 @@ const WorkOrderPage = () => {
         }
     }, [showToast]);
 
+    // 👈 Perubahan di sini
     const photoBodyTemplate = (rowData) => {
-    const handleImageClick = (url) => {
-        setPreviewImageUrl(url);
-        setImagePreviewVisible(true);
-    };
+        const handleImageClick = (e, url) => {
+            e.stopPropagation(); // Mencegah event klik "naik" ke baris tabel
+            setPreviewImageUrl(url);
+            setImagePreviewVisible(true);
+        };
 
-    const handleMouseEnter = (id) => {
-        setIsImageHovered(true);
-        setHoveredImageId(id);
-    };
+        const handleMouseEnter = (id) => {
+            setIsImageHovered(true);
+            setHoveredImageId(id);
+        };
 
-    const handleMouseLeave = () => {
-        setIsImageHovered(false);
-        setHoveredImageId(null);
-    };
+        const handleMouseLeave = () => {
+            setIsImageHovered(false);
+            setHoveredImageId(null);
+        };
 
-    // Style untuk overlay dan centering
-    const overlayStyle = {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)', // Setara dengan bg-black-alpha-50
-        borderRadius: '6px', // Sesuaikan dengan border-round default PrimeReact
-        cursor: 'pointer',
-    };
+        const overlayStyle = {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            borderRadius: '6px',
+            cursor: 'pointer',
+        };
 
-    if (rowData.photo_url) {
-        return (
-            <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onMouseEnter={() => handleMouseEnter(rowData.id)}
-                onMouseLeave={handleMouseLeave}
-                className="relative" // className 'relative' tetap dibutuhkan
-            >
-                <img
-                    src={rowData.photo_url}
-                    alt="Issue Preview"
-                    style={{ width: "50px", height: "50px", objectFit: "cover", cursor: "pointer" }}
-                    className="shadow-lg border-round"
-                    onClick={() => handleImageClick(rowData.photo_url)}
-                    onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = "https://placehold.co/50x50/cccccc/000000?text=No+Image";
-                    }}
-                />
-                {isImageHovered && hoveredImageId === rowData.id && (
-                    <div
-                        style={overlayStyle} // Menggunakan style inline, bukan className
-                        onClick={() => handleImageClick(rowData.photo_url)}
-                    >
-                        <i className="pi pi-eye text-white text-xl"></i>
-                    </div>
-                )}
-            </motion.div>
-        );
-    }
-    return <img src="https://placehold.co/50x50/cccccc/000000?text=No+Image" alt="No photo" style={{ width: "50px", height: "50px", objectFit: "cover" }} className="shadow-lg border-round" />;
-};
+        if (rowData.photo_url) {
+            return (
+                <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onMouseEnter={() => handleMouseEnter(rowData.id)}
+                    onMouseLeave={handleMouseLeave}
+                    className="relative"
+                >
+                    <img
+                        src={rowData.photo_url}
+                        alt="Issue Preview"
+                        style={{ width: "50px", height: "50px", objectFit: "cover", cursor: "pointer" }}
+                        className="shadow-lg border-round"
+                        onClick={(e) => handleImageClick(e, rowData.photo_url)} // Kirim event (e)
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://placehold.co/50x50/cccccc/000000?text=No+Image";
+                        }}
+                    />
+                    {isImageHovered && hoveredImageId === rowData.id && (
+                        <div
+                            style={overlayStyle}
+                            onClick={(e) => handleImageClick(e, rowData.photo_url)} // Kirim event (e)
+                        >
+                            <i className="pi pi-eye text-white text-xl"></i>
+                        </div>
+                    )}
+                </motion.div>
+            );
+        }
+        return <img src="https://placehold.co/50x50/cccccc/000000?text=No+Image" alt="No photo" style={{ width: "50px", height: "50px", objectFit: "cover" }} className="shadow-lg border-round" />;
+    };
 
     const filteredData = myWorkRequests.filter((item) => {
         const matchesStatus = statusFilter === "" || item.status.toLowerCase() === statusFilter.toLowerCase();
@@ -504,6 +505,7 @@ const WorkOrderPage = () => {
         }
     };
 
+
     useEffect(() => {
         fetchMyWorkRequests();
         fetchMachines();
@@ -622,7 +624,7 @@ const WorkOrderPage = () => {
                                 />
                                 <Column field="machine.name" header="Mesin" body={(rowData) => <Tag value={rowData.machine?.name} className="bg-gray-100 text-gray-800 font-medium" />} />
                                 <Column field="status" header="Status" body={statusBodyTemplate} sortable />
-                                <Column header="Foto" body={photoBodyTemplate} style={{ maxWidth:'50px' }} />
+                                <Column header="Foto" body={photoBodyTemplate} />
                                 <Column field="created_at" header="Dikirim" body={dateBodyTemplate} />
                                 <Column header="Aksi" body={actionBodyTemplate} alignFrozen="right" frozen />
                             </DataTable>
