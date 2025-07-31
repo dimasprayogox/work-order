@@ -24,17 +24,20 @@ const PartRequestTable = ({
     });
     const [globalFilterValue, setGlobalFilterValue] = useState("");
 
+    // Gunakan useCallback dengan dependency yang tepat (sama seperti MachineTable)
+    const onGlobalFilterChange = useCallback((value) => {
+        setFilters((prevFilters) => ({
+            ...prevFilters,
+            global: { ...prevFilters.global, value },
+        }));
+        onSearch(value);
+    }, [onSearch]);
+
+    // Sertakan onGlobalFilterChange dalam dependency array (sama seperti MachineTable)
     useEffect(() => {
         setGlobalFilterValue(searchText);
         onGlobalFilterChange(searchText);
     }, [searchText, onGlobalFilterChange]);
-
-    const onGlobalFilterChange = useCallback((value) => {
-        let _filters = { ...filters };
-        _filters["global"].value = value;
-        setFilters(_filters);
-        onSearch(value);
-    }, [filters, onSearch]);
 
     const handleSelectionChange = (e) => {
         onSelectionChange(e.value);
