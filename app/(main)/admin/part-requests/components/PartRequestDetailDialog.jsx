@@ -8,6 +8,7 @@ import { InputNumber } from "primereact/inputnumber";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Tag } from "primereact/tag";
+import { motion } from "framer-motion";
 import { Divider } from "primereact/divider";
 import { useState, useEffect } from "react";
 
@@ -198,14 +199,22 @@ const PartRequestDetailDialog = ({ visible, onHide, request, fetchPartRequests, 
                         <div className="field grid">
                             <label className="col-12 md:col-4 font-medium">WO Priority:</label>
                             <div className="col-12 md:col-8">
-                                <Tag
-                                    value={request.work_order_priority || '-'}
-                                    severity={
-                                        request.work_order_priority === 'high' ? 'warning' :
-                                        request.work_order_priority === 'medium' ? 'info' :
-                                        request.work_order_priority === 'low' ? 'success' : 'secondary'
-                                    }
-                                />
+                                {(() => {
+                                    const priority = request.work_order_priority || 'medium';
+                                    const config = {
+                                        low: { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-arrow-down' },
+                                        medium: { bgColor: 'bg-cyan-100', textColor: 'text-cyan-800', icon: 'pi-minus' },
+                                        high: { bgColor: 'bg-orange-100', textColor: 'text-orange-800', icon: 'pi-arrow-up' },
+                                    }[priority] || { bgColor: 'bg-gray-100', textColor: 'text-gray-800', icon: 'pi-question' };
+                                    return (
+                                        <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
+                                            <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                                                <i className={`pi ${config.icon}`}></i>
+                                                <span className="font-medium">{priority.charAt(0).toUpperCase() + priority.slice(1)}</span>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })()}
                             </div>
                         </div>
 
@@ -226,10 +235,23 @@ const PartRequestDetailDialog = ({ visible, onHide, request, fetchPartRequests, 
                         <div className="field grid">
                             <label className="col-12 md:col-4 font-medium">Current Status:</label>
                             <div className="col-12 md:col-8">
-                                <Tag
-                                    value={request.status}
-                                    severity={getStatusSeverity(request.status)}
-                                />
+                                {(() => {
+                                    const status = request.status;
+                                    const config = {
+                                        pending: { bgColor: 'bg-orange-100', textColor: 'text-orange-800', icon: 'pi-clock', label: 'Pending' },
+                                        approved: { bgColor: 'bg-cyan-100', textColor: 'text-cyan-800', icon: 'pi-spin pi-spinner', label: 'Approved' },
+                                        fulfilled: { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check-circle', label: 'Fulfilled' },
+                                        rejected: { bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle', label: 'Rejected' },
+                                    }[status] || { bgColor: 'bg-gray-100', textColor: 'text-gray-800', icon: 'pi-question', label: status };
+                                    return (
+                                        <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
+                                            <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                                                <i className={`pi ${config.icon}`}></i>
+                                                <span className="font-medium">{config.label}</span>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })()}
                             </div>
                         </div>
 
