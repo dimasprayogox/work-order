@@ -27,7 +27,6 @@ const UserPage = () => {
     const [loading, setLoading] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [selectedUsers, setSelectedUsers] = useState([]);
-
     const [isFormOpen, setFormOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
 
@@ -45,7 +44,8 @@ const UserPage = () => {
         marginTop: 10,
         marginBottom: 10
     });
-    const [columnOptions, setColumnOptions] = useState([
+
+    const [columnOptions] = useState([
         { field: 'username', header: 'Username', visible: true },
         { field: 'full_name', header: 'Full Name', visible: true },
         { field: 'email', header: 'Email', visible: true },
@@ -62,7 +62,6 @@ const UserPage = () => {
     const fetchUsers = useCallback(async () => {
         setLoading(true);
         try {
-            // Menggunakan API route handler yang baru
             const res = await fetch("/api/admin/users", {
                 credentials: "include"
             });
@@ -79,7 +78,6 @@ const UserPage = () => {
         fetchUsers();
     }, [fetchUsers]);
 
-    // Date formatter helper
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         return new Date(dateString).toLocaleString("en-US", {
@@ -91,7 +89,6 @@ const UserPage = () => {
         });
     };
 
-    // Status formatter helper
     const formatStatus = (isActive) => {
         return isActive ? "Active" : "Inactive";
     };
@@ -152,16 +149,18 @@ const UserPage = () => {
     };
 
     // --- Export to PDF ---
-    const exportPdf = () => {
+    const exportPdf = (config = null) => {
         if (!users.length) {
             showToast("warn", "Warning", "Tidak ada data untuk cetak");
             return;
         }
 
+        const currentConfig = config || printConfig;
+
         const doc = new jsPDF({
-            orientation: printConfig.orientation,
-            unit: printConfig.unit,
-            format: printConfig.format
+            orientation: currentConfig.orientation,
+            unit: currentConfig.unit,
+            format: currentConfig.format
         });
 
         const visibleColumns = columnOptions.filter(col => col.visible);
@@ -179,17 +178,17 @@ const UserPage = () => {
             });
         });
 
-        doc.text('Users Report', printConfig.marginLeft, printConfig.marginTop);
+        doc.text('Users Report', currentConfig.marginLeft, currentConfig.marginTop);
 
         autoTable(doc, {
-            startY: printConfig.marginTop + 10,
+            startY: currentConfig.marginTop + 10,
             head: [headers],
             body: data,
             margin: {
-                left: printConfig.marginLeft,
-                right: printConfig.marginRight,
-                top: printConfig.marginTop + 10,
-                bottom: printConfig.marginBottom
+                left: currentConfig.marginLeft,
+                right: currentConfig.marginRight,
+                top: currentConfig.marginTop + 10,
+                bottom: currentConfig.marginBottom
             },
             styles: { fontSize: 8 },
             headStyles: { fillColor: [71, 85, 105] }
@@ -201,15 +200,10 @@ const UserPage = () => {
         setJsPdfPreviewOpen(true);
     };
 
-    // --- Print Handler ---
-    const handlePrint = () => {
-        exportPdf();
-    };
-
     // --- Adjust Print Margins ---
     const handleAdjust = (newConfig) => {
         setPrintConfig(newConfig);
-        exportPdf();
+        exportPdf(newConfig);
     };
 
     const handleImport = async (e) => {
@@ -254,7 +248,6 @@ const UserPage = () => {
             });
 
             for (const item of data) {
-                // Menggunakan API route handler yang baru
                 const res = await fetch("/api/admin/users", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -281,16 +274,13 @@ const UserPage = () => {
         setDeleteOpen(true);
     };
 
-    // FUNGSI YANG DIPERBAIKI - Menggunakan ConfirmDeleteDialog
     const handleDeleteSelected = () => {
         if (selectedUsers.length === 0) {
             showToast("warn", "Warning", "Tidak ada user yang dipilih");
             return;
         }
-
-        // Set data untuk ConfirmDeleteDialog dan buka dialog
-        setSelectedUser(null); // Clear single selection karena ini untuk multiple delete
-        setDeleteOpen(true); // Buka ConfirmDeleteDialog
+        setSelectedUser(null);
+        setDeleteOpen(true);
     };
 
     return (
@@ -411,6 +401,7 @@ const UserPage = () => {
                 />
 
                 <AdjustPrintMarginLaporan
+                    key={adjustDialog ? 'open' : 'closed'}
                     adjustDialog={adjustDialog}
                     setAdjustDialog={setAdjustDialog}
                     handleAdjust={handleAdjust}
