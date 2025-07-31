@@ -20,11 +20,6 @@ export const API_ENDPOINTS = {
     // Parts forecaster
     GETALLPARTSFORECASTER: `${API_URL}/parts-forecaster`,
 
-
-    // Employee
-    
-
-
     // --- Technician Endpoints ---
     GET_TECHNICIAN_DASHBOARD_OVERVIEW: `${API_URL}/technician/dashboard/overview`,
     GET_TECHNICIAN_OVERDUE_WORK_ORDERS: `${API_URL}/technician/dashboard/work-orders/overdue`,
