@@ -4,7 +4,7 @@ import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { FilterMatchMode } from "primereact/api";
 import { ConfirmDialog } from "primereact/confirmdialog";
 
@@ -21,22 +21,27 @@ const AdminPartTable = ({
   const [filters, setFilters] = useState({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   });
-  const [globalFilterValue, setGlobalFilterValue] = useState("");
+  const [globalFilterValue, setGlobalFilterValue] = useState(searchText);
 
-  // Gunakan useCallback dengan dependency yang tepat
-  const onGlobalFilterChange = useCallback((value) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      global: { ...prevFilters.global, value },
-    }));
-    onSearch(value);
-  }, [onSearch]);
-
-  // Sertakan onGlobalFilterChange dalam dependency array
+  // useEffect yang sudah diperbaiki - mengikuti pola MachineCategoryTable
   useEffect(() => {
     setGlobalFilterValue(searchText);
-    onGlobalFilterChange(searchText);
-  }, [searchText, onGlobalFilterChange]);
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      global: { ...prevFilters.global, value: searchText },
+    }));
+  }, [searchText]);
+
+  // onGlobalFilterChange tanpa useCallback - mengikuti pola MachineCategoryTable
+  const onGlobalFilterChange = (value) => {
+    // Update filter DataTable secara lokal
+    const _filters = { ...filters };
+    _filters['global'].value = value;
+    setFilters(_filters);
+
+    // Informasikan ke parent component tentang perubahan search text
+    onSearch(value);
+  };
 
   const handleSelectionChange = (e) => {
     onSelectionChange(e.value);
@@ -83,8 +88,9 @@ const AdminPartTable = ({
           <InputText
             value={globalFilterValue}
             onChange={(e) => {
-              setGlobalFilterValue(e.target.value);
-              onGlobalFilterChange(e.target.value);
+              const value = e.target.value;
+              setGlobalFilterValue(value);
+              onGlobalFilterChange(value);
             }}
             placeholder="Search"
           />
