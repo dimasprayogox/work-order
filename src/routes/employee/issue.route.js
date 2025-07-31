@@ -11,9 +11,9 @@ router.use(authorizeRole('employee'));
 router.post("/", upload.single("photo"), IssueController.store);
 router.get("/", IssueController.getAll);
 router.get("/my-issues", IssueController.getMyIssues);
+router.post('/delete-many', IssueController.deleteMany)
 router.get("/:id", IssueController.getById);
 router.patch("/:id", upload.single("photo"), IssueController.update);
 router.delete("/:id", IssueController.delete);
-router.post('/delete-many', IssueController.deleteMany)
 
 export default router;
