@@ -46,7 +46,8 @@ const MachinePage = () => {
         marginTop: 10,
         marginBottom: 10
     });
-    const [columnOptions, setColumnOptions] = useState([
+
+    const [columnOptions] = useState([
         { field: 'machine_code', header: 'Machine Code', visible: true },
         { field: 'name', header: 'Name', visible: true },
         { field: 'location', header: 'Location', visible: true },
@@ -92,7 +93,6 @@ const MachinePage = () => {
         fetchCategories();
     }, [fetchMachines, fetchCategories]);
 
-    // Date formatter helper
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         return new Date(dateString).toLocaleString("en-US", {
@@ -160,16 +160,18 @@ const MachinePage = () => {
     };
 
     // --- Export to PDF ---
-    const exportPdf = () => {
+    const exportPdf = (config = null) => {
         if (!machines.length) {
             showToast("warn", "Warning", "Tidak ada data untuk cetak");
             return;
         }
 
+        const currentConfig = config || printConfig;
+
         const doc = new jsPDF({
-            orientation: printConfig.orientation,
-            unit: printConfig.unit,
-            format: printConfig.format
+            orientation: currentConfig.orientation,
+            unit: currentConfig.unit,
+            format: currentConfig.format
         });
 
         const visibleColumns = columnOptions.filter(col => col.visible);
@@ -187,17 +189,17 @@ const MachinePage = () => {
             });
         });
 
-        doc.text('Machines Report', printConfig.marginLeft, printConfig.marginTop);
+        doc.text('Machines Report', currentConfig.marginLeft, currentConfig.marginTop);
 
         autoTable(doc, {
-            startY: printConfig.marginTop + 10,
+            startY: currentConfig.marginTop + 10,
             head: [headers],
             body: data,
             margin: {
-                left: printConfig.marginLeft,
-                right: printConfig.marginRight,
-                top: printConfig.marginTop + 10,
-                bottom: printConfig.marginBottom
+                left: currentConfig.marginLeft,
+                right: currentConfig.marginRight,
+                top: currentConfig.marginTop + 10,
+                bottom: currentConfig.marginBottom
             },
             styles: { fontSize: 8 },
             headStyles: { fillColor: [71, 85, 105] }
@@ -209,15 +211,10 @@ const MachinePage = () => {
         setJsPdfPreviewOpen(true);
     };
 
-    // --- Print Handler ---
-    const handlePrint = () => {
-        exportPdf();
-    };
-
     // --- Adjust Print Margins ---
     const handleAdjust = (newConfig) => {
         setPrintConfig(newConfig);
-        exportPdf();
+        exportPdf(newConfig);
     };
 
     const handleImport = async (e) => {
@@ -404,6 +401,7 @@ const MachinePage = () => {
                 />
 
                 <AdjustPrintMarginLaporan
+                    key={adjustDialog ? 'open' : 'closed'}
                     adjustDialog={adjustDialog}
                     setAdjustDialog={setAdjustDialog}
                     handleAdjust={handleAdjust}
