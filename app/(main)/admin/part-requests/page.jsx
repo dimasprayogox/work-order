@@ -42,7 +42,7 @@ const getPriorityLabel = (priority) => {
 };
 
 // Date formatter helper - consistent with technician page
-const dateBodyTemplate = (dateString) => {
+const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleString("en-US", {
         day: '2-digit',
@@ -79,7 +79,8 @@ const AdminPartRequestPage = () => {
         marginTop: 10,
         marginBottom: 10
     });
-    const [columnOptions, setColumnOptions] = useState([
+
+    const [columnOptions] = useState([
         { field: 'id', header: 'ID', visible: true },
         { field: 'requested_by', header: 'Requested By', visible: true },
         { field: 'status', header: 'Status', visible: true },
@@ -148,7 +149,7 @@ const AdminPartRequestPage = () => {
                 .filter(col => col.visible)
                 .map(col => {
                     if (col.field === 'created_at') {
-                        return dateBodyTemplate(request[col.field]);
+                        return formatDate(request[col.field]);
                     } else if (col.field === 'status') {
                         return getStatusLabel(request[col.field]);
                     } else if (col.field === 'priority') {
@@ -183,16 +184,18 @@ const AdminPartRequestPage = () => {
     };
 
     // --- Export to PDF ---
-    const exportPdf = () => {
+    const exportPdf = (config = null) => {
         if (!partRequests.length) {
             showToast("warn", "Warning", "Tidak ada data untuk cetak");
             return;
         }
 
+        const currentConfig = config || printConfig;
+
         const doc = new jsPDF({
-            orientation: printConfig.orientation,
-            unit: printConfig.unit,
-            format: printConfig.format
+            orientation: currentConfig.orientation,
+            unit: currentConfig.unit,
+            format: currentConfig.format
         });
 
         const visibleColumns = columnOptions.filter(col => col.visible);
@@ -201,7 +204,7 @@ const AdminPartRequestPage = () => {
         const data = partRequests.map(request => {
             return visibleColumns.map(col => {
                 if (col.field === 'created_at') {
-                    return dateBodyTemplate(request[col.field]);
+                    return formatDate(request[col.field]);
                 } else if (col.field === 'status') {
                     return getStatusLabel(request[col.field]);
                 } else if (col.field === 'priority') {
@@ -212,17 +215,17 @@ const AdminPartRequestPage = () => {
             });
         });
 
-        doc.text('Part Requests Report', printConfig.marginLeft, printConfig.marginTop);
+        doc.text('Part Requests Report', currentConfig.marginLeft, currentConfig.marginTop);
 
         autoTable(doc, {
-            startY: printConfig.marginTop + 10,
+            startY: currentConfig.marginTop + 10,
             head: [headers],
             body: data,
             margin: {
-                left: printConfig.marginLeft,
-                right: printConfig.marginRight,
-                top: printConfig.marginTop + 10,
-                bottom: printConfig.marginBottom
+                left: currentConfig.marginLeft,
+                right: currentConfig.marginRight,
+                top: currentConfig.marginTop + 10,
+                bottom: currentConfig.marginBottom
             },
             styles: { fontSize: 8 },
             headStyles: { fillColor: [71, 85, 105] }
@@ -234,15 +237,10 @@ const AdminPartRequestPage = () => {
         setJsPdfPreviewOpen(true);
     };
 
-    // --- Print Handler ---
-    const handlePrint = () => {
-        exportPdf();
-    };
-
     // --- Adjust Print Margins ---
     const handleAdjust = (newConfig) => {
         setPrintConfig(newConfig);
-        exportPdf();
+        exportPdf(newConfig);
     };
 
     const handleImport = async (e) => {
@@ -444,6 +442,7 @@ const AdminPartRequestPage = () => {
                 />
 
                 <AdjustPrintMarginLaporan
+                    key={adjustDialog ? 'open' : 'closed'}
                     adjustDialog={adjustDialog}
                     setAdjustDialog={setAdjustDialog}
                     handleAdjust={handleAdjust}
