@@ -27,11 +27,10 @@ const MachineCategoryPage = () => {
     const [loading, setLoading] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [selectedCategories, setSelectedCategories] = useState([]);
-
     const [isFormOpen, setFormOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
 
-    // Print and export states - FIXED: Added tempPrintConfig
+    // Print and export states
     const [adjustDialog, setAdjustDialog] = useState(false);
     const [jsPdfPreviewOpen, setJsPdfPreviewOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState("");
@@ -45,10 +44,8 @@ const MachineCategoryPage = () => {
         marginTop: 10,
         marginBottom: 10
     });
-    const [tempPrintConfig, setTempPrintConfig] = useState(null); // ADDED: For real-time updates
 
-    // FIXED: Made columnOptions state instead of const for dynamic updates
-    const [columnOptions, setColumnOptions] = useState([
+    const [columnOptions] = useState([
         { field: 'name', header: 'Name', visible: true },
         { field: 'description', header: 'Description', visible: true },
         { field: 'created_at', header: 'Created Date', visible: true },
@@ -62,14 +59,13 @@ const MachineCategoryPage = () => {
     const fetchCategories = useCallback(async () => {
         setLoading(true);
         try {
-            // Menggunakan API route handler yang baru
             const res = await fetch("/api/admin/machine-categories", {
                 credentials: "include"
             });
             const body = await res.json();
             setCategories(body.data || []);
         } catch (err) {
-            showToast("error", "Error", "Gagal mengambil data kategori mesin");
+            showToast("error", "Error", "Failed to fetch machine categories");
         } finally {
             setLoading(false);
         }
@@ -79,7 +75,6 @@ const MachineCategoryPage = () => {
         fetchCategories();
     }, [fetchCategories]);
 
-    // Date formatter helper
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         return new Date(dateString).toLocaleString("en-US", {
@@ -94,7 +89,7 @@ const MachineCategoryPage = () => {
     // --- Export to Excel ---
     const exportExcel = async () => {
         if (!categories.length) {
-            showToast("warn", "Warning", "Tidak ada data untuk diekspor");
+            showToast("warn", "Warning", "No data to export");
             return;
         }
 
@@ -141,17 +136,16 @@ const MachineCategoryPage = () => {
         // Generate Excel file
         const buffer = await workbook.xlsx.writeBuffer();
         saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0,10)}.xlsx`);
-        showToast("success", "Success", "Data berhasil diekspor ke Excel");
+        showToast("success", "Success", "Data exported to Excel");
     };
 
-    // --- Export to PDF - FIXED: Added config parameter for real-time updates ---
+    // --- Export to PDF ---
     const exportPdf = (config = null) => {
         if (!categories.length) {
-            showToast("warn", "Warning", "Tidak ada data untuk cetak");
+            showToast("warn", "Warning", "No data to print");
             return;
         }
 
-        // FIXED: Use config parameter or current printConfig
         const currentConfig = config || printConfig;
 
         const doc = new jsPDF({
@@ -195,16 +189,10 @@ const MachineCategoryPage = () => {
         setJsPdfPreviewOpen(true);
     };
 
-    // --- Print Handler - REMOVED: Direct exportPdf call ---
-    // const handlePrint = () => {
-    //     exportPdf();
-    // };
-
-    // --- Adjust Print Margins - FIXED: Real-time updates ---
+    // --- Adjust Print Margins ---
     const handleAdjust = (newConfig) => {
         setPrintConfig(newConfig);
-        setTempPrintConfig(newConfig); // ADDED: Store temp config
-        exportPdf(newConfig); // FIXED: Immediately generate PDF with new config
+        exportPdf(newConfig);
     };
 
     const handleImport = async (e) => {
@@ -236,7 +224,6 @@ const MachineCategoryPage = () => {
             });
 
             for (const item of data) {
-                // Menggunakan API route handler yang baru
                 const res = await fetch("/api/admin/machine-categories", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -244,14 +231,14 @@ const MachineCategoryPage = () => {
                     body: JSON.stringify(item),
                 });
                 const body = await res.json();
-                if (!res.ok) throw new Error(body.message || "Import gagal");
+                if (!res.ok) throw new Error(body.message || "Import failed");
             }
 
-            showToast("success", "Import Sukses", `${data.length} data berhasil diimpor`);
+            showToast("success", "Import Success", `${data.length} records imported`);
             fetchCategories();
 
         } catch (err) {
-            showToast("error", "Import Gagal", err.message);
+            showToast("error", "Import Failed", err.message);
         }
 
         // Reset file input
@@ -263,16 +250,13 @@ const MachineCategoryPage = () => {
         setDeleteOpen(true);
     };
 
-    // FUNGSI YANG DIPERBAIKI - Menggunakan ConfirmDeleteDialog
     const handleDeleteSelected = () => {
         if (selectedCategories.length === 0) {
-            showToast("warn", "Warning", "Tidak ada kategori yang dipilih");
+            showToast("warn", "Warning", "No categories selected");
             return;
         }
-
-        // Set data untuk ConfirmDeleteDialog dan buka dialog
-        setSelectedCategory(null); // Clear single selection karena ini untuk multiple delete
-        setDeleteOpen(true); // Buka ConfirmDeleteDialog
+        setSelectedCategory(null);
+        setDeleteOpen(true);
     };
 
     return (
@@ -290,19 +274,12 @@ const MachineCategoryPage = () => {
             <div className="card">
                 <div className="flex justify-content-between items-start mb-4">
                     <div>
-                        <h3 className="text-2xl font-semibold">Manajemen Kategori Mesin</h3>
-                        <p className="text-sm text-gray-500">Kelola kategori mesin dalam sistem.</p>
+                        <h3 className="text-2xl font-semibold">Machine Category Management</h3>
+                        <p className="text-sm text-gray-500">Manage machine categories in the system.</p>
                     </div>
                 </div>
 
                 <div className="flex flex-row flex-wrap items-center gap-2 mb-4">
-                    <Button
-                        size="small"
-                        label="Back"
-                        icon="pi pi-arrow-left"
-                        outlined
-                        disabled
-                    />
                     <Button
                         size="small"
                         label="New"
@@ -334,7 +311,7 @@ const MachineCategoryPage = () => {
                         label="Print"
                         icon="pi pi-print"
                         outlined
-                        onClick={() => setAdjustDialog(true)} // FIXED: Opens adjust dialog instead of direct print
+                        onClick={() => setAdjustDialog(true)}
                     />
                     <Divider layout="vertical" />
                     <Button
@@ -392,9 +369,8 @@ const MachineCategoryPage = () => {
                     showToast={showToast}
                 />
 
-                {/* FIXED: Added key prop for force re-render and proper state management */}
                 <AdjustPrintMarginLaporan
-                    key={adjustDialog ? 'open' : 'closed'} // Force re-render
+                    key={adjustDialog ? 'open' : 'closed'}
                     adjustDialog={adjustDialog}
                     setAdjustDialog={setAdjustDialog}
                     handleAdjust={handleAdjust}

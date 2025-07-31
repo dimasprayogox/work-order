@@ -5,11 +5,19 @@ import { Toast } from "primereact/toast";
 import { Button } from "primereact/button";
 import { ConfirmDialog } from "primereact/confirmdialog";
 import { Divider } from "primereact/divider";
+import { Dialog } from "primereact/dialog";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import dynamic from "next/dynamic";
 
 import PartTable from "./components/PartTable";
 import PartFormDialog from "./components/PartFormDialog";
 import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog";
 import { useRouter } from "next/navigation";
+
+// Dynamic imports for print components
+const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
+const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false });
 
 const PartPage = () => {
     const router = useRouter();
@@ -24,11 +32,25 @@ const PartPage = () => {
     const [isDeleteOpen, setDeleteOpen] = useState(false);
     const [searchText, setSearchText] = useState("");
 
+    // Print and export states
+    const [adjustDialog, setAdjustDialog] = useState(false);
+    const [jsPdfPreviewOpen, setJsPdfPreviewOpen] = useState(false);
+    const [pdfUrl, setPdfUrl] = useState("");
+    const [fileName, setFileName] = useState("PartsReport");
+    const [printConfig, setPrintConfig] = useState({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        marginLeft: 10,
+        marginRight: 10,
+        marginTop: 10,
+        marginBottom: 10
+    });
+
     const showToast = useCallback((sev, sum, det) => {
         toast.current?.show({ severity: sev, summary: sum, detail: det });
     }, []);
 
-    // Deklarasikan fetchParts di sini agar bisa digunakan di seluruh komponen
     const fetchParts = useCallback(async () => {
         setLoading(true);
         try {
@@ -47,14 +69,14 @@ const PartPage = () => {
         fetchParts();
     }, [fetchParts]);
 
-     const handleRefresh = () => {
-         fetchParts();
-         setSearchText(""); 
-     };
+    const handleRefresh = () => {
+        fetchParts();
+        setSearchText("");
+    };
 
-     const handleSearch = (value) => {
-         setSearchText(value);
-     };
+    const handleSearch = (value) => {
+        setSearchText(value);
+    };
 
     const handleDelete = (part) => {
         setSelectedPart(part);
@@ -70,6 +92,72 @@ const PartPage = () => {
         setDeleteOpen(true);
     };
 
+    // --- Export to PDF ---
+    const exportPdf = (config = null) => {
+        const currentConfig = config || printConfig;
+
+        if (parts.length === 0) {
+            showToast("warn", "No Data", "There are no parts to print");
+            return;
+        }
+
+        const doc = new jsPDF({
+            orientation: currentConfig.orientation,
+            unit: currentConfig.unit,
+            format: currentConfig.format
+        });
+
+        const headers = [
+            "Part Number",
+            "Name",
+            "Description",
+            "Category",
+            "Stock",
+            "Unit",
+            "Location"
+        ];
+
+        const data = parts.map(part => [
+            part.part_number || "-",
+            part.name || "-",
+            part.description || "-",
+            part.category || "-",
+            part.stock?.toString() || "0",
+            part.unit || "-",
+            part.location || "-"
+        ]);
+
+        doc.text('Parts Report', currentConfig.marginLeft, currentConfig.marginTop);
+
+        autoTable(doc, {
+            startY: currentConfig.marginTop + 10,
+            head: [headers],
+            body: data,
+            margin: {
+                left: currentConfig.marginLeft,
+                right: currentConfig.marginRight,
+                top: currentConfig.marginTop + 10,
+                bottom: currentConfig.marginBottom
+            }
+        });
+
+        const pdfBlob = doc.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        setPdfUrl(pdfUrl);
+        setJsPdfPreviewOpen(true);
+    };
+
+    // --- Print Handler ---
+    const handlePrint = () => {
+        exportPdf();
+    };
+
+    // --- Adjust Print Margins ---
+    const handleAdjust = (newConfig) => {
+        setPrintConfig(newConfig);
+        exportPdf(newConfig);
+    };
+
     return (
         <div className="p-4">
             <Toast ref={toast} position="top-right" />
@@ -82,9 +170,22 @@ const PartPage = () => {
                     <Divider layout="vertical" />
                     <Button label="Import" icon="pi pi-file-import" outlined />
                     <Button label="Export" icon="pi pi-file-excel" outlined />
-                    <Button label="Print" icon="pi pi-print" outlined />
+                    <Button
+                        label="Print"
+                        icon="pi pi-print"
+                        outlined
+                        onClick={() => setAdjustDialog(true)}
+                    />
                     <Divider layout="vertical" />
-                    <Button size="small" label={`Delete (${selectedParts.length})`} icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedParts.length === 0} />
+                    <Button
+                        size="small"
+                        label={`Delete (${selectedParts.length})`}
+                        icon="pi pi-trash"
+                        outlined
+                        severity="danger"
+                        onClick={handleDeleteSelected}
+                        disabled={selectedParts.length === 0}
+                    />
                     <Divider layout="vertical" />
                     <Button label="Refresh" icon="pi pi-refresh" outlined onClick={handleRefresh} />
                 </div>
@@ -120,6 +221,27 @@ const PartPage = () => {
                     }}
                     showToast={showToast}
                 />
+
+                {/* Print Configuration Dialog */}
+                <AdjustPrintMarginLaporan
+                    key={adjustDialog ? 'open' : 'closed'}
+                    adjustDialog={adjustDialog}
+                    setAdjustDialog={setAdjustDialog}
+                    handleAdjust={handleAdjust}
+                    printConfig={printConfig}
+                    setPrintConfig={setPrintConfig}
+                />
+
+                {/* PDF Preview Dialog */}
+                <Dialog
+                    visible={jsPdfPreviewOpen}
+                    onHide={() => setJsPdfPreviewOpen(false)}
+                    modal
+                    style={{ width: '90vw', height: '90vh' }}
+                    header="PDF Preview"
+                >
+                    <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
+                </Dialog>
             </div>
         </div>
     );
