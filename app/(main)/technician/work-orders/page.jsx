@@ -12,8 +12,7 @@ import { motion } from "framer-motion";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
 import { Divider } from "primereact/divider";
-import { Image } from "primereact/image";
-import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { ConfirmDialog } from 'primereact/confirmdialog';
 import { Dialog } from "primereact/dialog";
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -99,23 +98,6 @@ const dateBodyTemplate = (dateString) => {
     });
 };
 
-const photoBodyTemplate = (rowData) => {
-    const photoUrl = rowData.issue?.photo_url;
-    if (photoUrl) {
-        return (
-            <Image
-                src={photoUrl}
-                alt="Issue Photo"
-                width="60"
-                height="60"
-                preview
-                imageClassName="rounded-md object-cover"
-            />
-        );
-    }
-    return <div className="flex items-center justify-center h-[60px] w-[60px] bg-gray-100 rounded-md text-gray-400 text-xs">No Photo</div>;
-};
-
 export default function TechnicianWorkOrderPage() {
     const [workOrders, setWorkOrders] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -127,6 +109,12 @@ export default function TechnicianWorkOrderPage() {
 
     const [isUpdateDialogVisible, setUpdateDialogVisible] = useState(false);
     const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
+
+    // 👈 Perubahan: State untuk pratinjau gambar
+    const [isImageHovered, setIsImageHovered] = useState(false);
+    const [hoveredImageId, setHoveredImageId] = useState(null);
+    const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
+    const [previewImageUrl, setPreviewImageUrl] = useState('');
 
     // Print and export states
     const [adjustDialog, setAdjustDialog] = useState(false);
@@ -166,19 +154,84 @@ export default function TechnicianWorkOrderPage() {
         fetchWorkOrders();
     }, [fetchWorkOrders]);
 
+    // 👈 Perubahan: photoBodyTemplate dipindahkan ke dalam komponen dan diperbarui
+    const photoBodyTemplate = (rowData) => {
+        const handleImageClick = (url) => {
+            setPreviewImageUrl(url);
+            setImagePreviewVisible(true);
+        };
+
+        const handleMouseEnter = (id) => {
+            setIsImageHovered(true);
+            setHoveredImageId(id);
+        };
+
+        const handleMouseLeave = () => {
+            setIsImageHovered(false);
+            setHoveredImageId(null);
+        };
+
+        const overlayStyle = {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            borderRadius: '0.375rem', // Sesuai dengan rounded-md
+            cursor: 'pointer',
+        };
+
+        const photoUrl = rowData.issue?.photo_url;
+
+        if (photoUrl) {
+            return (
+                <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onMouseEnter={() => handleMouseEnter(rowData.id)}
+                    onMouseLeave={handleMouseLeave}
+                    className="relative"
+                >
+                    <img
+                        src={photoUrl}
+                        alt="Issue Preview"
+                        style={{ width: "60px", height: "60px", objectFit: "cover", cursor: "pointer" }}
+                        className="shadow-lg rounded-md"
+                        onClick={() => handleImageClick(photoUrl)}
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://placehold.co/60x60/cccccc/000000?text=No+Image";
+                        }}
+                    />
+                    {isImageHovered && hoveredImageId === rowData.id && (
+                        <div
+                            style={overlayStyle}
+                            onClick={() => handleImageClick(photoUrl)}
+                        >
+                            <i className="pi pi-eye text-white text-xl"></i>
+                        </div>
+                    )}
+                </motion.div>
+            );
+        }
+        return <div className="flex items-center justify-center h-[60px] w-[60px] bg-gray-100 rounded-md text-gray-400 text-xs">No Photo</div>;
+    };
+
     // --- Export to Excel ---
     const exportExcel = async () => {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Work Orders');
 
-        // Add headers
         const headers = columnOptions
             .filter(col => col.visible)
             .map(col => col.header);
 
         worksheet.addRow(headers);
 
-        // Add data
         workOrders.forEach(wo => {
             const rowData = columnOptions
                 .filter(col => col.visible)
@@ -186,13 +239,7 @@ export default function TechnicianWorkOrderPage() {
                     if (col.field.includes('_at')) {
                         return dateBodyTemplate(wo[col.field]);
                     } else if (col.field === 'status') {
-                        const statusMap = {
-                            pending: "Pending",
-                            in_progress: "In Progress",
-                            resolved: "Resolved",
-                            completed: "Completed"
-                        };
-                        return statusMap[wo.status] || wo.status;
+                        return getStatusLabel(wo.status);
                     } else {
                         return wo[col.field];
                     }
@@ -201,14 +248,12 @@ export default function TechnicianWorkOrderPage() {
             worksheet.addRow(rowData);
         });
 
-        // Style headers
         worksheet.getRow(1).eachCell((cell) => {
             cell.font = { bold: true };
         });
 
-        // Generate Excel file
         const buffer = await workbook.xlsx.writeBuffer();
-        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0,10)}.xlsx`);
+        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
     };
 
     // --- Export to PDF ---
@@ -229,13 +274,7 @@ export default function TechnicianWorkOrderPage() {
                 if (col.field.includes('_at')) {
                     return dateBodyTemplate(wo[col.field]);
                 } else if (col.field === 'status') {
-                    const statusMap = {
-                        pending: "Pending",
-                        in_progress: "In Progress",
-                        resolved: "Resolved",
-                        completed: "Completed"
-                    };
-                    return statusMap[wo.status] || wo.status;
+                    return getStatusLabel(wo.status);
                 } else {
                     return wo[col.field];
                 }
@@ -267,7 +306,7 @@ export default function TechnicianWorkOrderPage() {
     const handleAdjust = (newConfig) => {
         setPrintConfig(newConfig);
         setTempPrintConfig(newConfig);
-        exportPdf(newConfig); // Immediately generate PDF with new config
+        exportPdf(newConfig);
     };
 
     // --- Import Handler ---
@@ -434,7 +473,7 @@ export default function TechnicianWorkOrderPage() {
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                     <Panel>
                         <DataTable value={filteredData} loading={loading} dataKey="id" paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]} header={header} emptyMessage="No work orders found.">
-                            <Column header="Photo" body={photoBodyTemplate} style={{ width: '100px' }} />
+                            <Column header="Photo" body={photoBodyTemplate} style={{ maxwidth: '50px' }} />
                             <Column field="title" header="Title" sortable />
                             <Column field="description" header="Description" style={{ minWidth: '200px' }} />
                             <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
@@ -484,6 +523,26 @@ export default function TechnicianWorkOrderPage() {
                 header="PDF Preview"
             >
                 <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
+            </Dialog>
+
+            {/* 👈 Perubahan: Tambahkan Dialog untuk pratinjau gambar */}
+            <Dialog
+                visible={imagePreviewVisible}
+                onHide={() => setImagePreviewVisible(false)}
+                modal
+                header="Pratinjau Gambar"
+                style={{ width: '50vw' }}
+                contentStyle={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+            >
+                <img
+                    src={previewImageUrl}
+                    alt="Pratinjau Isu"
+                    style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain' }}
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://placehold.co/600x400/cccccc/000000?text=Image+Not+Found";
+                    }}
+                />
             </Dialog>
         </div>
     );

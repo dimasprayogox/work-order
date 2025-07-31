@@ -10,7 +10,7 @@ import { Dropdown } from "primereact/dropdown";
 import { Toast } from "primereact/toast";
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Image } from "primereact/image"; // 👈 Perubahan 1: Import komponen Image
+import { Dialog } from "primereact/dialog"; // 👈 Perubahan: Import Dialog
 
 // Opsi filter disesuaikan dengan nilai data asli
 const statusOptions = [
@@ -59,6 +59,13 @@ const TechnicianDashboardPage = () => {
     const [searchText, setSearchText] = useState("");
     const toast = useRef(null);
 
+    // State untuk pratinjau gambar
+    const [isImageHovered, setIsImageHovered] = useState(false);
+    const [hoveredImageId, setHoveredImageId] = useState(null);
+    const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
+    const [previewImageUrl, setPreviewImageUrl] = useState('');
+
+
     const showToast = useCallback((severity, summary, detail) => {
         toast.current?.show({ severity, summary, detail, life: 3000 });
     }, []);
@@ -94,18 +101,68 @@ const TechnicianDashboardPage = () => {
         fetchData();
     }, [showToast]);
 
+    // 👈 Perubahan: Menggunakan photoBodyTemplate dari kode sebelumnya yang sudah dikoreksi
     const photoBodyTemplate = (rowData) => {
+        const handleImageClick = (url) => {
+            setPreviewImageUrl(url);
+            setImagePreviewVisible(true);
+        };
+
+        const handleMouseEnter = (id) => {
+            setIsImageHovered(true);
+            setHoveredImageId(id);
+        };
+
+        const handleMouseLeave = () => {
+            setIsImageHovered(false);
+            setHoveredImageId(null);
+        };
+
+        const overlayStyle = {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            borderRadius: '0.375rem', // Sesuai dengan rounded-md
+            cursor: 'pointer',
+        };
+
         const photoUrl = rowData.issue?.photo_url;
+
         if (photoUrl) {
             return (
-                <Image
-                    src={photoUrl}
-                    alt="Issue Photo"
-                    width="60"
-                    height="60"
-                    preview
-                    imageClassName="rounded-md object-cover"
-                />
+                <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onMouseEnter={() => handleMouseEnter(rowData.id)}
+                    onMouseLeave={handleMouseLeave}
+                    className="relative"
+                >
+                    <img
+                        src={photoUrl}
+                        alt="Issue Preview"
+                        style={{ width: "60px", height: "60px", objectFit: "cover", cursor: "pointer" }}
+                        className="shadow-lg rounded-md"
+                        onClick={() => handleImageClick(photoUrl)}
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://placehold.co/60x60/cccccc/000000?text=No+Image";
+                        }}
+                    />
+                    {isImageHovered && hoveredImageId === rowData.id && (
+                        <div
+                            style={overlayStyle}
+                            onClick={() => handleImageClick(photoUrl)}
+                        >
+                            <i className="pi pi-eye text-white text-xl"></i>
+                        </div>
+                    )}
+                </motion.div>
             );
         }
         return <div className="flex items-center justify-center h-[60px] w-[60px] bg-gray-100 rounded-md text-gray-400 text-xs">No Photo</div>;
@@ -157,37 +214,37 @@ const TechnicianDashboardPage = () => {
 
             {/* Top Stats Cards */}
             <div className="grid">
-                 <StatCard
+                <StatCard
                     title="Total Work Order"
                     value={stats.total}
                     icon="pi-inbox"
                     bgColor="#4f46e5"
                     percentage={100}
-                 />
-                 <StatCard
+                />
+                <StatCard
                     title="Pending"
                     value={stats.pending}
                     icon="pi-clock"
                     bgColor="#ef4444"
                     percentage={(stats.pending / stats.total) * 100}
-                 />
-                 <StatCard
+                />
+                <StatCard
                     title="In Progress"
                     value={stats.inProgress}
                     icon="pi-spinner"
                     bgColor="#06b6d4"
                     percentage={(stats.inProgress / stats.total) * 100}
-                 />
-                 <StatCard
+                />
+                <StatCard
                     title="Completed"
                     value={stats.completed}
                     icon="pi-check-circle"
                     bgColor="#10b981"
                     percentage={(stats.completed / stats.total) * 100}
-                 />
+                />
             </div>
 
-             {/* Charts Section */}
+            {/* Charts Section */}
             <div className="grid mt-4">
                 <div className="col-12 md:col-6">
                     <div className="card flex flex-column align-items-center justify-content-center overflow-hidden p-4" style={{ minHeight: "400px" }}>
@@ -204,7 +261,7 @@ const TechnicianDashboardPage = () => {
                     </div>
                 </div>
                 <div className="col-12 md:col-6">
-                     <div className="card flex flex-column align-items-center justify-content-center overflow-hidden p-4" style={{ minHeight: "400px" }}>
+                    <div className="card flex flex-column align-items-center justify-content-center overflow-hidden p-4" style={{ minHeight: "400px" }}>
                         <h5 className="font-bold mb-4 self-start">Tren Work Order Bulanan</h5>
                         <ResponsiveContainer width="100%" height={350}>
                             <BarChart data={trendData}>
@@ -243,7 +300,7 @@ const TechnicianDashboardPage = () => {
                                 </div>
                             }
                         >
-                            <Column header="Photo" body={photoBodyTemplate} style={{ width: '100px' }} />
+                            <Column header="Photo" body={photoBodyTemplate} style={{ maxwidth: '50px' }} />
                             <Column field="id" header="Id" sortable />
                             <Column field="description" header="Deskripsi" style={{ width: '200px' }} />
                             <Column header="Priority" body={priorityBodyTemplate} sortable sortField="priority" />
@@ -253,12 +310,32 @@ const TechnicianDashboardPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* 👈 Perubahan: Tambahkan Dialog untuk pratinjau gambar */}
+            <Dialog
+                visible={imagePreviewVisible}
+                onHide={() => setImagePreviewVisible(false)}
+                modal
+                header="Pratinjau Gambar"
+                style={{ width: '50vw' }}
+                contentStyle={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+            >
+                <img
+                    src={previewImageUrl}
+                    alt="Pratinjau Isu"
+                    style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain' }}
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://placehold.co/600x400/cccccc/000000?text=Image+Not+Found";
+                    }}
+                />
+            </Dialog>
         </div>
     );
 };
 
 // Helper component untuk stat cards
- const StatCard = ({ title, value, icon, bgColor, percentage }) => (
+const StatCard = ({ title, value, icon, bgColor, percentage }) => (
     <div className="col-6 md:col-3">
         <div
             className="flex flex-column justify-content-between p-3 overflow-hidden h-full"
@@ -277,7 +354,7 @@ const TechnicianDashboardPage = () => {
                 <div className="bg-white h-2 rounded-full" style={{ width: `${isNaN(percentage) ? 0 : percentage}%` }}></div>
             </div>
         </div>
-     </div>
- );
+    </div>
+);
 
 export default TechnicianDashboardPage;
