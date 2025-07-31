@@ -31,7 +31,7 @@ const MachineCategoryPage = () => {
     const [isFormOpen, setFormOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
 
-    // Print and export states
+    // Print and export states - FIXED: Added tempPrintConfig
     const [adjustDialog, setAdjustDialog] = useState(false);
     const [jsPdfPreviewOpen, setJsPdfPreviewOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState("");
@@ -45,6 +45,9 @@ const MachineCategoryPage = () => {
         marginTop: 10,
         marginBottom: 10
     });
+    const [tempPrintConfig, setTempPrintConfig] = useState(null); // ADDED: For real-time updates
+
+    // FIXED: Made columnOptions state instead of const for dynamic updates
     const [columnOptions, setColumnOptions] = useState([
         { field: 'name', header: 'Name', visible: true },
         { field: 'description', header: 'Description', visible: true },
@@ -141,17 +144,20 @@ const MachineCategoryPage = () => {
         showToast("success", "Success", "Data berhasil diekspor ke Excel");
     };
 
-    // --- Export to PDF ---
-    const exportPdf = () => {
+    // --- Export to PDF - FIXED: Added config parameter for real-time updates ---
+    const exportPdf = (config = null) => {
         if (!categories.length) {
             showToast("warn", "Warning", "Tidak ada data untuk cetak");
             return;
         }
 
+        // FIXED: Use config parameter or current printConfig
+        const currentConfig = config || printConfig;
+
         const doc = new jsPDF({
-            orientation: printConfig.orientation,
-            unit: printConfig.unit,
-            format: printConfig.format
+            orientation: currentConfig.orientation,
+            unit: currentConfig.unit,
+            format: currentConfig.format
         });
 
         const visibleColumns = columnOptions.filter(col => col.visible);
@@ -167,17 +173,17 @@ const MachineCategoryPage = () => {
             });
         });
 
-        doc.text('Machine Categories Report', printConfig.marginLeft, printConfig.marginTop);
+        doc.text('Machine Categories Report', currentConfig.marginLeft, currentConfig.marginTop);
 
         autoTable(doc, {
-            startY: printConfig.marginTop + 10,
+            startY: currentConfig.marginTop + 10,
             head: [headers],
             body: data,
             margin: {
-                left: printConfig.marginLeft,
-                right: printConfig.marginRight,
-                top: printConfig.marginTop + 10,
-                bottom: printConfig.marginBottom
+                left: currentConfig.marginLeft,
+                right: currentConfig.marginRight,
+                top: currentConfig.marginTop + 10,
+                bottom: currentConfig.marginBottom
             },
             styles: { fontSize: 8 },
             headStyles: { fillColor: [71, 85, 105] }
@@ -189,15 +195,16 @@ const MachineCategoryPage = () => {
         setJsPdfPreviewOpen(true);
     };
 
-    // --- Print Handler ---
-    const handlePrint = () => {
-        exportPdf();
-    };
+    // --- Print Handler - REMOVED: Direct exportPdf call ---
+    // const handlePrint = () => {
+    //     exportPdf();
+    // };
 
-    // --- Adjust Print Margins ---
+    // --- Adjust Print Margins - FIXED: Real-time updates ---
     const handleAdjust = (newConfig) => {
         setPrintConfig(newConfig);
-        exportPdf();
+        setTempPrintConfig(newConfig); // ADDED: Store temp config
+        exportPdf(newConfig); // FIXED: Immediately generate PDF with new config
     };
 
     const handleImport = async (e) => {
@@ -327,7 +334,7 @@ const MachineCategoryPage = () => {
                         label="Print"
                         icon="pi pi-print"
                         outlined
-                        onClick={() => setAdjustDialog(true)}
+                        onClick={() => setAdjustDialog(true)} // FIXED: Opens adjust dialog instead of direct print
                     />
                     <Divider layout="vertical" />
                     <Button
@@ -385,7 +392,9 @@ const MachineCategoryPage = () => {
                     showToast={showToast}
                 />
 
+                {/* FIXED: Added key prop for force re-render and proper state management */}
                 <AdjustPrintMarginLaporan
+                    key={adjustDialog ? 'open' : 'closed'} // Force re-render
                     adjustDialog={adjustDialog}
                     setAdjustDialog={setAdjustDialog}
                     handleAdjust={handleAdjust}
