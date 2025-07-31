@@ -83,9 +83,11 @@ const AdminPartRequestPage = () => {
     const [columnOptions] = useState([
         { field: 'id', header: 'ID', visible: true },
         { field: 'requested_by', header: 'Requested By', visible: true },
+        { field: 'work_order_title', header: 'Work Order Title', visible: true },   // tampilkan title
+        { field: 'work_order_priority', header: 'WO Priority', visible: true },     // tampilkan priority
         { field: 'status', header: 'Status', visible: true },
-        { field: 'priority', header: 'Priority', visible: true },
-        { field: 'work_order_id', header: 'Work Order', visible: true },
+        { field: 'priority', header: 'Priority', visible: false }, // sembunyikan jika tidak dipakai
+        { field: 'work_order_id', header: 'Work Order ID', visible: false }, // sembunyikan id
         { field: 'items_count', header: 'Items Count', visible: true },
         { field: 'total_quantity', header: 'Total Quantity', visible: true },
         { field: 'created_at', header: 'Created Date', visible: true },
@@ -109,7 +111,9 @@ const AdminPartRequestPage = () => {
                     ...request,
                     items_count: request.items?.length || 0,
                     total_quantity: request.items?.reduce((sum, item) => sum + (item.quantity_requested || 0), 0) || 0,
-                    requested_by: request.requestedBy?.name || request.requestedBy?.username || 'Unknown'
+                    requested_by: request.requestedBy?.name || request.requestedBy?.username || 'Unknown',
+                    work_order_title: request.workOrder?.title || 'N/A',         // Ambil title dari workOrder
+                    work_order_priority: request.workOrder?.priority || 'N/A',   // Ambil priority dari workOrder
                 }));
                 setPartRequests(processedData);
             } else {
@@ -179,7 +183,7 @@ const AdminPartRequestPage = () => {
 
         // Generate Excel file
         const buffer = await workbook.xlsx.writeBuffer();
-        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0,10)}.xlsx`);
+        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
         showToast("success", "Success", "Data berhasil diekspor ke Excel");
     };
 
