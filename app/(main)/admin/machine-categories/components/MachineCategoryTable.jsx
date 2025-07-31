@@ -23,20 +23,18 @@ const MachineCategoryTable = ({
     });
     const [globalFilterValue, setGlobalFilterValue] = useState("");
 
-const onGlobalFilterChange = (value) => {
-    setFilters((prevFilters) => ({
-        ...prevFilters,
-        global: { ...prevFilters.global, value },
-    }));
-    onSearch(value);
-};
+    const onGlobalFilterChange = useCallback((value) => {
+        setFilters((prevFilters) => ({
+            ...prevFilters,
+            global: { ...prevFilters.global, value },
+        }));
+        onSearch(value);
+    }, [onSearch]);
 
-useEffect(() => {
-    setGlobalFilterValue(searchText);
-    onGlobalFilterChange(searchText);
-}, [searchText]);
-
-
+    useEffect(() => {
+        setGlobalFilterValue(searchText);
+        onGlobalFilterChange(searchText);
+    }, [searchText, onGlobalFilterChange]);
 
     const handleSelectionChange = (e) => {
         onSelectionChange(e.value);
