@@ -24,7 +24,7 @@ import dynamic from "next/dynamic";
 
 import WorkOrderEditModal from "./components/WorkOrderEditModal";
 import WorkOrderAddModal from "./components/WorkOrderAddModal";
-import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog"; // <--- Perubahan di sini: Nama file & import
+import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog";
 
 const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
 const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false });
@@ -72,31 +72,6 @@ const statusBodyTemplate = (rowData) => {
     );
 };
 
-const photoBodyTemplate = (rowData) => {
-    const handleImageClick = (url) => {
-        console.log("Image clicked:", url);
-    };
-
-    if (rowData.photo_url) {
-        return (
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <img
-                    src={rowData.photo_url}
-                    alt="Issue Preview"
-                    style={{ width: "50px", height: "50px", objectFit: "cover", cursor: "pointer" }}
-                    className="shadow-lg border-round transition-all hover:shadow-xl"
-                    onClick={() => handleImageClick(rowData.photo_url)}
-                    onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = "https://placehold.co/50x50/cccccc/000000?text=No+Image";
-                    }}
-                />
-            </motion.div>
-        );
-    }
-    return <img src="https://placehold.co/50x50/cccccc/000000?text=No+Image" alt="No photo" style={{ width: "50px", height: "50px", objectFit: "cover" }} className="shadow-lg border-round" />;
-};
-
 const dateBodyTemplate = (rowData) => {
     return rowData.created_at ? new Date(rowData.created_at).toLocaleString("id-ID") : "N/A";
 };
@@ -122,6 +97,10 @@ const WorkOrderPage = () => {
     const [editWorkOrderDialogVisible, setEditWorkOrderDialogVisible] = useState(false);
     const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
     const [deleteWorkOrderDialogVisible, setDeleteWorkOrderDialogVisible] = useState(false);
+    const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
+    const [previewImageUrl, setPreviewImageUrl] = useState('');
+    const [isImageHovered, setIsImageHovered] = useState(false);
+    const [hoveredImageId, setHoveredImageId] = useState(null);
 
     const [loading, setLoading] = useState(false);
     const [loadingWorkRequests, setLoadingWorkRequests] = useState(true);
@@ -208,6 +187,72 @@ const WorkOrderPage = () => {
             setMachines([]);
         }
     }, [showToast]);
+
+    // 👈 Perubahan di sini
+    const photoBodyTemplate = (rowData) => {
+        const handleImageClick = (e, url) => {
+            e.stopPropagation(); // Mencegah event klik "naik" ke baris tabel
+            setPreviewImageUrl(url);
+            setImagePreviewVisible(true);
+        };
+
+        const handleMouseEnter = (id) => {
+            setIsImageHovered(true);
+            setHoveredImageId(id);
+        };
+
+        const handleMouseLeave = () => {
+            setIsImageHovered(false);
+            setHoveredImageId(null);
+        };
+
+        const overlayStyle = {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            borderRadius: '6px',
+            cursor: 'pointer',
+        };
+
+        if (rowData.photo_url) {
+            return (
+                <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onMouseEnter={() => handleMouseEnter(rowData.id)}
+                    onMouseLeave={handleMouseLeave}
+                    className="relative"
+                >
+                    <img
+                        src={rowData.photo_url}
+                        alt="Issue Preview"
+                        style={{ width: "50px", height: "50px", objectFit: "cover", cursor: "pointer" }}
+                        className="shadow-lg border-round"
+                        onClick={(e) => handleImageClick(e, rowData.photo_url)} // Kirim event (e)
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://placehold.co/50x50/cccccc/000000?text=No+Image";
+                        }}
+                    />
+                    {isImageHovered && hoveredImageId === rowData.id && (
+                        <div
+                            style={overlayStyle}
+                            onClick={(e) => handleImageClick(e, rowData.photo_url)} // Kirim event (e)
+                        >
+                            <i className="pi pi-eye text-white text-xl"></i>
+                        </div>
+                    )}
+                </motion.div>
+            );
+        }
+        return <img src="https://placehold.co/50x50/cccccc/000000?text=No+Image" alt="No photo" style={{ width: "50px", height: "50px", objectFit: "cover" }} className="shadow-lg border-round" />;
+    };
 
     const filteredData = myWorkRequests.filter((item) => {
         const matchesStatus = statusFilter === "" || item.status.toLowerCase() === statusFilter.toLowerCase();
@@ -560,12 +605,12 @@ const WorkOrderPage = () => {
                                     header="Deskripsi"
                                     body={(rowData) => (
                                         <>
-                                            <Tooltip target=".description-tooltip" position="bottom" />
+                                            <Tooltip target={`.description-tooltip-${rowData.id}`} position="bottom" />
                                             <span
-                                                className="description-tooltip"
+                                                className={`description-tooltip-${rowData.id}`}
                                                 data-pr-tooltip={rowData.description}
                                                 style={{
-                                                    whiteWhiteSpace: "nowrap",
+                                                    whiteSpace: "nowrap",
                                                     overflow: "hidden",
                                                     textOverflow: "ellipsis",
                                                     display: "block",
@@ -613,7 +658,7 @@ const WorkOrderPage = () => {
                     showToast={showToast}
                 />
 
-                <ConfirmDeleteDialog // <--- Perubahan di sini: Menggunakan komponen ConfirmDeleteDialog yang baru
+                <ConfirmDeleteDialog
                     visible={deleteWorkOrderDialogVisible}
                     onHide={() => setDeleteWorkOrderDialogVisible(false)}
                     workOrder={selectedWorkOrder}
@@ -646,6 +691,25 @@ const WorkOrderPage = () => {
                     header="Pratinjau Laporan PDF"
                 >
                     <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
+                </Dialog>
+
+                <Dialog
+                    visible={imagePreviewVisible}
+                    onHide={() => setImagePreviewVisible(false)}
+                    modal
+                    header="Pratinjau Gambar"
+                    style={{ width: '50vw' }}
+                    contentStyle={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                >
+                    <img
+                        src={previewImageUrl}
+                        alt="Pratinjau Isu"
+                        style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain' }}
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://placehold.co/600x400/cccccc/000000?text=Image+Not+Found";
+                        }}
+                    />
                 </Dialog>
             </div>
         </div>

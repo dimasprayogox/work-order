@@ -39,8 +39,15 @@ const WorkOrderAddModal = ({ visible, onHide, machines, onAddSuccess, showToast 
         }
     };
 
-    const handleFileChange = (e) => {
-        setFormData(prev => ({ ...prev, photo: e.files[0] }));
+    const handleDropdownChange = (e) => {
+        setFormData(prev => ({ ...prev, machine_id: e.value }));
+        if (errors.machine_id) {
+            setErrors(prev => ({ ...prev, machine_id: undefined }));
+        }
+    };
+
+    const handleFileChange = ({ files }) => {
+        setFormData(prev => ({ ...prev, photo: files[0] }));
     };
 
     const validateForm = useCallback(() => {
@@ -57,7 +64,6 @@ const WorkOrderAddModal = ({ visible, onHide, machines, onAddSuccess, showToast 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     }, [formData]);
-
 
     const handleSubmit = async () => {
         if (!validateForm()) {
@@ -150,7 +156,7 @@ const WorkOrderAddModal = ({ visible, onHide, machines, onAddSuccess, showToast 
                         name="machine_id"
                         value={formData.machine_id}
                         options={machines}
-                        onChange={handleChange}
+                        onChange={handleDropdownChange}
                         optionLabel="name"
                         optionValue="id"
                         placeholder="Pilih Mesin"
@@ -163,12 +169,40 @@ const WorkOrderAddModal = ({ visible, onHide, machines, onAddSuccess, showToast 
                     <FileUpload
                         name="photo"
                         customUpload
-                        uploadHandler={handleFileChange}
+                        uploadHandler={() => {}}
                         accept="image/*"
                         maxFileSize={1000000}
-                        emptyTemplate={<p className="m-0">Tarik dan lepas gambar di sini untuk mengunggah.</p>}
+                        multiple={false}
+                        chooseLabel="Pilih Gambar"
+                        onSelect={(e) => {
+                            const file = e.files?.[0];
+                            if (file) {
+                                setFormData(prev => ({ ...prev, photo: file }));
+                            }
+                        }}
+                        itemTemplate={(file) => (
+                            <div className="flex align-items-center gap-3">
+                                <img
+                                    alt={file.name}
+                                    role="presentation"
+                                    src={URL.createObjectURL(file)}
+                                    style={{ width: '100px', borderRadius: '6px' }}
+                                />
+                                <div className="flex flex-column">
+                                    <span>{file.name}</span>
+                                    <span className="text-sm text-color-secondary">{Math.round(file.size / 1024)} KB</span>
+                                </div>
+                                <Button
+                                    icon="pi pi-times"
+                                    rounded
+                                    text
+                                    severity="danger"
+                                    onClick={() => setFormData(prev => ({ ...prev, photo: null }))}
+                                />
+                            </div>
+                        )}
+                        emptyTemplate={<p className="m-0">Tarik dan lepas gambar di sini atau klik tombol untuk unggah.</p>}
                     />
-                    <small className="text-500 block mt-2">Ukuran file maksimal: 1MB. Format yang diterima: gambar.</small>
                 </div>
             </div>
         </Dialog>
