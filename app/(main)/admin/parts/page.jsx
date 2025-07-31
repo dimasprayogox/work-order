@@ -45,7 +45,9 @@ const AdminPartPage = () => {
     marginTop: 10,
     marginBottom: 10
   });
-  const [columnOptions, setColumnOptions] = useState([
+
+  // Fixed: Changed to const like in MachineCategoryPage
+  const [columnOptions] = useState([
     { field: 'name', header: 'Name', visible: true },
     { field: 'part_number', header: 'Part Number', visible: true },
     { field: 'description', header: 'Description', visible: true },
@@ -145,17 +147,19 @@ const AdminPartPage = () => {
     showToast("success", "Success", "Data berhasil diekspor ke Excel");
   };
 
-  // --- Export to PDF ---
-  const exportPdf = () => {
+  // --- Export to PDF --- (Fixed: Now matches MachineCategoryPage implementation)
+  const exportPdf = (config = null) => {
     if (!parts.length) {
       showToast("warn", "Warning", "Tidak ada data untuk cetak");
       return;
     }
 
+    const currentConfig = config || printConfig;
+
     const doc = new jsPDF({
-      orientation: printConfig.orientation,
-      unit: printConfig.unit,
-      format: printConfig.format
+      orientation: currentConfig.orientation,
+      unit: currentConfig.unit,
+      format: currentConfig.format
     });
 
     const visibleColumns = columnOptions.filter(col => col.visible);
@@ -171,17 +175,17 @@ const AdminPartPage = () => {
       });
     });
 
-    doc.text('Admin Parts Report', printConfig.marginLeft, printConfig.marginTop);
+    doc.text('Admin Parts Report', currentConfig.marginLeft, currentConfig.marginTop);
 
     autoTable(doc, {
-      startY: printConfig.marginTop + 10,
+      startY: currentConfig.marginTop + 10,
       head: [headers],
       body: data,
       margin: {
-        left: printConfig.marginLeft,
-        right: printConfig.marginRight,
-        top: printConfig.marginTop + 10,
-        bottom: printConfig.marginBottom
+        left: currentConfig.marginLeft,
+        right: currentConfig.marginRight,
+        top: currentConfig.marginTop + 10,
+        bottom: currentConfig.marginBottom
       },
       styles: { fontSize: 8 },
       headStyles: { fillColor: [71, 85, 105] }
@@ -193,15 +197,10 @@ const AdminPartPage = () => {
     setJsPdfPreviewOpen(true);
   };
 
-  // --- Print Handler ---
-  const handlePrint = () => {
-    exportPdf();
-  };
-
-  // --- Adjust Print Margins ---
+  // --- Adjust Print Margins --- (Fixed: Now matches MachineCategoryPage implementation)
   const handleAdjust = (newConfig) => {
     setPrintConfig(newConfig);
-    exportPdf();
+    exportPdf(newConfig);
   };
 
   const handleImport = async (e) => {
@@ -265,10 +264,8 @@ const AdminPartPage = () => {
       showToast("warn", "Warning", "Tidak ada part yang dipilih");
       return;
     }
-
-    // Set data untuk ConfirmDeleteDialog dan buka dialog
-    setSelectedPart(null); // Clear single selection karena ini untuk multiple delete
-    setDeleteOpen(true); // Buka ConfirmDeleteDialog
+    setSelectedPart(null);
+    setDeleteOpen(true);
   };
 
   return (
@@ -388,7 +385,9 @@ const AdminPartPage = () => {
           showToast={showToast}
         />
 
+        {/* Fixed: Added key prop like in MachineCategoryPage */}
         <AdjustPrintMarginLaporan
+          key={adjustDialog ? 'open' : 'closed'}
           adjustDialog={adjustDialog}
           setAdjustDialog={setAdjustDialog}
           handleAdjust={handleAdjust}
