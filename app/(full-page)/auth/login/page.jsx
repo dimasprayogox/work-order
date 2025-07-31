@@ -20,7 +20,7 @@ const LoginPage = () => {
 
     const router = useRouter();
     const toastRef = useRef(null);
-    const { layoutConfig } = useContext(LayoutContext); 
+    const { layoutConfig } = useContext(LayoutContext);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -39,13 +39,13 @@ const LoginPage = () => {
             if (res.ok && result.status === "00") {
                 toastRef.current?.show({severity:'success', summary: 'Success', detail: result.message});
 
-                const userRole = result.role; 
+                const userRole = result.role;
 
                 let redirectPath;
 
                 switch (userRole) {
                     case "admin":
-                        redirectPath = "/dashboard/admin";
+                        redirectPath = "/admin/dashboard";
                         break;
                     case "employee":
                         redirectPath = "/employee/dashboard";
@@ -63,7 +63,7 @@ const LoginPage = () => {
                         redirectPath = "/dashboard";
                         break;
                 }
-                
+
                 router.push(redirectPath);
 
             } else {

@@ -35,34 +35,8 @@ const AppMenu = () => {
                 const allMenus = {
                     dashboard: {
                         label: "Dashboard",
-                        items: [
-                            {
-                                label: "Dashboard",
-                                icon: "pi pi-fw pi-home",
-                                to: `/dashboard/${role}`
-                            }
-                        ]
-                    },
-                    maintenance: {
-                        label: "Maintenance",
-                        icon: "pi pi-fw pi-cog",
-                        items: [
-                            { label: "Work Orders", icon: "pi pi-fw pi-file", to: "/maintenance/work-orders" },
-                            { label: "Work Requests", icon: "pi pi-fw pi-file-edit", to: "/maintenance/work-orders/request" },
-                            { label: "Scheduled Maintenance", icon: "pi pi-fw pi-calendar", to: "/maintenance/scheduled-maintenance" },
-                            { label: "Active Work Order", icon: "pi pi-fw pi-home", to: "/maintenance/active-work-order" },
-                            { label: "Closed Work Order", icon: "pi pi-fw pi-home", to: "/maintenance/closed-work-order" }
-                        ]
-                    },
-                    assets: {
-                        label: "Assets",
-                        icon: "pi pi-fw pi-box",
-                        items: [{ label: "Asset Insights", icon: "pi pi-fw pi-box", to: "/assets/asset-insights" }]
-                    },
-                    supplies: {
-                        label: "Supplies",
-                        icon: "pi pi-fw pi-truck",
-                        items: [{ label: "Parts Forecaster", icon: "pi pi-fw pi-truck", to: "/supplies/parts-forecaster" }]
+                        icon: "pi pi-fw pi-home",
+                        to: "/admin/dashboard"
                     },
                     machineCategories: {
                         label: "Machine Categories",
@@ -93,7 +67,7 @@ const AppMenu = () => {
 
                 let filteredModel = [];
                 if (role === "admin") {
-                    filteredModel = [allMenus.dashboard, allMenus.maintenance, allMenus.assets, allMenus.supplies, allMenus.partsRequest, allMenus.machineCategories, allMenus.machines, allMenus.parts, allMenus.users, ];
+                    filteredModel = [allMenus.dashboard, allMenus.partsRequest, allMenus.machineCategories, allMenus.machines, allMenus.parts, allMenus.users, ];
                 } else if (role === "employee") {
                     filteredModel = [
 

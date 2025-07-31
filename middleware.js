@@ -10,7 +10,7 @@ export function middleware(request) {
     const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
 
     const roleDashboards = {
-        admin: "/dashboard/admin",
+        admin: "/admin/dashboard",
         employee: "/employee/dashboard",
         technician: "/technician/dashboard",
         manager: "/manager/dashboard",
@@ -18,7 +18,7 @@ export function middleware(request) {
     };
 
     const allowedRolesForPaths = {
-        "/dashboard/admin": ["admin"],
+        "/admin/dashboard": ["admin"],
         "/employee/dashboard": ["employee"],
         "/technician/dashboard": ["technician"],
         "/manager/dashboard": ["manager"],
