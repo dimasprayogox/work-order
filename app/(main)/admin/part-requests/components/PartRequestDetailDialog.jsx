@@ -191,16 +191,20 @@ const PartRequestDetailDialog = ({ visible, onHide, request, fetchPartRequests, 
                         <div className="field grid">
                             <label className="col-12 md:col-4 font-medium">Work Order:</label>
                             <div className="col-12 md:col-8">
-                                <span>{request.work_order_id || 'N/A'}</span>
+                                <span>{request.work_order_title || '-'}</span>
                             </div>
                         </div>
 
                         <div className="field grid">
-                            <label className="col-12 md:col-4 font-medium">Priority:</label>
+                            <label className="col-12 md:col-4 font-medium">WO Priority:</label>
                             <div className="col-12 md:col-8">
                                 <Tag
-                                    value={request.priority || 'normal'}
-                                    severity={request.priority === 'urgent' ? 'danger' : 'info'}
+                                    value={request.work_order_priority || '-'}
+                                    severity={
+                                        request.work_order_priority === 'high' ? 'warning' :
+                                        request.work_order_priority === 'medium' ? 'info' :
+                                        request.work_order_priority === 'low' ? 'success' : 'secondary'
+                                    }
                                 />
                             </div>
                         </div>
