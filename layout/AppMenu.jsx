@@ -19,9 +19,8 @@ const AppMenu = () => {
     const { layoutConfig } = useContext(LayoutContext);
     const pathname = usePathname();
     const [visible, setVisible] = useState(false);
-    const [activeMenu, setActiveMenu] = useState(null);
     const [userRole, setUserRole] = useState(null);
-    const [model, setModel] = useState([]);
+    const [menuGroups, setMenuGroups] = useState([]);
 
     useEffect(() => {
         const authToken = Cookies.get("authToken");
@@ -31,202 +30,246 @@ const AppMenu = () => {
                 const role = decodedToken.role;
                 setUserRole(role);
 
-                // Definisikan semua kemungkinan menu
-                const allMenus = {
-                    dashboard: {
-                        label: "Dashboard",
-                        icon: "pi pi-fw pi-home",
-                        to: "/admin/dashboard"
-                    },
-                    machineCategories: {
-                        label: "Machine Categories",
-                        icon: "pi pi-fw pi-th-large",
-                        to: "/admin/machine-categories"
-                    },
-                    machines: {
-                        label: "Machines",
-                        icon: "pi pi-fw pi-box",
-                        to: "/admin/machines"
-                    },
-                    parts: {
-                        label: "Parts",
-                        icon: "pi pi-fw pi-file",
-                        to: "/admin/parts"
-                    },
-                    partsRequest: {
-                        label: "Parts Request",
-                        icon: "pi pi-fw pi-inbox",
-                        to: "/admin/part-requests"
-                    },
-                    users: {
-                        label: "Users",
-                        icon: "pi pi-fw pi-users",
-                        to: "/admin/users"
-                    }
-                };
+                let groups = [];
 
-                let filteredModel = [];
                 if (role === "admin") {
-                    filteredModel = [allMenus.dashboard, allMenus.partsRequest, allMenus.machineCategories, allMenus.machines, allMenus.parts, allMenus.users, ];
+                    groups = [
+                        {
+                            label: "OVERVIEW",
+                            items: [
+                                {
+                                    label: "Dashboard",
+                                    icon: "pi pi-fw pi-home",
+                                    to: "/admin/dashboard"
+                                }
+                            ]
+                        },
+                        {
+                            label: "REQUESTS",
+                            items: [
+                                {
+                                    label: "Parts Request",
+                                    icon: "pi pi-fw pi-inbox",
+                                    to: "/admin/part-requests"
+                                }
+                            ]
+                        },
+                        {
+                            label: "MACHINE MANAGEMENT",
+                            items: [
+                                {
+                                    label: "Machine Categories",
+                                    icon: "pi pi-fw pi-th-large",
+                                    to: "/admin/machine-categories"
+                                },
+                                {
+                                    label: "Machines",
+                                    icon: "pi pi-fw pi-box",
+                                    to: "/admin/machines"
+                                }
+                            ]
+                        },
+                        {
+                            label: "INVENTORY",
+                            items: [
+                                {
+                                    label: "Parts",
+                                    icon: "pi pi-fw pi-file",
+                                    to: "/admin/parts"
+                                }
+                            ]
+                        },
+                        {
+                            label: "USER MANAGEMENT",
+                            items: [
+                                {
+                                    label: "Users",
+                                    icon: "pi pi-fw pi-users",
+                                    to: "/admin/users"
+                                }
+                            ]
+                        }
+                    ];
                 } else if (role === "employee") {
-                    filteredModel = [
-
+                    groups = [
                         {
-                            label: "Dashboard",
-                            icon: "pi pi-fw pi-home",
-                            to: "/employee/dashboard"
+                            label: "OVERVIEW",
+                            items: [
+                                {
+                                    label: "Dashboard",
+                                    icon: "pi pi-fw pi-home",
+                                    to: "/employee/dashboard"
+                                }
+                            ]
                         },
                         {
-                            label: "Work Orders",
-                            icon: "pi pi-fw pi-file",
-                            to: "/employee/work-orders"
-                        },
+                            label: "WORK",
+                            items: [
+                                {
+                                    label: "Work Orders",
+                                    icon: "pi pi-fw pi-file",
+                                    to: "/employee/work-orders"
+                                }
+                            ]
+                        }
                     ];
                 } else if (role === "technician") {
-                    filteredModel = [
-
+                    groups = [
                         {
-                            label: "Dashboard",
-                            icon: "pi pi-fw pi-home",
-                            to: "/technician/dashboard"
+                            label: "OVERVIEW",
+                            items: [
+                                {
+                                    label: "Dashboard",
+                                    icon: "pi pi-fw pi-home",
+                                    to: "/technician/dashboard"
+                                }
+                            ]
                         },
                         {
-                            label: "Work Orders",
-                            icon: "pi pi-fw pi-file",
-                            to: "/technician/work-orders"
+                            label: "WORK",
+                            items: [
+                                {
+                                    label: "Work Orders",
+                                    icon: "pi pi-fw pi-file",
+                                    to: "/technician/work-orders"
+                                }
+                            ]
                         },
                         {
-                            label: "Parts Requests",
-                            icon: "pi pi-fw pi-inbox",
-                            to: "/technician/part-request"
+                            label: "REQUESTS",
+                            items: [
+                                {
+                                    label: "Parts Requests",
+                                    icon: "pi pi-fw pi-inbox",
+                                    to: "/technician/part-request"
+                                }
+                            ]
                         }
                     ];
                 } else if (role === "logistics") {
-                    filteredModel = [
+                    groups = [
                         {
-                            label: "Dashboard",
-                            icon: "pi pi-fw pi-home",
-                            to: "/logistics/dashboard"
+                            label: "OVERVIEW",
+                            items: [
+                                {
+                                    label: "Dashboard",
+                                    icon: "pi pi-fw pi-home",
+                                    to: "/logistics/dashboard"
+                                }
+                            ]
                         },
                         {
-                            label: "Parts",
-                            icon: "pi pi-fw pi-wrench",
-                            to: "/logistics/parts"
+                            label: "INVENTORY",
+                            items: [
+                                {
+                                    label: "Parts",
+                                    icon: "pi pi-fw pi-wrench",
+                                    to: "/logistics/parts"
+                                }
+                            ]
                         },
                         {
-                            label: "Part Requests",
-                            icon: "pi pi-fw pi-inbox",
-                            to: "/logistics/part-requests"
-                        },
-                        {
-                            label: "Part Usage",
-                            icon: "pi pi-fw pi-chart-bar",
-                            to: "/logistics/part-usage"
+                            label: "REQUESTS & USAGE",
+                            items: [
+                                {
+                                    label: "Part Requests",
+                                    icon: "pi pi-fw pi-inbox",
+                                    to: "/logistics/part-requests"
+                                },
+                                {
+                                    label: "Part Usage",
+                                    icon: "pi pi-fw pi-chart-bar",
+                                    to: "/logistics/part-usage"
+                                }
+                            ]
                         }
                     ];
                 } else if (role === "manager") {
-                    filteredModel = [
+                    groups = [
                         {
-                            label: "Dashboard",
-                            icon: "pi pi-fw pi-home",
-                            to: "/manager/dashboard"
+                            label: "OVERVIEW",
+                            items: [
+                                {
+                                    label: "Dashboard",
+                                    icon: "pi pi-fw pi-home",
+                                    to: "/manager/dashboard"
+                                }
+                            ]
                         },
                         {
-                            label: "Work Orders",
-                            icon: "pi pi-fw pi-file",
-                            to: "/manager/work-orders"
-                        },
-                        {
-                            label: "Schedules",
-                            icon: "pi pi-fw pi-calendar",
-                            to: "/manager/schedules"
+                            label: "MANAGEMENT",
+                            items: [
+                                {
+                                    label: "Work Orders",
+                                    icon: "pi pi-fw pi-file",
+                                    to: "/manager/work-orders"
+                                },
+                                {
+                                    label: "Schedules",
+                                    icon: "pi pi-fw pi-calendar",
+                                    to: "/manager/schedules"
+                                }
+                            ]
                         }
                     ];
                 }
 
-
-
-                setModel(filteredModel);
+                setMenuGroups(groups);
             } catch (error) {
                 console.error("Gagal mendekode token atau token tidak valid:", error);
-                setModel([]);
+                setMenuGroups([]);
             }
         } else {
-            setModel([]);
+            setMenuGroups([]);
         }
     }, []);
 
-    const handleMenuToggle = (index) => {
-        setActiveMenu(activeMenu === index ? null : index);
-    };
-
     return (
         <MenuProvider>
-            <ul className="layout-menu" style={{ listStyle: "none" }}>
-                {model.map((item, i) => {
-                    if (!item) return null;
+            <div className="layout-menu">
+                {menuGroups.map((group, groupIndex) => (
+                    <div key={`group-${groupIndex}`} className="menu-group mb-4">
+                        {/* Group Header */}
+                        <div className="menu-group-header px-2 mb-2">
+                            <span className="text-xs font-semibold text-color-secondary uppercase tracking-wider opacity-60">
+                                {group.label}
+                            </span>
+                        </div>
 
-                    if (item.separator) {
-                        return <li className="menu-separator" key={`separator-${i}`}></li>;
-                    }
-
-                    const hasSubmenu = item.items && item.items.length > 0;
-
-                    // Render sebagai link langsung jika tidak ada submenu
-                    if (!hasSubmenu) {
-                        return (
-                            <li key={item.label}>
-                                <a
-                                    href={item.to}
-                                    className={classNames("p-ripple flex align-items-center py-3 px-2 cursor-pointer rounded-md transition-colors duration-150 text-color-secondary hover:bg-primary-50 hover:text-primary", {
-                                        "bg-primary-50 text-primary": pathname === item.to
-                                    })}
-                                >
-                                    {item.icon && <i className={classNames("layout-menuitem-icon mr-2", item.icon)}></i>}
-                                    <span className="layout-menuitem-root-text font-medium">{item.label}</span>
-                                </a>
-                            </li>
-                        );
-                    }
-
-                    // Render sebagai grup dropdown jika ada submenu
-                    const isActive = activeMenu === i;
-                    return (
-                        // FIX: Mengembalikan struktur dan kelas asli untuk dropdown
-                        <li key={item.label} className={`relative ${hasSubmenu ? "has-submenu" : ""}`}>
-                            <div className={`layout-menuitem-root ${isActive ? "active-menuitem" : ""}`}>
-                                <div className="flex align-items-center py-3 px-2 cursor-pointer" onClick={() => hasSubmenu && handleMenuToggle(i)}>
-                                    {item.icon && <i className={`${item.icon} layout-menuitem-icon mr-2`}></i>}
-                                    <span className="layout-menuitem-root-text">{item.label}</span>
-                                    {hasSubmenu && <i className={`pi pi-chevron-down layout-submenu-toggler px-2 ml-auto ${isActive ? "rotated" : ""}`} />}
-                                </div>
-                            </div>
-                            <div className={`layout-submenu ${isActive ? "submenu-visible" : ""}`} style={{ listStyle: "none" }}>
-                                {hasSubmenu && (
-                                    <ul style={{ listStyle: "none", paddingLeft: 0 }}>
-                                        {item.items.map(
-                                            (subItem) =>
-                                                subItem && (
-                                                    <li key={subItem.label}>
-                                                        <a
-                                                            href={subItem.to}
-                                                            className={classNames("p-ripple flex align-items-center py-2 px-4 rounded-md transition-colors duration-150 text-color-secondary hover:bg-primary-50 hover:text-primary", {
-                                                                "bg-primary-50 text-primary": pathname === subItem.to
-                                                            })}
-                                                        >
-                                                            {subItem.icon && <i className={classNames("layout-menuitem-icon mr-2", subItem.icon)}></i>}
-                                                            <span className="layout-menuitem-text">{subItem.label}</span>
-                                                        </a>
-                                                    </li>
-                                                )
+                        {/* Group Items */}
+                        <ul className="menu-group-items" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                            {group.items.map((item, itemIndex) => (
+                                <li key={`${groupIndex}-${itemIndex}`} className="mb-1">
+                                    <a
+                                        href={item.to}
+                                        className={classNames(
+                                            "flex align-items-center py-3 px-3 cursor-pointer rounded-lg transition-all duration-200 text-color-secondary hover:bg-primary-50 hover:text-primary group",
+                                            {
+                                                "bg-primary-50 text-primary shadow-sm": pathname === item.to
+                                            }
                                         )}
-                                    </ul>
-                                )}
-                            </div>
-                        </li>
-                    );
-                })}
-            </ul>
+                                        style={{ textDecoration: "none" }}
+                                    >
+                                        {item.icon && (
+                                            <i
+                                                className={classNames(
+                                                    "mr-3 text-lg transition-colors duration-200",
+                                                    item.icon,
+                                                    {
+                                                        "text-primary": pathname === item.to,
+                                                        "group-hover:text-primary": pathname !== item.to
+                                                    }
+                                                )}
+                                            ></i>
+                                        )}
+                                        <span className="font-medium text-sm">{item.label}</span>
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                ))}
+            </div>
 
             <Dialog
                 header="Schedule Delivery"
@@ -240,7 +283,11 @@ const AppMenu = () => {
                 {/* ... Konten Dialog ... */}
             </Dialog>
 
-            <Button className={`${pathname !== "/analytics" ? "hidden" : ""} w-full mt-5`} label="Create Schedule" onClick={() => setVisible(true)} />
+            <Button
+                className={`${pathname !== "/analytics" ? "hidden" : ""} w-full mt-5`}
+                label="Create Schedule"
+                onClick={() => setVisible(true)}
+            />
         </MenuProvider>
     );
 };
