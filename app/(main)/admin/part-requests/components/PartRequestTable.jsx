@@ -68,18 +68,35 @@ const PartRequestTable = ({
         );
     };
 
-    // Consistent priority template with motion animation
+    // Consistent priority template with motion animation (low, medium, high only)
     const priorityBodyTemplate = (rowData) => {
-        const priority = rowData.priority || 'normal';
+        const priority = rowData.priority || 'medium';
         const priorityConfig = {
             'low': { color: '#10b981', bgColor: 'bg-green-100', textColor: 'text-green-800', severity: 'success' },
-            'normal': { color: '#06b6d4', bgColor: 'bg-cyan-100', textColor: 'text-cyan-800', severity: 'info' },
+            'medium': { color: '#06b6d4', bgColor: 'bg-cyan-100', textColor: 'text-cyan-800', severity: 'info' },
             'high': { color: '#f97316', bgColor: 'bg-orange-100', textColor: 'text-orange-800', severity: 'warning' },
-            'urgent': { color: '#ef4444', bgColor: 'bg-red-100', textColor: 'text-red-800', severity: 'danger' },
         };
 
-        const config = priorityConfig[priority] || priorityConfig['normal'];
+        const config = priorityConfig[priority] || priorityConfig['medium'];
 
+        return (
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                    <span className="font-medium">{getPriorityLabel(priority)}</span>
+                </div>
+            </motion.div>
+        );
+    };
+
+    // WO Priority template (same as priorityBodyTemplate)
+    const woPriorityBodyTemplate = (rowData) => {
+        const priority = rowData.work_order_priority || 'medium';
+        const priorityConfig = {
+            'low': { color: '#10b981', bgColor: 'bg-green-100', textColor: 'text-green-800', severity: 'success' },
+            'medium': { color: '#06b6d4', bgColor: 'bg-cyan-100', textColor: 'text-cyan-800', severity: 'info' },
+            'high': { color: '#f97316', bgColor: 'bg-orange-100', textColor: 'text-orange-800', severity: 'warning' },
+        };
+        const config = priorityConfig[priority] || priorityConfig['medium'];
         return (
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
                 <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
@@ -170,9 +187,8 @@ const PartRequestTable = ({
     const getPriorityLabel = (priority) => {
         const priorityMap = {
             low: "Low",
-            normal: "Normal",
+            medium: "Medium",
             high: "High",
-            urgent: "Urgent",
         };
         return priorityMap[priority] || priority;
     };
@@ -219,16 +235,16 @@ const PartRequestTable = ({
                     sortable
                 />
                 <Column
-                    field="priority"
+                    field="work_order_priority"
                     header="Priority"
-                    body={priorityBodyTemplate}
+                    body={woPriorityBodyTemplate}
                     style={{ width: "120px" }}
                     sortable
                 />
                 <Column
-                    field="work_order_id"
+                    field="work_order_title"
                     header="Work Order"
-                    style={{ width: "120px" }}
+                    style={{ width: "200px" }}
                     sortable
                 />
                 <Column
