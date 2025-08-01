@@ -1,4 +1,3 @@
-// my-project/app/(main)/manager/schedules/page.jsx
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -25,7 +24,7 @@ import {
     machineBodyTemplate,
     actionBodyTemplate,
     createdByBodyTemplate
-} from "./components/ScheduleTable"; // Sesuaikan path jika ini adalah komponen terpisah
+} from "./components/ScheduleTable";
 import CreateScheduleDialog from "./components/CreateScheduleDialog";
 import EditScheduleDialog from "./components/EditScheduleDialog";
 import ScheduleDetailsDialog from "./components/ScheduleDetailsDialog";
@@ -81,7 +80,7 @@ export default function SchedulePage() {
     const fetchSchedules = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch(`/api/manager/schedules`); // Menggunakan proxy API Next.js
+            const response = await fetch(`/api/manager/schedules`);
             const result = await response.json();
 
             if (!response.ok) {
@@ -125,7 +124,7 @@ export default function SchedulePage() {
                 setLoading(true);
                 try {
                     for (const schedule of selectedSchedules) {
-                        const response = await fetch(`/api/manager/schedules/${schedule.id}`, { // Menggunakan proxy API Next.js
+                        const response = await fetch(`/api/manager/schedules/${schedule.id}`, {
                             method: "DELETE",
                         });
                         if (!response.ok) {
@@ -308,7 +307,7 @@ export default function SchedulePage() {
                         is_active: item.is_active !== undefined ? Boolean(item.is_active) : true,
                     };
 
-                    const res = await fetch(`/api/manager/schedules`, { // Menggunakan proxy API Next.js
+                    const res = await fetch(`/api/manager/schedules`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload),
@@ -365,12 +364,6 @@ export default function SchedulePage() {
 
                 <div className="flex flex-wrap gap-2 mb-4 items-center">
                     <Button
-                        label="Refresh"
-                        icon="pi pi-refresh"
-                        onClick={fetchSchedules}
-                        className="p-button-outlined"
-                    />
-                    <Button
                         label="Buat Jadwal Baru"
                         icon="pi pi-plus"
                         onClick={() => setCreateDialogVisible(true)}
@@ -411,6 +404,12 @@ export default function SchedulePage() {
                         onClick={handlePrint}
                         tooltip="Cetak Laporan"
                         tooltipOptions={{ position: 'bottom' }}
+                    />
+                    <Button
+                        label="Refresh"
+                        icon="pi pi-refresh"
+                        onClick={fetchSchedules}
+                        className="p-button-outlined"
                     />
                 </div>
 
