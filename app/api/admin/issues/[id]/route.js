@@ -7,15 +7,16 @@ import { isAxiosError } from "axios";
 /**
  * Handler untuk mengambil issue berdasarkan ID.
  * @param {Request} request
- * @param {Object} params
+ * @param {Object} context
  */
-export const GET = async (request, { params }) => {
+export const GET = async (request, context) => {
     const token = request.cookies.get("authToken")?.value;
     if (!token) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     try {
+        const params = await context.params; // ✅ Await params
         const { id } = params;
         const response = await Axios.get(API_ENDPOINTS.ADMIN_ISSUE_BY_ID(id), {
             headers: { Authorization: `Bearer ${token}` }
@@ -33,15 +34,16 @@ export const GET = async (request, { params }) => {
 /**
  * Handler untuk mengupdate issue.
  * @param {Request} request
- * @param {Object} params
+ * @param {Object} context
  */
-export const PATCH = async (request, { params }) => {
+export const PATCH = async (request, context) => {
     const token = request.cookies.get("authToken")?.value;
     if (!token) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     try {
+        const params = await context.params; // ✅ Await params
         const { id } = params;
         const formData = await request.formData();
 
@@ -52,11 +54,13 @@ export const PATCH = async (request, { params }) => {
         const title = formData.get('title');
         const description = formData.get('description');
         const machine_id = formData.get('machine_id');
+        const reported_by_id = formData.get('reported_by_id'); // ✅ Handle reported_by_id
         const remove_photo = formData.get('remove_photo');
 
         if (title) backendFormData.append('title', title);
         if (description) backendFormData.append('description', description);
         if (machine_id) backendFormData.append('machine_id', machine_id);
+        if (reported_by_id) backendFormData.append('reported_by_id', reported_by_id); // ✅ Forward to backend
         if (remove_photo) backendFormData.append('remove_photo', remove_photo);
 
         // Append photo if exists
@@ -85,15 +89,16 @@ export const PATCH = async (request, { params }) => {
 /**
  * Handler untuk menghapus issue.
  * @param {Request} request
- * @param {Object} params
+ * @param {Object} context
  */
-export const DELETE = async (request, { params }) => {
+export const DELETE = async (request, context) => {
     const token = request.cookies.get("authToken")?.value;
     if (!token) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     try {
+        const params = await context.params; // ✅ Await params
         const { id } = params;
         const response = await Axios.delete(API_ENDPOINTS.ADMIN_ISSUE_BY_ID(id), {
             headers: { Authorization: `Bearer ${token}` }
