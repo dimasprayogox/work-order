@@ -16,7 +16,7 @@ export const GET = async (request, context) => {
     }
 
     try {
-        const params = await context.params; // ✅ Await params
+        const params = await context.params;
         const { id } = params;
         const response = await Axios.get(API_ENDPOINTS.ADMIN_ISSUE_BY_ID(id), {
             headers: { Authorization: `Bearer ${token}` }
@@ -47,13 +47,6 @@ export const PATCH = async (request, context) => {
         const { id } = params;
         const formData = await request.formData();
 
-        // ✅ Debug: Log semua data yang diterima
-        console.log("=== Backend FormData Debug ===");
-        for (const [key, value] of formData.entries()) {
-            console.log(`${key}:`, value);
-        }
-        console.log("============================");
-
         // Create FormData for backend
         const backendFormData = new FormData();
 
@@ -69,13 +62,11 @@ export const PATCH = async (request, context) => {
         if (machine_id) backendFormData.append('machine_id', machine_id);
         if (reported_by_id) backendFormData.append('reported_by_id', reported_by_id);
 
-        // ✅ Improved photo handling
+        // Improved photo handling
         const photo = formData.get('photo');
         if (photo && photo.size > 0) {
-            console.log("New photo detected:", photo.name, "Size:", photo.size); // Debug
             backendFormData.append('photo', photo);
         } else if (remove_photo === 'true') {
-            console.log("Remove photo flag detected"); // Debug
             backendFormData.append('remove_photo', remove_photo);
         }
 
@@ -86,11 +77,9 @@ export const PATCH = async (request, context) => {
             }
         });
 
-        console.log("Update response:", response.data); // Debug
         return NextResponse.json(response.data);
     } catch (err) {
         if (isAxiosError(err) && err.response) {
-            console.error("Backend error:", err.response.data); // Debug
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
         console.error("[API ISSUES PATCH]", err);
@@ -110,7 +99,7 @@ export const DELETE = async (request, context) => {
     }
 
     try {
-        const params = await context.params; // ✅ Await params
+        const params = await context.params;
         const { id } = params;
         const response = await Axios.delete(API_ENDPOINTS.ADMIN_ISSUE_BY_ID(id), {
             headers: { Authorization: `Bearer ${token}` }

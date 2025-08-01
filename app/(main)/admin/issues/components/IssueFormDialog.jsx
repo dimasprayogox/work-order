@@ -89,8 +89,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
     const handleFileSelect = (e) => {
         const file = e.files[0];
         setSelectedFile(file);
-        setRemovePhoto(false); // Batalkan niat hapus foto jika memilih yang baru
-        console.log("File selected:", file); // Debug
+        setRemovePhoto(false);
     };
 
     // Handler untuk menghapus file yang baru dipilih (dari preview)
@@ -99,20 +98,17 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
         if (fileUploadRef.current) {
             fileUploadRef.current.clear();
         }
-        console.log("File removed from preview"); // Debug
     };
 
     // Handler untuk checkbox remove photo
     const handleRemovePhotoChange = (checked) => {
         setRemovePhoto(checked);
         if (checked && selectedFile) {
-            // Jika user centang remove photo, hapus juga file yang baru dipilih
             setSelectedFile(null);
             if (fileUploadRef.current) {
                 fileUploadRef.current.clear();
             }
         }
-        console.log("Remove photo checked:", checked); // Debug
     };
 
     // Handler untuk submit form
@@ -137,21 +133,12 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
             // Improved photo handling logic
             if (selectedFile) {
                 formData.append('photo', selectedFile);
-                console.log("Appending new photo:", selectedFile.name); // Debug
             }
 
             // Only send remove_photo if no new file is selected
             if (issue && removePhoto && !selectedFile) {
                 formData.append('remove_photo', 'true');
-                console.log("Will remove existing photo"); // Debug
             }
-
-            // Debug: Log all form data
-            console.log("=== FormData Debug ===");
-            for (const [key, value] of formData.entries()) {
-                console.log(`${key}:`, value);
-            }
-            console.log("===================");
 
             const res = await fetch(
                 issue ? `/api/admin/issues/${issue.id}` : "/api/admin/issues",
@@ -169,7 +156,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
             fetchIssues();
             onHide();
         } catch (error) {
-            console.error("Submit error:", error); // Debug
+            console.error("Submit error:", error);
             showToast("error", "Error", error.message);
         } finally {
             setLoading(false);
@@ -339,7 +326,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
 
                     {/* Komponen FileUpload yang sudah disempurnakan */}
                     <FileUpload
-                        key={`fileupload-${issue?.id || 'new'}-${visible}`} // Force re-render saat dialog buka/tutup
+                        key={`fileupload-${issue?.id || 'new'}-${visible}`}
                         ref={fileUploadRef}
                         name="photo"
                         accept="image/*"

@@ -44,16 +44,6 @@ export const POST = async (request) => {
         // Create FormData for backend
         const backendFormData = new FormData();
 
-         const photoFile = formData.get('photo');
-        console.log("Mencoba mendapatkan file 'photo':", photoFile);
-
-        // CARA 2: Lihat semua key dan value yang ada di dalam formData
-        console.log("--- Iterasi semua data di FormData ---");
-        for (const [key, value] of formData.entries()) {
-            console.log(`${key}:`, value);
-        }
-        console.log("-------------------------------------");
-
         // Append text fields
         const title = formData.get('title');
         const description = formData.get('description');
@@ -77,8 +67,6 @@ export const POST = async (request) => {
                 'Content-Type': 'multipart/form-data'
             }
         });
-
-        console.log("Issue created successfully:", response.data);
 
         return NextResponse.json(response.data, { status: 201 });
     } catch (err) {
