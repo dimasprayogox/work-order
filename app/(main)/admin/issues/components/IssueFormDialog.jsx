@@ -22,17 +22,15 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
     const [submitted, setSubmitted] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const [removePhoto, setRemovePhoto] = useState(false);
-    const [users, setUsers] = useState([]); // Tambah state untuk users
-    const [loadingUsers, setLoadingUsers] = useState(false); // Loading state untuk users
+    const [users, setUsers] = useState([]);
+    const [loadingUsers, setLoadingUsers] = useState(false);
     const fileUploadRef = useRef(null);
 
     // Fetch users function
     const fetchUsers = useCallback(async () => {
         setLoadingUsers(true);
         try {
-            const res = await fetch("/api/admin/issues/users", {
-                credentials: "include"
-            });
+            const res = await fetch("/api/admin/issues/users", { credentials: "include" });
             const data = await res.json();
             if (res.ok) {
                 setUsers(data.data || []);
@@ -46,13 +44,14 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
         }
     }, [showToast]);
 
-    // Fetch users ketika dialog dibuka
+    // Fetch users saat dialog dibuka
     useEffect(() => {
         if (visible) {
             fetchUsers();
         }
     }, [visible, fetchUsers]);
 
+    // Mengisi dan mereset form
     useEffect(() => {
         if (issue) {
             setForm({
@@ -86,15 +85,24 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
         return title.trim() && description.trim() && machine_id;
     };
 
+    // Handler untuk memilih file baru
     const handleFileSelect = (e) => {
         const file = e.files[0];
         setSelectedFile(file);
-        setRemovePhoto(false);
+        setRemovePhoto(false); // Batalkan niat hapus foto jika memilih yang baru
     };
 
+    // Handler untuk menghapus file yang baru dipilih (dari preview)
+    const handleFileRemove = () => {
+        setSelectedFile(null);
+        if (fileUploadRef.current) {
+            fileUploadRef.current.clear();
+        }
+    };
+
+    // Handler untuk submit form
     const handleSubmit = async () => {
         setSubmitted(true);
-
         if (!validateForm()) {
             showToast("error", "Error", "Harap lengkapi semua field yang wajib diisi");
             return;
@@ -111,10 +119,12 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                 formData.append('reported_by_id', form.reported_by_id);
             }
 
+            // Kirim file baru jika ada
             if (selectedFile) {
                 formData.append('photo', selectedFile);
             }
 
+            // Kirim flag untuk hapus foto lama jika dicentang
             if (issue && removePhoto) {
                 formData.append('remove_photo', 'true');
             }
@@ -146,38 +156,54 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
         value: machine.id
     }));
 
-    // Transform users untuk dropdown options
     const userOptions = users.map(user => ({
         label: `${user.full_name} (${user.role})`,
         value: user.id
     }));
 
-    const customUploadHandler = (event) => {
-        handleFileSelect(event);
-    };
+    // Template untuk menampilkan file yang dipilih
+    const itemTemplate = (file) => (
+        <div className="flex align-items-center flex-wrap gap-3">
+            <img
+                alt={file.name}
+                role="presentation"
+                src={file.objectURL}
+                style={{ width: '100px', height: 'auto', borderRadius: '6px' }}
+            />
+            <div className="flex flex-column" style={{flex: 1}}>
+                <span className="font-bold">{file.name}</span>
+                <span className="text-sm text-color-secondary">{Math.round(file.size / 1024)} KB</span>
+            </div>
+            <Button
+                type="button"
+                icon="pi pi-times"
+                className="p-button-rounded p-button-danger p-button-text"
+                onClick={handleFileRemove}
+            />
+        </div>
+    );
 
     const footerContent = (
         <div className="flex justify-end gap-2">
             <Button
-                label="Cancel"
+                label="Batal"
                 icon="pi pi-times"
                 onClick={onHide}
                 className="p-button-text"
                 disabled={loading}
             />
             <Button
-                label={issue ? "Update" : "Save"}
+                label={issue ? "Update" : "Simpan"}
                 icon="pi pi-check"
                 onClick={handleSubmit}
                 loading={loading}
-                disabled={loading}
             />
         </div>
     );
 
     return (
         <Dialog
-            header={issue ? "Edit Issue" : "Add New Issue"}
+            header={issue ? "Edit Issue" : "Tambah Issue Baru"}
             visible={visible}
             style={{ width: "40rem" }}
             breakpoints={{ "960px": "75vw", "641px": "90vw" }}
@@ -196,12 +222,9 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                         id="title"
                         value={form.title}
                         onChange={(e) => handleChange("title", e.target.value)}
-                        placeholder="Enter issue title"
                         className={classNames({ "p-invalid": submitted && !form.title.trim() })}
                     />
-                    {submitted && !form.title.trim() && (
-                        <small className="p-error">Title is required</small>
-                    )}
+                    {submitted && !form.title.trim() && <small className="p-error">Title is required</small>}
                 </div>
 
                 {/* Machine Field */}
@@ -214,36 +237,27 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                         value={form.machine_id}
                         options={machineOptions}
                         onChange={(e) => handleChange("machine_id", e.value)}
-                        placeholder="Select machine"
-                        className={classNames({ "p-invalid": submitted && !form.machine_id })}
+                        placeholder="Pilih mesin"
                         filter
                         showClear
-                        emptyMessage="No machines available"
+                        className={classNames({ "p-invalid": submitted && !form.machine_id })}
                     />
-                    {submitted && !form.machine_id && (
-                        <small className="p-error">Machine is required</small>
-                    )}
+                    {submitted && !form.machine_id && <small className="p-error">Machine is required</small>}
                 </div>
 
                 {/* Reported By Field */}
                 <div className="field col-12">
-                    <label htmlFor="reported_by_id" className="font-medium">
-                        Reported By (Optional)
-                    </label>
+                    <label htmlFor="reported_by_id" className="font-medium">Reported By (Opsional)</label>
                     <Dropdown
                         id="reported_by_id"
                         value={form.reported_by_id}
                         options={userOptions}
                         onChange={(e) => handleChange("reported_by_id", e.value)}
-                        placeholder="Select user (optional)"
+                        placeholder="Pilih user"
                         filter
                         showClear
-                        emptyMessage={loadingUsers ? "Loading users..." : "No users available"}
                         disabled={loadingUsers}
                     />
-                    <small className="text-gray-500">
-                        Leave empty to use current admin user
-                    </small>
                 </div>
 
                 {/* Description Field */}
@@ -255,24 +269,21 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                         id="description"
                         value={form.description}
                         onChange={(e) => handleChange("description", e.target.value)}
-                        placeholder="Describe the issue in detail"
                         rows={4}
                         className={classNames({ "p-invalid": submitted && !form.description.trim() })}
                     />
-                    {submitted && !form.description.trim() && (
-                        <small className="p-error">Description is required</small>
-                    )}
+                    {submitted && !form.description.trim() && <small className="p-error">Description is required</small>}
                 </div>
 
                 {/* Photo Field */}
                 <div className="field col-12">
                     <label className="font-medium">Photo</label>
 
-                    {/* Current Photo Display */}
-                    {issue && issue.photo_url && !selectedFile && !removePhoto && (
+                    {/* Menampilkan foto yang sudah ada (saat mode edit) */}
+                    {issue && issue.photo_url && (
                         <div className="mb-3">
                             <div className="flex align-items-center justify-content-between mb-2">
-                                <span className="text-sm text-gray-600">Current photo:</span>
+                                <span className="text-sm text-gray-600">Foto saat ini:</span>
                                 <div className="flex align-items-center">
                                     <Checkbox
                                         inputId="remove_photo"
@@ -280,7 +291,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                                         onChange={(e) => setRemovePhoto(e.checked)}
                                     />
                                     <label htmlFor="remove_photo" className="ml-2 text-sm cursor-pointer">
-                                        Remove photo
+                                        Hapus foto
                                     </label>
                                 </div>
                             </div>
@@ -288,48 +299,31 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                                 src={issue.photo_url}
                                 alt="Current issue photo"
                                 width="150"
-                                height="150"
                                 preview
                                 className="border-round shadow-2"
                             />
                         </div>
                     )}
 
-                    {/* File Upload */}
+                    {/* Komponen FileUpload yang sudah disempurnakan */}
                     <FileUpload
                         ref={fileUploadRef}
-                        mode="basic"
                         name="photo"
                         accept="image/*"
                         maxFileSize={5000000}
                         customUpload
-                        uploadHandler={customUploadHandler}
-                        chooseLabel="Choose Photo"
-                        className="p-button-outlined"
+                        onSelect={handleFileSelect}
+                        multiple={false}
+                        chooseLabel={issue && issue.photo_url ? "Ganti Foto" : "Pilih Foto"}
+                        itemTemplate={itemTemplate}
+                        emptyTemplate={<p className="m-0">Tarik dan lepas gambar di sini.</p>}
                         disabled={removePhoto}
                     />
-
-                    {/* Selected File Display */}
-                    {selectedFile && (
+                     {removePhoto && (
                         <div className="mt-2">
-                            <small className="text-green-600">
-                                Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                            </small>
+                            <small className="text-red-600">Foto saat ini akan dihapus saat disimpan.</small>
                         </div>
                     )}
-
-                    {/* Remove Photo Notice */}
-                    {removePhoto && (
-                        <div className="mt-2">
-                            <small className="text-red-600">
-                                Current photo will be removed when saved
-                            </small>
-                        </div>
-                    )}
-
-                    <small className="text-gray-500 block mt-1">
-                        Maximum file size: 5MB. Supported formats: JPG, PNG, GIF
-                    </small>
                 </div>
             </div>
         </Dialog>
