@@ -146,7 +146,7 @@ const BulkAssignmentDialog = ({
     };
 
     const technicianOptions = technicians.map(tech => ({
-        label: `${tech.name} (${tech.current_workload || 0} WO)`,
+        label: `${tech.full_name} (${tech.current_workload || 0} WO)`,
         value: tech.id,
         technician: tech
     }));
@@ -191,12 +191,12 @@ const BulkAssignmentDialog = ({
         return (
             <div className="flex align-items-center gap-2">
                 <Avatar
-                    label={selectedTech.name?.charAt(0)}
+                    label={selectedTech.full_name?.charAt(0)}
                     size="small"
                     style={{ backgroundColor: '#2196F3', color: '#ffffff' }}
                 />
                 <div>
-                    <div className="font-medium text-sm">{selectedTech.name}</div>
+                    <div className="font-medium text-sm">{selectedTech.full_name}</div>
                     <div className="text-xs text-gray-500">
                         Workload: {selectedTech.current_workload || 0}
                     </div>
@@ -352,7 +352,7 @@ const BulkAssignmentDialog = ({
                     {technicians.map(tech => (
                         <Chip
                             key={tech.id}
-                            label={`${tech.name}: ${tech.current_workload || 0} WO`}
+                            label={`${tech.full_name}: ${tech.current_workload || 0} WO`}
                             className={classNames({
                                 'bg-green-100 text-green-800': (tech.current_workload || 0) <= 1,
                                 'bg-yellow-100 text-yellow-800': (tech.current_workload || 0) > 1 && (tech.current_workload || 0) <= 3,
