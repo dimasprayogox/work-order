@@ -9,7 +9,7 @@ export const AdminPartRequestController = {
     async index(req, res) {
         try {
             const requests = await PartRequest.query().withGraphFetched(
-                "[items.part, requestedBy]"
+                "[items.part, requestedBy, workOrder]"
             );
             res.json({ success: true, data: requests });
         } catch (error) {
