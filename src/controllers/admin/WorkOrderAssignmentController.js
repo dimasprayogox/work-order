@@ -1,61 +1,75 @@
 import { WorkOrder } from '../../models/WorkOrder.js';
 import { User } from '../../models/User.js';
-import { Issue } from '../../models/Issue.js';
 import { assignWorkOrderSchema, bulkAssignWorkOrderSchema, reassignWorkOrderSchema } from '../../schemas/admin/workOrderAssignmentSchema.js';
-import { v4 as uuidv4 } from 'uuid';
+import { db } from '../../core/config/knex.js';
 
 export const WorkOrderAssignmentController = {
     // Get all work orders with assignment status
     async index(req, res) {
         try {
-            const { status, assigned, priority, machine_id } = req.query;
-            
+            const { status, assigned, priority, machine_id, page = 1, limit = 10 } = req.query;
+
             let query = WorkOrder.query()
-                .withGraphFetched('[machine, assignedTo, createdBy, issue]')
+                .withGraphFetched(`[
+                    machine, 
+                    assignedTo,
+                    createdBy, 
+                    issue
+                ]`)
                 .orderBy('created_at', 'desc');
 
-            // Filter berdasarkan parameter
+            // Apply filters
             if (status) {
                 query = query.where('status', status);
             }
-            
+
             if (assigned === 'true') {
                 query = query.whereNotNull('assigned_to_id');
             } else if (assigned === 'false') {
                 query = query.whereNull('assigned_to_id');
             }
-            
+
             if (priority) {
                 query = query.where('priority', priority);
             }
-            
+
             if (machine_id) {
                 query = query.where('machine_id', machine_id);
             }
 
             const workOrders = await query;
 
-            // Tambahkan current_workload ke assignedTo
+            // Add current_workload and profile_photo_url to assignedTo
             for (const wo of workOrders) {
                 if (wo.assignedTo) {
                     const activeCount = await WorkOrder.query()
                         .where('assigned_to_id', wo.assignedTo.id)
                         .whereIn('status', ['pending', 'in_progress'])
                         .resultSize();
+                    
                     wo.assignedTo.current_workload = activeCount;
+
+                    // Get profile photo from user_details
+                    const userDetail = await db('user_details')
+                        .where('user_id', wo.assignedTo.id)
+                        .select('profile_photo_url')
+                        .first();
+                    
+                    wo.assignedTo.profile_photo_url = userDetail?.profile_photo_url || null;
                 }
             }
-            
-            res.json({ 
-                success: true, 
+
+            res.json({
+                success: true,
                 data: workOrders,
-                meta: {
-                    total: workOrders.length,
-                    unassigned: workOrders.filter(wo => !wo.assigned_to_id).length,
-                    assigned: workOrders.filter(wo => wo.assigned_to_id).length
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total: workOrders.length
                 }
             });
         } catch (err) {
+            console.error('Error in WorkOrderAssignmentController.index:', err);
             res.status(500).json({ success: false, message: err.message });
         }
     },
@@ -63,24 +77,86 @@ export const WorkOrderAssignmentController = {
     // Get available technicians for assignment
     async getAvailableTechnicians(req, res) {
         try {
-            const technicians = await User.query()
+            // Get technicians with their profile photos
+            const technicians = await db('users')
+                .leftJoin('user_details', 'users.id', 'user_details.user_id')
+                .where('users.role', 'technician')
+                .where('users.is_active', true)
+                .select(
+                    'users.id',
+                    'users.full_name',
+                    'users.email',
+                    'users.username',
+                    'user_details.profile_photo_url'
+                );
+
+            // Calculate current workload for each technician
+            for (const technician of technicians) {
+                const activeWorkOrders = await WorkOrder.query()
+                    .where('assigned_to_id', technician.id)
+                    .whereIn('status', ['pending', 'in_progress'])
+                    .resultSize();
+
+                technician.current_workload = activeWorkOrders;
+            }
+
+            res.json({
+                success: true,
+                data: technicians
+            });
+        } catch (err) {
+            console.error('Error in WorkOrderAssignmentController.getAvailableTechnicians:', err);
+            res.status(500).json({ success: false, message: err.message });
+        }
+    },
+
+    // Get assignment statistics
+    async getAssignmentStats(req, res) {
+        try {
+            const totalWorkOrders = await WorkOrder.query().resultSize();
+            
+            const assignedWorkOrders = await WorkOrder.query()
+                .whereNotNull('assigned_to_id')
+                .resultSize();
+            
+            const unassignedWorkOrders = await WorkOrder.query()
+                .whereNull('assigned_to_id')
+                .resultSize();
+            
+            const pendingWorkOrders = await WorkOrder.query()
+                .where('status', 'pending')
+                .resultSize();
+            
+            const inProgressWorkOrders = await WorkOrder.query()
+                .where('status', 'in_progress')
+                .resultSize();
+            
+            const completedWorkOrders = await WorkOrder.query()
+                .where('status', 'completed')
+                .resultSize();
+
+            const totalTechnicians = await User.query()
                 .where('role', 'technician')
                 .where('is_active', true)
-                .withGraphFetched('assignedWorkOrders(activeWorkOrders)')
-                .modifiers({
-                    activeWorkOrders(builder) {
-                        builder.whereIn('status', ['pending', 'in_progress']);
-                    }
-                });
+                .resultSize();
 
-            // Hitung workload setiap teknisi
-            const techniciansWithWorkload = technicians.map(tech => ({
-                ...tech,
-                current_workload: tech.assignedWorkOrders?.length || 0
-            }));
+            const stats = {
+                total_work_orders: totalWorkOrders,
+                assigned_work_orders: assignedWorkOrders,
+                unassigned_work_orders: unassignedWorkOrders,
+                pending_work_orders: pendingWorkOrders,
+                in_progress_work_orders: inProgressWorkOrders,
+                completed_work_orders: completedWorkOrders,
+                total_technicians: totalTechnicians,
+                assignment_rate: totalWorkOrders > 0 ? ((assignedWorkOrders / totalWorkOrders) * 100).toFixed(1) : 0
+            };
 
-            res.json({ success: true, data: techniciansWithWorkload });
+            res.json({
+                success: true,
+                data: stats
+            });
         } catch (err) {
+            console.error('Error in WorkOrderAssignmentController.getAssignmentStats:', err);
             res.status(500).json({ success: false, message: err.message });
         }
     },
@@ -90,48 +166,55 @@ export const WorkOrderAssignmentController = {
         try {
             const parsed = assignWorkOrderSchema.safeParse(req.body);
             if (!parsed.success) {
-                return res.status(400).json({ success: false, errors: parsed.error.flatten() });
+                return res.status(400).json({
+                    success: false,
+                    message: 'Validation failed',
+                    errors: parsed.error.errors
+                });
             }
 
             const { work_order_id, assigned_to_id, priority, scheduled_date, notes } = parsed.data;
 
-            // Cek apakah work order exists
+            // Check if work order exists
             const workOrder = await WorkOrder.query().findById(work_order_id);
             if (!workOrder) {
-                return res.status(404).json({ success: false, message: 'Work Order not found' });
+                return res.status(404).json({
+                    success: false,
+                    message: 'Work order not found'
+                });
             }
 
-            // Cek apakah technician exists dan aktif
+            // Check if technician exists
             const technician = await User.query()
                 .findById(assigned_to_id)
                 .where('role', 'technician')
                 .where('is_active', true);
-            
+
             if (!technician) {
-                return res.status(404).json({ success: false, message: 'Technician not found or inactive' });
+                return res.status(404).json({
+                    success: false,
+                    message: 'Technician not found or inactive'
+                });
             }
 
             // Update work order
-            const updateData = {
-                assigned_to_id,
-                status: workOrder.status === 'pending' ? 'pending' : workOrder.status,
-                updated_at: new Date()
-            };
-
-            if (priority) updateData.priority = priority;
-            if (scheduled_date) updateData.scheduled_date = scheduled_date;
-            if (notes) updateData.notes = notes;
-
             const updatedWorkOrder = await WorkOrder.query()
-                .patchAndFetchById(work_order_id, updateData)
-                .withGraphFetched('[machine, assignedTo, createdBy, issue]');
+                .patchAndFetchById(work_order_id, {
+                    assigned_to_id,
+                    priority: priority || workOrder.priority,
+                    scheduled_date,
+                    notes,
+                    status: 'pending'
+                })
+                .withGraphFetched('[assignedTo, machine, issue]');
 
-            res.json({ 
-                success: true, 
-                data: updatedWorkOrder,
-                message: `Work Order berhasil ditugaskan ke ${technician.name}`
+            res.json({
+                success: true,
+                message: 'Work order assigned successfully',
+                data: updatedWorkOrder
             });
         } catch (err) {
+            console.error('Error in WorkOrderAssignmentController.assignWorkOrder:', err);
             res.status(500).json({ success: false, message: err.message });
         }
     },
@@ -141,56 +224,47 @@ export const WorkOrderAssignmentController = {
         try {
             const parsed = bulkAssignWorkOrderSchema.safeParse(req.body);
             if (!parsed.success) {
-                return res.status(400).json({ success: false, errors: parsed.error.flatten() });
+                return res.status(400).json({
+                    success: false,
+                    message: 'Validation failed',
+                    errors: parsed.error.errors
+                });
             }
 
             const { assignments } = parsed.data;
             const results = [];
-            const errors = [];
 
             for (const assignment of assignments) {
                 try {
-                    const workOrder = await WorkOrder.query().findById(assignment.work_order_id);
-                    if (!workOrder) {
-                        errors.push({ work_order_id: assignment.work_order_id, error: 'Work Order not found' });
-                        continue;
-                    }
+                    const updatedWorkOrder = await WorkOrder.query()
+                        .patchAndFetchById(assignment.work_order_id, {
+                            assigned_to_id: assignment.assigned_to_id,
+                            priority: assignment.priority,
+                            scheduled_date: assignment.scheduled_date,
+                            status: 'pending'
+                        });
 
-                    const technician = await User.query()
-                        .findById(assignment.assigned_to_id)
-                        .where('role', 'technician')
-                        .where('is_active', true);
-                    
-                    if (!technician) {
-                        errors.push({ work_order_id: assignment.work_order_id, error: 'Technician not found or inactive' });
-                        continue;
-                    }
-
-                    const updateData = {
-                        assigned_to_id: assignment.assigned_to_id,
-                        updated_at: new Date()
-                    };
-
-                    if (assignment.priority) updateData.priority = assignment.priority;
-                    if (assignment.scheduled_date) updateData.scheduled_date = assignment.scheduled_date;
-
-                    const updated = await WorkOrder.query().patchAndFetchById(assignment.work_order_id, updateData);
-                    results.push(updated);
+                    results.push({
+                        work_order_id: assignment.work_order_id,
+                        success: true,
+                        data: updatedWorkOrder
+                    });
                 } catch (err) {
-                    errors.push({ work_order_id: assignment.work_order_id, error: err.message });
+                    results.push({
+                        work_order_id: assignment.work_order_id,
+                        success: false,
+                        error: err.message
+                    });
                 }
             }
 
-            res.json({ 
-                success: true, 
-                data: {
-                    successful_assignments: results.length,
-                    failed_assignments: errors.length,
-                    results,
-                    errors
-                }
+            res.json({
+                success: true,
+                message: 'Bulk assignment completed',
+                data: results
             });
         } catch (err) {
+            console.error('Error in WorkOrderAssignmentController.bulkAssign:', err);
             res.status(500).json({ success: false, message: err.message });
         }
     },
@@ -200,52 +274,40 @@ export const WorkOrderAssignmentController = {
         try {
             const { id } = req.params;
             const parsed = reassignWorkOrderSchema.safeParse(req.body);
-            
+
             if (!parsed.success) {
-                return res.status(400).json({ success: false, errors: parsed.error.flatten() });
+                return res.status(400).json({
+                    success: false,
+                    message: 'Validation failed',
+                    errors: parsed.error.errors
+                });
             }
 
             const { new_assigned_to_id, reason, priority } = parsed.data;
 
-            const workOrder = await WorkOrder.query()
-                .findById(id)
-                .withGraphFetched('assignedTo');
-            
+            const workOrder = await WorkOrder.query().findById(id);
             if (!workOrder) {
-                return res.status(404).json({ success: false, message: 'Work Order not found' });
+                return res.status(404).json({
+                    success: false,
+                    message: 'Work order not found'
+                });
             }
-
-            if (workOrder.status === 'completed') {
-                return res.status(400).json({ success: false, message: 'Cannot reassign completed work order' });
-            }
-
-            const newTechnician = await User.query()
-                .findById(new_assigned_to_id)
-                .where('role', 'technician')
-                .where('is_active', true);
-            
-            if (!newTechnician) {
-                return res.status(404).json({ success: false, message: 'New technician not found or inactive' });
-            }
-
-            const updateData = {
-                assigned_to_id: new_assigned_to_id,
-                updated_at: new Date()
-            };
-
-            if (priority) updateData.priority = priority;
-            if (reason) updateData.notes = `${workOrder.notes || ''}\n[REASSIGNED] ${reason}`.trim();
 
             const updatedWorkOrder = await WorkOrder.query()
-                .patchAndFetchById(id, updateData)
-                .withGraphFetched('[machine, assignedTo, createdBy, issue]');
+                .patchAndFetchById(id, {
+                    assigned_to_id: new_assigned_to_id,
+                    priority: priority || workOrder.priority,
+                    notes: reason
+                })
+                .withGraphFetched('[assignedTo, machine, issue]');
 
-            res.json({ 
-                success: true, 
-                data: updatedWorkOrder,
-                message: `Work Order berhasil dipindahkan ke ${newTechnician.name}`
+            res.json({
+                success: true,
+                message: 'Work order reassigned successfully',
+                data: updatedWorkOrder
             });
         } catch (err) {
+            console.error('Error in WorkOrderAssignmentController.reassignWorkOrder:', err);
             res.status(500).json({ success: false, message: err.message });
         }
     },
@@ -254,81 +316,29 @@ export const WorkOrderAssignmentController = {
     async unassignWorkOrder(req, res) {
         try {
             const { id } = req.params;
-            const { reason } = req.body;
 
             const workOrder = await WorkOrder.query().findById(id);
             if (!workOrder) {
-                return res.status(404).json({ success: false, message: 'Work Order not found' });
-            }
-
-            if (workOrder.status === 'completed') {
-                return res.status(400).json({ success: false, message: 'Cannot unassign completed work order' });
-            }
-
-            if (workOrder.status === 'in_progress') {
-                return res.status(400).json({ success: false, message: 'Cannot unassign work order in progress' });
-            }
-
-            const updateData = {
-                assigned_to_id: null,
-                status: 'pending',
-                updated_at: new Date()
-            };
-
-            if (reason) {
-                updateData.notes = `${workOrder.notes || ''}\n[UNASSIGNED] ${reason}`.trim();
+                return res.status(404).json({
+                    success: false,
+                    message: 'Work order not found'
+                });
             }
 
             const updatedWorkOrder = await WorkOrder.query()
-                .patchAndFetchById(id, updateData)
-                .withGraphFetched('[machine, assignedTo, createdBy, issue]');
+                .patchAndFetchById(id, {
+                    assigned_to_id: null,
+                    status: 'pending'
+                })
+                .withGraphFetched('[machine, issue]');
 
-            res.json({ 
-                success: true, 
-                data: updatedWorkOrder,
-                message: 'Assignment berhasil dibatalkan'
+            res.json({
+                success: true,
+                message: 'Work order unassigned successfully',
+                data: updatedWorkOrder
             });
         } catch (err) {
-            res.status(500).json({ success: false, message: err.message });
-        }
-    },
-
-    // Get assignment statistics
-    async getAssignmentStats(req, res) {
-        try {
-            const stats = await WorkOrder.query()
-                .select('status')
-                .count('* as count')
-                .groupBy('status');
-
-            const technicianStats = await User.query()
-                .where('role', 'technician')
-                .where('is_active', true)
-                .withGraphFetched('assignedWorkOrders(activeWorkOrders)')
-                .modifiers({
-                    activeWorkOrders(builder) {
-                        builder.whereIn('status', ['pending', 'in_progress']);
-                    }
-                });
-
-            const workloadStats = technicianStats.map(tech => ({
-                technician_id: tech.id,
-                technician_name: tech.name,
-                active_work_orders: tech.assignedWorkOrders?.length || 0
-            }));
-
-            res.json({ 
-                success: true, 
-                data: {
-                    work_order_stats: stats,
-                    technician_workload: workloadStats,
-                    summary: {
-                        total_technicians: technicianStats.length,
-                        avg_workload: workloadStats.reduce((sum, tech) => sum + tech.active_work_orders, 0) / technicianStats.length
-                    }
-                }
-            });
-        } catch (err) {
+            console.error('Error in WorkOrderAssignmentController.unassignWorkOrder:', err);
             res.status(500).json({ success: false, message: err.message });
         }
     }
