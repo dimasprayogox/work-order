@@ -121,7 +121,7 @@ const AssignmentDialog = ({
     const currentTechnician = workOrder?.assignedTo || technicians.find(t => t.id === workOrder?.assigned_to_id);
 
     const technicianOptions = technicians.map(tech => ({
-        label: `${tech.name} - Workload: ${tech.current_workload || 0}`,
+        label: `${tech.full_name} - Workload: ${tech.current_workload || 0}`,
         value: tech.id,
         technician: tech
     }));
@@ -141,12 +141,12 @@ const AssignmentDialog = ({
         return (
             <div className="flex align-items-center gap-2 p-2">
                 <Avatar
-                    label={tech.name?.charAt(0)}
+                    label={tech.full_name?.charAt(0)}
                     size="small"
                     style={{ backgroundColor: '#2196F3', color: '#ffffff' }}
                 />
                 <div className="flex-1">
-                    <div className="font-medium">{tech.name}</div>
+                    <div className="font-medium">{tech.full_name}</div>
                     <div className="text-sm text-gray-500">{tech.email}</div>
                 </div>
                 <Tag
@@ -231,12 +231,12 @@ const AssignmentDialog = ({
                     <h5 className="mt-0 mb-2 text-blue-800">Currently Assigned To:</h5>
                     <div className="flex align-items-center gap-2">
                         <Avatar
-                            label={currentTechnician.name?.charAt(0)}
+                            label={currentTechnician.full_name?.charAt(0)}
                             size="normal"
                             style={{ backgroundColor: '#2196F3', color: '#ffffff' }}
                         />
                         <div>
-                            <div className="font-medium text-blue-800">{currentTechnician.name}</div>
+                            <div className="font-medium text-blue-800">{currentTechnician.full_name}</div>
                             <div className="text-sm text-blue-600">
                                 Workload: {currentTechnician.current_workload || 0} work orders
                             </div>
@@ -278,7 +278,7 @@ const AssignmentDialog = ({
                             </div>
                             <div className="grid">
                                 <div className="col-12 md:col-6">
-                                    <strong>Name:</strong> {selectedTechnician.name}
+                                    <strong>Name:</strong> {selectedTechnician.full_name}
                                 </div>
                                 <div className="col-12 md:col-6">
                                     <strong>Email:</strong> {selectedTechnician.email}
