@@ -51,6 +51,11 @@ const AppMenu = () => {
                                     label: "Parts Request",
                                     icon: "pi pi-fw pi-inbox",
                                     to: "/admin/part-requests"
+                                },
+                                {
+                                    label: "Work Request",
+                                    icon: "pi pi-fw pi-briefcase",
+                                    to: "/admin/issues"
                                 }
                             ]
                         },
@@ -64,7 +69,7 @@ const AppMenu = () => {
                                 },
                                 {
                                     label: "Machines",
-                                    icon: "pi pi-fw pi-box",
+                                    icon: "pi pi-fw pi-cog",
                                     to: "/admin/machines"
                                 }
                             ]
