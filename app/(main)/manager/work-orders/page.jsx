@@ -379,75 +379,68 @@ export default function WorkOrderPage() {
             <Toast ref={toast} />
             <ConfirmDialog />
             <div className="card">
-                <div className="flex justify-content-between items-start mb-4">
-                    <div>
-                        <h3 className="text-2xl font-semibold">Manajemen Work Order</h3>
-                        <p className="text-sm text-gray-500">Kelola dan pantau semua Work Order.</p>
-                    </div>
-                </div>
-                <div className="flex flex-wrap justify-content-between gap-2 mb-4">
-                    <div className="flex flex-wrap gap-2">
-                        <Button
-                            size="small"
-                            label="Buat Work Order Baru"
-                            icon="pi pi-plus"
-                            className="p-button-primary"
-                            onClick={() => setCreateWorkOrderDialogVisible(true)}
-                            tooltip="Buat Work Order Baru"
-                            tooltipOptions={{ position: 'bottom' }}
-                        />
-                        <Button
-                            size="small"
-                            label="Impor"
-                            icon="pi pi-file-import"
-                            outlined
-                            onClick={() => fileInputRef.current?.click()}
-                            tooltip="Impor dari Excel"
-                            tooltipOptions={{ position: 'bottom' }}
-                        />
-                        <Button
-                            size="small"
-                            label="Ekspor"
-                            icon="pi pi-file-export"
-                            outlined
-                            onClick={exportExcel}
-                            tooltip="Ekspor ke Excel"
-                            tooltipOptions={{ position: 'bottom' }}
-                        />
-                        <Button
-                            size="small"
-                            label="Cetak"
-                            icon="pi pi-print"
-                            outlined
-                            onClick={handlePrint}
-                            tooltip="Cetak Laporan"
-                            tooltipOptions={{ position: 'bottom' }}
-                        />
-                        <Divider layout="vertical" />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        <Button
-                            size="small"
-                            label="Refresh"
-                            icon="pi pi-refresh"
-                            outlined
-                            onClick={fetchWorkOrders}
-                            disabled={loading}
-                            tooltip="Refresh Data"
-                            tooltipOptions={{ position: 'bottom' }}
-                        />
-                        <Button
-                            size="small"
-                            label="Hapus Terpilih"
-                            icon="pi pi-trash"
-                            severity="danger"
-                            onClick={handleDeleteSelected}
-                            disabled={selectedWorkOrders.length === 0}
-                            className="p-button-outlined"
-                            tooltip="Hapus Work Order yang dipilih"
-                            tooltipOptions={{ position: 'bottom' }}
-                        />
-                    </div>
+                <h3 className="text-2xl font-semibold">Manajemen Work Order</h3>
+                <div className="flex flex-wrap gap-2 mb-4 items-center">
+                    <Button
+                        size="small"
+                        label="Buat Permintaan Baru"
+                        icon="pi pi-plus"
+                        outlined
+                        severity="success"
+                        onClick={() => setCreateWorkOrderDialogVisible(true)}
+                        tooltip="Buat Work Order Baru"
+                        tooltipOptions={{ position: 'bottom' }}
+                    />
+                    <Button
+                        size="small"
+                        label="Impor"
+                        icon="pi pi-file-import"
+                        outlined
+                        onClick={() => fileInputRef.current?.click()}
+                        tooltip="Impor dari Excel"
+                        tooltipOptions={{ position: 'bottom' }}
+                    />
+                    <Button
+                        size="small"
+                        label="Ekspor"
+                        icon="pi pi-file-export"
+                        outlined
+                        onClick={exportExcel}
+                        tooltip="Ekspor ke Excel"
+                        tooltipOptions={{ position: 'bottom' }}
+                    />
+                    <Button
+                        size="small"
+                        label="Cetak"
+                        icon="pi pi-print"
+                        outlined
+                        onClick={handlePrint}
+                        tooltip="Cetak Laporan"
+                        tooltipOptions={{ position: 'bottom' }}
+                    />
+                    <Divider layout="vertical" />
+                    <Button
+                        size="small"
+                        label="Hapus Terpilih"
+                        icon="pi pi-trash"
+                        severity="danger"
+                        onClick={handleDeleteSelected}
+                        disabled={selectedWorkOrders.length === 0}
+                        className="p-button-outlined"
+                        tooltip="Hapus Work Order yang dipilih"
+                        tooltipOptions={{ position: 'bottom' }}
+                    />
+                    <Divider layout="vertical" />
+                    <Button
+                        size="small"
+                        label="Refresh"
+                        icon="pi pi-refresh"
+                        outlined
+                        onClick={fetchWorkOrders}
+                        disabled={loading}
+                        tooltip="Refresh Data"
+                        tooltipOptions={{ position: 'bottom' }}
+                    />
                 </div>
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                     <Panel header="Daftar Work Order" className="shadow-2">
