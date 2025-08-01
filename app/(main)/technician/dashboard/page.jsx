@@ -10,7 +10,7 @@ import { Dropdown } from "primereact/dropdown";
 import { Toast } from "primereact/toast";
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Dialog } from "primereact/dialog"; // 👈 Perubahan: Import Dialog
+import { Dialog } from "primereact/dialog";
 
 // Opsi filter disesuaikan dengan nilai data asli
 const statusOptions = [
@@ -101,7 +101,6 @@ const TechnicianDashboardPage = () => {
         fetchData();
     }, [showToast]);
 
-    // 👈 Perubahan: Menggunakan photoBodyTemplate dari kode sebelumnya yang sudah dikoreksi
     const photoBodyTemplate = (rowData) => {
         const handleImageClick = (url) => {
             setPreviewImageUrl(url);
@@ -185,6 +184,41 @@ const TechnicianDashboardPage = () => {
             </motion.div>
         );
     };
+
+    const partRequestStatusBodyTemplate = (rowData) => {
+        const partRequests = rowData.partRequests;
+
+        // Kondisi jika tidak ada part request
+        if (!partRequests || partRequests.length === 0) {
+            return (
+                <div className="flex flex-column align-items-center gap-2 text-center">
+                    <span className="text-sm text-gray-500">Belum ada request part</span>
+                </div>
+            );
+        }
+
+        const statusSeverityMap = {
+            pending: 'warning',
+            approved: 'info',
+            fulfilled: 'success',
+            rejected: 'danger'
+        };
+
+        // Menampilkan semua status part request jika ada
+        return (
+            <div className="flex flex-column align-items-start gap-1">
+                {partRequests.map(req => (
+                    <Tag
+                        key={req.id}
+                        value={req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                        severity={statusSeverityMap[req.status.toLowerCase()] || 'info'}
+                        className="text-xs"
+                    />
+                ))}
+            </div>
+        );
+    };
+
 
     const priorityBodyTemplate = (rowData) => {
         const priority = rowData.priority || '';
@@ -300,18 +334,19 @@ const TechnicianDashboardPage = () => {
                                 </div>
                             }
                         >
-                            <Column header="Photo" body={photoBodyTemplate} style={{ maxwidth: '50px' }} />
-                            <Column field="id" header="Id" sortable />
-                            <Column field="description" header="Deskripsi" style={{ width: '200px' }} />
-                            <Column header="Priority" body={priorityBodyTemplate} sortable sortField="priority" />
-                            <Column header="Status" body={statusBodyTemplate} sortField="status" />
-                            <Column field="created_at" header="Requested At" sortable body={(rowData) => new Date(rowData.created_at).toLocaleDateString()} />
+                            <Column header="Photo" body={photoBodyTemplate} style={{ width: '100px' }} />
+                            <Column field="id" header="Id" sortable style={{ width: '150px' }}/>
+                            <Column field="description" header="Deskripsi" />
+                            <Column header="Priority" body={priorityBodyTemplate} sortable sortField="priority" style={{ width: '120px' }}/>
+                            <Column header="Status WO" body={statusBodyTemplate} sortable sortField="status" style={{ width: '150px' }} />
+                            <Column header="Part Request" body={partRequestStatusBodyTemplate} style={{ width: '180px' }}/>
+                            <Column field="scheduled_date" header="Schedule" sortable body={(rowData) => new Date(rowData.created_at).toLocaleDateString()} style={{ width: '140px' }} />
                         </DataTable>
                     </div>
                 </div>
             </div>
 
-            {/* 👈 Perubahan: Tambahkan Dialog untuk pratinjau gambar */}
+            {/* Dialog untuk pratinjau gambar */}
             <Dialog
                 visible={imagePreviewVisible}
                 onHide={() => setImagePreviewVisible(false)}

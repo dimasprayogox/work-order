@@ -59,6 +59,40 @@ const priorityBodyTemplate = (rowData) => {
     return <Tag value={displayValue} severity={severity} />;
 };
 
+const partRequestStatusBodyTemplate = (rowData) => {
+        const partRequests = rowData.partRequests;
+
+        // Kondisi jika tidak ada part request
+        if (!partRequests || partRequests.length === 0) {
+            return (
+                <div className="flex flex-column align-items-center gap-2 text-center">
+                    <span className="text-sm text-gray-500">Belum ada request part</span>
+                </div>
+            );
+        }
+
+        const statusSeverityMap = {
+            pending: 'warning',
+            approved: 'info',
+            fulfilled: 'success',
+            rejected: 'danger'
+        };
+
+        // Menampilkan semua status part request jika ada
+        return (
+            <div className="flex flex-column align-items-start gap-1">
+                {partRequests.map(req => (
+                    <Tag
+                        key={req.id}
+                        value={req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                        severity={statusSeverityMap[req.status.toLowerCase()] || 'info'}
+                        className="text-xs"
+                    />
+                ))}
+            </div>
+        );
+    };
+
 const getStatusLabel = (status) => {
     const statusMap = {
         pending: "Pending",
@@ -478,7 +512,8 @@ export default function TechnicianWorkOrderPage() {
                             <Column field="description" header="Description" style={{ minWidth: '200px' }} />
                             <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                             <Column field="status" header="Status" body={statusBodyTemplate} sortable />
-                            <Column field="created_at" header="Schedule" body={(rowData) => dateBodyTemplate(rowData.created_at)} sortable />
+                            <Column header="Part Request" body={partRequestStatusBodyTemplate} style={{ width: '180px' }}/>
+                            <Column field="scheduled_date" header="Schedule" body={(rowData) => dateBodyTemplate(rowData.created_at)} sortable />
                             <Column field="started_at" header="Started At" body={(rowData) => dateBodyTemplate(rowData.started_at)} sortable />
                             <Column field="completed_at" header="Completed At" body={(rowData) => dateBodyTemplate(rowData.completed_at)} sortable />
                             <Column field="notes" header="Notes" style={{ maxWidth: '200px' }} />

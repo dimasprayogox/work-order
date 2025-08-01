@@ -13,6 +13,9 @@ export const API_ENDPOINTS = {
     GETALLCONTINENT: `${API_URL}/continent`,
     GETALLPARTSFORECASTER: `${API_URL}/parts-forecaster`,
 
+    // detail profile
+    GET_DETAIL_PROFILE: `${API_URL}/user-detail`,
+
     // --- Technician Endpoints ---
     GET_TECHNICIAN_DASHBOARD_OVERVIEW: `${API_URL}/technician/dashboard/overview`,
     GET_TECHNICIAN_OVERDUE_WORK_ORDERS: `${API_URL}/technician/dashboard/work-orders/overdue`,
