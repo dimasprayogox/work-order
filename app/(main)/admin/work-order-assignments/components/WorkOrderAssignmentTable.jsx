@@ -121,6 +121,7 @@ const WorkOrderAssignmentTable = ({
         return (
             <div className="flex align-items-center gap-2">
                 <Avatar
+                    image={technician?.profile_photo_url}
                     label={technician?.full_name?.charAt(0) || 'T'}
                     className="p-mr-2"
                     size="small"

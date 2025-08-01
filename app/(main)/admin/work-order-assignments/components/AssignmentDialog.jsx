@@ -141,6 +141,7 @@ const AssignmentDialog = ({
         return (
             <div className="flex align-items-center gap-2 p-2">
                 <Avatar
+                    image={tech.profile_photo_url}
                     label={tech.full_name?.charAt(0)}
                     size="small"
                     style={{ backgroundColor: '#2196F3', color: '#ffffff' }}
@@ -231,6 +232,7 @@ const AssignmentDialog = ({
                     <h5 className="mt-0 mb-2 text-blue-800">Currently Assigned To:</h5>
                     <div className="flex align-items-center gap-2">
                         <Avatar
+                            image={currentTechnician.profile_photo_url}
                             label={currentTechnician.full_name?.charAt(0)}
                             size="normal"
                             style={{ backgroundColor: '#2196F3', color: '#ffffff' }}

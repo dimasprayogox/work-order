@@ -191,6 +191,7 @@ const BulkAssignmentDialog = ({
         return (
             <div className="flex align-items-center gap-2">
                 <Avatar
+                    image={selectedTech.profile_photo_url}
                     label={selectedTech.full_name?.charAt(0)}
                     size="small"
                     style={{ backgroundColor: '#2196F3', color: '#ffffff' }}
