@@ -14,58 +14,87 @@ import { useRouter } from "next/navigation";
 
 function EditProfilePage() {
     // State management
-    const [profile, setProfile] = useState(null);
+    const [profile, setProfile] = useState({
+        full_name: "",
+        username: "",
+        email: "",
+        phone_number: "",
+        city: "",
+        date_of_birth: null,
+        address: "",
+        bio: "",
+        profile_photo_url: null
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
+    const [errors, setErrors] = useState({});
 
     // Refs and Hooks
     const toast = useRef(null);
     const fileInputRef = useRef(null);
     const router = useRouter();
 
-    // PERBAIKAN 1: Bungkus fungsi fetch dengan useCallback
     const fetchProfile = useCallback(async () => {
         setIsLoading(true);
         try {
-            // Gunakan path relatif, bukan URL hardcoded
-            const res = await fetch("/api/user-detail", {
+            const res = await fetch("/api/profile", {
                 credentials: "include"
             });
 
-            if (res.ok) {
-                const result = await res.json();
-                const fetchedProfile = {
-                    ...result.data,
-                    date_of_birth: result.data.date_of_birth ? new Date(result.data.date_of_birth) : null
-                };
-                setProfile(fetchedProfile);
-                setPreviewUrl(fetchedProfile.profile_photo_url);
-            } else if (res.status === 401) {
-                toast.current.show({ severity: "warn", summary: "Sesi Habis", detail: "Silakan login kembali.", life: 3000 });
-                router.push("/auth/login");
-            } else {
-                throw new Error("Gagal memuat data profil.");
+            if (!res.ok) {
+                if (res.status === 401) {
+                    throw new Error("Unauthorized");
+                }
+                throw new Error("Failed to fetch profile");
             }
+
+            const result = await res.json();
+            const profileData = result.data || result;
+
+            setProfile({
+                full_name: profileData.full_name || "",
+                username: profileData.username || "",
+                email: profileData.email || "",
+                phone_number: profileData.phone_number || "",
+                city: profileData.city || "",
+                date_of_birth: profileData.date_of_birth ? new Date(profileData.date_of_birth) : null,
+                address: profileData.address || "",
+                bio: profileData.bio || "",
+                profile_photo_url: profileData.profile_photo_url || null
+            });
+            setPreviewUrl(profileData.profile_photo_url || null);
         } catch (err) {
-            console.error("Gagal mengambil data profil:", err);
-            toast.current.show({ severity: "error", summary: "Error", detail: err.message || "Terjadi kesalahan jaringan.", life: 3000 });
-            setProfile(null);
+            console.error("Failed to fetch profile:", err);
+
+            if (err.message === "Unauthorized") {
+                toast.current?.show({
+                    severity: "warn",
+                    summary: "Session Expired",
+                    detail: "Please login again.",
+                    life: 3000
+                });
+                router.push("/auth/login");
+                return;
+            }
+
+            toast.current?.show({
+                severity: "error",
+                summary: "Error",
+                detail: "Failed to load profile data",
+                life: 3000
+            });
         } finally {
             setIsLoading(false);
         }
-    }, [router]); // Tambahkan router sebagai dependensi
+    }, [router]);
 
-    // PERBAIKAN 2: Gunakan useCallback di dependency array
     useEffect(() => {
         fetchProfile();
     }, [fetchProfile]);
 
-    // PERBAIKAN 3: Pisahkan useEffect untuk cleanup URL untuk menghindari loop
     useEffect(() => {
-        // Fungsi cleanup ini akan berjalan setiap kali previewUrl berubah,
-        // dan juga saat komponen di-unmount, untuk mencegah memory leak.
         return () => {
             if (previewUrl && previewUrl.startsWith("blob:")) {
                 URL.revokeObjectURL(previewUrl);
@@ -73,71 +102,115 @@ function EditProfilePage() {
         };
     }, [previewUrl]);
 
-    // Handlers for form input changes
     const handleChange = (e) => {
         const { name, value } = e.target;
         setProfile((prev) => ({ ...prev, [name]: value }));
+        // Clear error when user types
+        if (errors[name]) {
+            setErrors((prev) => ({ ...prev, [name]: "" }));
+        }
     };
 
     const handleDateChange = (e) => {
-        setProfile((prev) => ({ ...prev, date_of_birth: e.value }));
+        const value = Array.isArray(e.value) ? e.value[0] : e.value;
+        setProfile((prev) => ({ ...prev, date_of_birth: value }));
     };
 
     const handleFileChange = (event) => {
-        const file = event.target.files[0];
+        const file = event.target.files?.[0];
         if (file) {
+            if (previewUrl && previewUrl.startsWith("blob:")) {
+                URL.revokeObjectURL(previewUrl);
+            }
             setSelectedFile(file);
-            // Buat URL preview baru. useEffect di atas akan membersihkan URL lama secara otomatis.
             setPreviewUrl(URL.createObjectURL(file));
         }
     };
 
-    // Form submission handler
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsSaving(true);
+    const validateForm = () => {
+        const newErrors = {};
+        let isValid = true;
 
-        const formData = new FormData();
-        Object.keys(profile).forEach(key => {
-            if (key === 'date_of_birth' && profile[key]) {
-                formData.append(key, profile[key].toISOString().split("T")[0]);
-            } else if (profile[key] !== null && key !== 'profile_photo_url') {
-                formData.append(key, profile[key]);
-            }
-        });
-
-        if (selectedFile) {
-            formData.append("photo", selectedFile);
+        if (!profile.full_name.trim()) {
+            newErrors.full_name = "Nama lengkap harus diisi";
+            isValid = false;
         }
 
+        if (!profile.email.trim()) {
+            newErrors.email = "Email harus diisi";
+            isValid = false;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) {
+            newErrors.email = "Format email tidak valid";
+            isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!validateForm()) return;
+
+        setIsSaving(true);
         try {
-            const res = await fetch("/api/user-detail", {
-                method: "PUT",
+            const formData = new FormData();
+
+            // Append all profile data
+            for (const [key, value] of Object.entries(profile)) {
+                if (key === "date_of_birth" && value instanceof Date) {
+                    formData.append(key, value.toISOString().split("T")[0]);
+                } else if (value !== null && value !== undefined && key !== "profile_photo_url") {
+                    formData.append(key, value);
+                }
+            }
+
+            // Append the file if selected
+            if (selectedFile) {
+                formData.append("photo", selectedFile);
+            }
+
+            const res = await fetch("/api/profile", {
+                method: "PATCH",
                 body: formData,
                 credentials: "include"
             });
 
-            const responseData = await res.json();
+            if (!res.ok) {
+                const errorData = await res.json();
+                console.error("Backend error response:", errorData);
 
-            if (res.ok) {
-                toast.current.show({
-                    severity: "success",
-                    summary: "Berhasil",
-                    detail: "Profil berhasil diperbarui!",
-                    life: 2000
-                });
-                setTimeout(() => {
-                    router.push("/profile");
-                }, 1500);
-            } else {
-                throw new Error(responseData.message || "Gagal memperbarui profil.");
+                // Handle validation errors from server
+                if (errorData.errors) {
+                    setErrors((prev) => ({
+                        ...prev,
+                        ...errorData.errors
+                    }));
+                    throw new Error("Terdapat kesalahan dalam form");
+                }
+                throw new Error(errorData.message || "Gagal memperbarui profil");
             }
+
+            const responseData = await res.json();
+            console.log("Profile update success:", responseData);
+
+            // Tampilkan toast sukses
+            toast.current?.show({
+                severity: "success",
+                summary: "Berhasil",
+                detail: "Profil berhasil diperbarui!",
+                life: 2000
+            });
+            setTimeout(() => {
+                router.refresh(); // Refresh halaman tanpa reload penuh
+            }, 1000);
+
         } catch (err) {
             console.error("Gagal memperbarui profil:", err);
-            toast.current.show({
+            toast.current?.show({
                 severity: "error",
                 summary: "Gagal",
-                detail: err.message,
+                detail: err.message || "Terjadi kesalahan saat memperbarui profil",
                 life: 3000
             });
         } finally {
@@ -145,24 +218,10 @@ function EditProfilePage() {
         }
     };
 
-    // === RENDER LOGIC ===
-
     if (isLoading) {
         return (
             <div className="flex justify-content-center align-items-center" style={{ minHeight: "80vh" }}>
                 <ProgressSpinner />
-            </div>
-        );
-    }
-
-    if (!profile) {
-        return (
-            <div className="flex flex-column justify-content-center align-items-center gap-3" style={{ minHeight: "80vh" }}>
-                <Toast ref={toast} />
-                <i className="pi pi-exclamation-triangle text-6xl text-orange-500"></i>
-                <h3 className="text-2xl font-medium">Gagal Memuat Profil</h3>
-                <p className="text-600">Tidak dapat mengambil data. Silakan coba lagi nanti.</p>
-                <Button label="Kembali" icon="pi pi-arrow-left" onClick={() => router.back()} />
             </div>
         );
     }
@@ -180,54 +239,47 @@ function EditProfilePage() {
                 <form onSubmit={handleSubmit}>
                     {/* Profile Photo Section */}
                     <div className="flex flex-column align-items-center my-5">
-                        <Avatar
-                            image={previewUrl}
-                            size="xlarge"
-                            shape="circle"
-                            className="mb-3"
-                            style={{ width: "120px", height: "120px" }}
-                            onImageError={(e) => {
-                                e.target.src = "https://placehold.co/120x120/EFEFEF/787878?text=No+Image";
-                            }}
-                        />
+                        <Avatar image={previewUrl || "https://placehold.co/120x120/EFEFEF/787878?text=No+Image"} size="xlarge" shape="circle" className="mb-3" style={{ width: "120px", height: "120px" }} />
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: "none" }} />
-                        <Button label="Ubah Foto" icon="pi pi-upload" className="p-button-outlined" onClick={() => fileInputRef.current.click()} type="button" />
+                        <Button label="Ubah Foto" icon="pi pi-upload" className="p-button-outlined" onClick={() => fileInputRef.current?.click()} type="button" />
                         {selectedFile && <small className="mt-2 text-600">File baru: {selectedFile.name}</small>}
                     </div>
 
-                    {/* Form Fields using a Grid Layout */}
+                    {/* Form Fields */}
                     <div className="grid formgrid p-fluid p-3">
                         <div className="field col-12 md:col-6">
-                            <label htmlFor="full_name">Nama Lengkap</label>
-                            <InputText id="full_name" name="full_name" value={profile.full_name || ""} onChange={handleChange} required />
+                            <label htmlFor="full_name">Nama Lengkap*</label>
+                            <InputText id="full_name" name="full_name" value={profile.full_name} onChange={handleChange} className={errors.full_name ? "p-invalid" : ""} required />
+                            {errors.full_name && <small className="p-error">{errors.full_name}</small>}
                         </div>
                         <div className="field col-12 md:col-6">
                             <label htmlFor="username">Username</label>
-                            <InputText id="username" name="username" value={profile.username || ""} onChange={handleChange} />
+                            <InputText id="username" name="username" value={profile.username} onChange={handleChange} />
                         </div>
                         <div className="field col-12 md:col-6">
-                            <label htmlFor="email">Email</label>
-                            <InputText id="email" name="email" type="email" value={profile.email || ""} onChange={handleChange} required />
+                            <label htmlFor="email">Email*</label>
+                            <InputText id="email" name="email" type="email" value={profile.email} onChange={handleChange} className={errors.email ? "p-invalid" : ""} required />
+                            {errors.email && <small className="p-error">{errors.email}</small>}
                         </div>
                         <div className="field col-12 md:col-6">
                             <label htmlFor="phone_number">Telepon</label>
-                            <InputText id="phone_number" name="phone_number" value={profile.phone_number || ""} onChange={handleChange} />
+                            <InputText id="phone_number" name="phone_number" value={profile.phone_number} onChange={handleChange} />
                         </div>
                         <div className="field col-12 md:col-6">
                             <label htmlFor="city">Kota</label>
-                            <InputText id="city" name="city" value={profile.city || ""} onChange={handleChange} />
+                            <InputText id="city" name="city" value={profile.city} onChange={handleChange} />
                         </div>
                         <div className="field col-12 md:col-6">
                             <label htmlFor="date_of_birth">Tanggal Lahir</label>
-                            <Calendar id="date_of_birth" name="date_of_birth" value={profile.date_of_birth} onChange={handleDateChange} dateFormat="dd/mm/yy" showIcon />
+                            <Calendar id="date_of_birth" name="date_of_birth" value={profile.date_of_birth} onChange={handleDateChange} dateFormat="dd/mm/yy" showIcon yearRange="1900:2030" />
                         </div>
                         <div className="field col-12">
                             <label htmlFor="address">Alamat</label>
-                            <InputTextarea id="address" name="address" rows={3} value={profile.address || ""} onChange={handleChange} />
+                            <InputTextarea id="address" name="address" rows={3} value={profile.address} onChange={handleChange} />
                         </div>
                         <div className="field col-12">
                             <label htmlFor="bio">Bio</label>
-                            <InputTextarea id="bio" name="bio" rows={4} value={profile.bio || ""} onChange={handleChange} />
+                            <InputTextarea id="bio" name="bio" rows={4} value={profile.bio} onChange={handleChange} />
                         </div>
                     </div>
 
