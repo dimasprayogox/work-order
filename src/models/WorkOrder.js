@@ -2,6 +2,8 @@ import { BaseModel } from './BaseModel.js';
 import { Machine } from './Machine.js';
 import { User } from './User.js';
 import { Issue } from './Issue.js';
+import { PartRequest } from './PartRequest.js';
+import { Model } from 'objection';
 
 export class WorkOrder extends BaseModel {
     static get tableName() {
@@ -40,6 +42,14 @@ export class WorkOrder extends BaseModel {
                 join: {
                     from: 'work_orders.issue_id',
                     to: 'issues.id',
+                },
+            },
+            partRequests: {
+                relation: Model.HasManyRelation,
+                modelClass: PartRequest,
+                join: {
+                    from: 'work_orders.id',
+                    to: 'part_requests.work_order_id',
                 },
             },
         };

@@ -16,7 +16,7 @@ export const WorkOrderController = {
 
             const workOrders = await WorkOrder.query()
                 .where("assigned_to_id", technicianId)
-                .withGraphFetched("[issue, machine, assignedTo]")
+                .withGraphFetched("[issue, machine, assignedTo, partRequests]")
                 .orderBy("created_at", "desc");
 
             if (!workOrders || workOrders.length === 0) {
