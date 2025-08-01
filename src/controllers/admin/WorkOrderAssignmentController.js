@@ -34,6 +34,17 @@ export const WorkOrderAssignmentController = {
             }
 
             const workOrders = await query;
+
+            // Tambahkan current_workload ke assignedTo
+            for (const wo of workOrders) {
+                if (wo.assignedTo) {
+                    const activeCount = await WorkOrder.query()
+                        .where('assigned_to_id', wo.assignedTo.id)
+                        .whereIn('status', ['pending', 'in_progress'])
+                        .resultSize();
+                    wo.assignedTo.current_workload = activeCount;
+                }
+            }
             
             res.json({ 
                 success: true, 
