@@ -9,7 +9,7 @@ import { FileUpload } from "primereact/fileupload";
 import { Image } from "primereact/image";
 import { Checkbox } from "primereact/checkbox";
 import { classNames } from "primereact/utils";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showToast }) => {
     const [form, setForm] = useState({
@@ -26,15 +26,8 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
     const [loadingUsers, setLoadingUsers] = useState(false); // Loading state untuk users
     const fileUploadRef = useRef(null);
 
-    // Fetch users ketika dialog dibuka
-    useEffect(() => {
-        if (visible) {
-            fetchUsers();
-        }
-    }, [visible]);
-
     // Fetch users function
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         setLoadingUsers(true);
         try {
             const res = await fetch("/api/admin/issues/users", {
@@ -51,7 +44,14 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
         } finally {
             setLoadingUsers(false);
         }
-    };
+    }, [showToast]);
+
+    // Fetch users ketika dialog dibuka
+    useEffect(() => {
+        if (visible) {
+            fetchUsers();
+        }
+    }, [visible, fetchUsers]);
 
     useEffect(() => {
         if (issue) {
