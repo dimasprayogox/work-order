@@ -121,13 +121,13 @@ const WorkOrderAssignmentTable = ({
         return (
             <div className="flex align-items-center gap-2">
                 <Avatar
-                    label={technician?.name?.charAt(0) || 'T'}
+                    label={technician?.full_name?.charAt(0) || 'T'}
                     className="p-mr-2"
                     size="small"
                     style={{ backgroundColor: '#2196F3', color: '#ffffff' }}
                 />
                 <div>
-                    <div className="font-medium">{technician?.name || 'Unknown'}</div>
+                    <div className="font-medium">{technician?.full_name || 'Unknown'}</div>
                     <div className="text-sm text-gray-500">
                         Workload: {technician?.current_workload || 0}
                     </div>
@@ -296,7 +296,7 @@ const WorkOrderAssignmentTable = ({
                     "title",
                     "description",
                     "machine.name",
-                    "assignedTo.name",
+                    "assignedTo.full_name",
                     "issue.title"
                 ]}
                 className="border-round-lg"
@@ -379,7 +379,7 @@ const WorkOrderAssignmentTable = ({
                     body={assignmentBodyTemplate}
                     style={{ minWidth: "180px" }}
                     sortable
-                    sortField="assignedTo.name"
+                    sortField="assignedTo.full_name"
                 />
 
                 <Column
