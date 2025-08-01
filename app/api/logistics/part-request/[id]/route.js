@@ -17,8 +17,7 @@ export const PATCH = async (request, { params }) => {
 
     try {
         const body = await request.json();
-        console.log("Request body:", body); 
-        
+
         const url = API_ENDPOINTS.LOGISTICS_PART_REQUEST_BY_ID(id);
 
         const response = await Axios.patch(url, body, {
