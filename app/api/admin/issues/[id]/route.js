@@ -43,9 +43,16 @@ export const PATCH = async (request, context) => {
     }
 
     try {
-        const params = await context.params; // ✅ Await params
+        const params = await context.params;
         const { id } = params;
         const formData = await request.formData();
+
+        // ✅ Debug: Log semua data yang diterima
+        console.log("=== Backend FormData Debug ===");
+        for (const [key, value] of formData.entries()) {
+            console.log(`${key}:`, value);
+        }
+        console.log("============================");
 
         // Create FormData for backend
         const backendFormData = new FormData();
@@ -54,19 +61,22 @@ export const PATCH = async (request, context) => {
         const title = formData.get('title');
         const description = formData.get('description');
         const machine_id = formData.get('machine_id');
-        const reported_by_id = formData.get('reported_by_id'); // ✅ Handle reported_by_id
+        const reported_by_id = formData.get('reported_by_id');
         const remove_photo = formData.get('remove_photo');
 
         if (title) backendFormData.append('title', title);
         if (description) backendFormData.append('description', description);
         if (machine_id) backendFormData.append('machine_id', machine_id);
-        if (reported_by_id) backendFormData.append('reported_by_id', reported_by_id); // ✅ Forward to backend
-        if (remove_photo) backendFormData.append('remove_photo', remove_photo);
+        if (reported_by_id) backendFormData.append('reported_by_id', reported_by_id);
 
-        // Append photo if exists
+        // ✅ Improved photo handling
         const photo = formData.get('photo');
         if (photo && photo.size > 0) {
+            console.log("New photo detected:", photo.name, "Size:", photo.size); // Debug
             backendFormData.append('photo', photo);
+        } else if (remove_photo === 'true') {
+            console.log("Remove photo flag detected"); // Debug
+            backendFormData.append('remove_photo', remove_photo);
         }
 
         const response = await Axios.patch(API_ENDPOINTS.ADMIN_ISSUE_BY_ID(id), backendFormData, {
@@ -76,9 +86,11 @@ export const PATCH = async (request, context) => {
             }
         });
 
+        console.log("Update response:", response.data); // Debug
         return NextResponse.json(response.data);
     } catch (err) {
         if (isAxiosError(err) && err.response) {
+            console.error("Backend error:", err.response.data); // Debug
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
         console.error("[API ISSUES PATCH]", err);
