@@ -75,25 +75,7 @@ export const login = async (req, res) => {
   }
 };
 
-export const logout = async (req, res) => {
-  try {
-    res.cookie("authToken", "", {
-      httpOnly: true,
-      expires: new Date(0), 
-      path: "/",
-    });
 
-    return res.status(200).json({
-      status: status.SUKSES,
-      message: "Logout berhasil",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      status: status.GAGAL,
-      message: `Terjadi kesalahan pada server: ${error.message}`,
-    });
-  }
-};
 
 //refresh token
 export const refreshToken = async (req, res) => {
