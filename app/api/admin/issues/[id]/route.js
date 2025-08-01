@@ -16,7 +16,7 @@ export const GET = async (request, context) => {
     }
 
     try {
-        const params = await context.params; // ✅ Await params
+        const params = await context.params;
         const { id } = params;
         const response = await Axios.get(API_ENDPOINTS.ADMIN_ISSUE_BY_ID(id), {
             headers: { Authorization: `Bearer ${token}` }
@@ -43,7 +43,7 @@ export const PATCH = async (request, context) => {
     }
 
     try {
-        const params = await context.params; // ✅ Await params
+        const params = await context.params;
         const { id } = params;
         const formData = await request.formData();
 
@@ -54,19 +54,20 @@ export const PATCH = async (request, context) => {
         const title = formData.get('title');
         const description = formData.get('description');
         const machine_id = formData.get('machine_id');
-        const reported_by_id = formData.get('reported_by_id'); // ✅ Handle reported_by_id
+        const reported_by_id = formData.get('reported_by_id');
         const remove_photo = formData.get('remove_photo');
 
         if (title) backendFormData.append('title', title);
         if (description) backendFormData.append('description', description);
         if (machine_id) backendFormData.append('machine_id', machine_id);
-        if (reported_by_id) backendFormData.append('reported_by_id', reported_by_id); // ✅ Forward to backend
-        if (remove_photo) backendFormData.append('remove_photo', remove_photo);
+        if (reported_by_id) backendFormData.append('reported_by_id', reported_by_id);
 
-        // Append photo if exists
+        // Improved photo handling
         const photo = formData.get('photo');
         if (photo && photo.size > 0) {
             backendFormData.append('photo', photo);
+        } else if (remove_photo === 'true') {
+            backendFormData.append('remove_photo', remove_photo);
         }
 
         const response = await Axios.patch(API_ENDPOINTS.ADMIN_ISSUE_BY_ID(id), backendFormData, {
@@ -98,7 +99,7 @@ export const DELETE = async (request, context) => {
     }
 
     try {
-        const params = await context.params; // ✅ Await params
+        const params = await context.params;
         const { id } = params;
         const response = await Axios.delete(API_ENDPOINTS.ADMIN_ISSUE_BY_ID(id), {
             headers: { Authorization: `Bearer ${token}` }

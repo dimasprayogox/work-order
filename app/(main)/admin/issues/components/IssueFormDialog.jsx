@@ -89,7 +89,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
     const handleFileSelect = (e) => {
         const file = e.files[0];
         setSelectedFile(file);
-        setRemovePhoto(false); // Batalkan niat hapus foto jika memilih yang baru
+        setRemovePhoto(false);
     };
 
     // Handler untuk menghapus file yang baru dipilih (dari preview)
@@ -97,6 +97,17 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
         setSelectedFile(null);
         if (fileUploadRef.current) {
             fileUploadRef.current.clear();
+        }
+    };
+
+    // Handler untuk checkbox remove photo
+    const handleRemovePhotoChange = (checked) => {
+        setRemovePhoto(checked);
+        if (checked && selectedFile) {
+            setSelectedFile(null);
+            if (fileUploadRef.current) {
+                fileUploadRef.current.clear();
+            }
         }
     };
 
@@ -119,13 +130,13 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                 formData.append('reported_by_id', form.reported_by_id);
             }
 
-            // Kirim file baru jika ada
+            // Improved photo handling logic
             if (selectedFile) {
                 formData.append('photo', selectedFile);
             }
 
-            // Kirim flag untuk hapus foto lama jika dicentang
-            if (issue && removePhoto) {
+            // Only send remove_photo if no new file is selected
+            if (issue && removePhoto && !selectedFile) {
                 formData.append('remove_photo', 'true');
             }
 
@@ -145,6 +156,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
             fetchIssues();
             onHide();
         } catch (error) {
+            console.error("Submit error:", error);
             showToast("error", "Error", error.message);
         } finally {
             setLoading(false);
@@ -186,24 +198,25 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
     const footerContent = (
         <div className="flex justify-end gap-2">
             <Button
-                label="Batal"
+                label="Cancel"
                 icon="pi pi-times"
                 onClick={onHide}
                 className="p-button-text"
                 disabled={loading}
             />
             <Button
-                label={issue ? "Update" : "Simpan"}
+                label={issue ? "Update" : "Save"}
                 icon="pi pi-check"
                 onClick={handleSubmit}
                 loading={loading}
+                disabled={loading}
             />
         </div>
     );
 
     return (
         <Dialog
-            header={issue ? "Edit Issue" : "Tambah Issue Baru"}
+            header={issue ? "Edit Issue" : "Add New Issue"}
             visible={visible}
             style={{ width: "40rem" }}
             breakpoints={{ "960px": "75vw", "641px": "90vw" }}
@@ -222,6 +235,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                         id="title"
                         value={form.title}
                         onChange={(e) => handleChange("title", e.target.value)}
+                        placeholder="Enter issue title"
                         className={classNames({ "p-invalid": submitted && !form.title.trim() })}
                     />
                     {submitted && !form.title.trim() && <small className="p-error">Title is required</small>}
@@ -237,7 +251,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                         value={form.machine_id}
                         options={machineOptions}
                         onChange={(e) => handleChange("machine_id", e.value)}
-                        placeholder="Pilih mesin"
+                        placeholder="Select machine"
                         filter
                         showClear
                         className={classNames({ "p-invalid": submitted && !form.machine_id })}
@@ -253,11 +267,15 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                         value={form.reported_by_id}
                         options={userOptions}
                         onChange={(e) => handleChange("reported_by_id", e.value)}
-                        placeholder="Pilih user"
+                        placeholder="Select user (optional)"
                         filter
                         showClear
+                        emptyMessage={loadingUsers ? "Loading users..." : "No users available"}
                         disabled={loadingUsers}
                     />
+                    <small className="text-gray-500">
+                        Leave empty to use current admin user
+                    </small>
                 </div>
 
                 {/* Description Field */}
@@ -269,6 +287,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                         id="description"
                         value={form.description}
                         onChange={(e) => handleChange("description", e.target.value)}
+                        placeholder="Describe the issue in detail"
                         rows={4}
                         className={classNames({ "p-invalid": submitted && !form.description.trim() })}
                     />
@@ -283,15 +302,15 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                     {issue && issue.photo_url && (
                         <div className="mb-3">
                             <div className="flex align-items-center justify-content-between mb-2">
-                                <span className="text-sm text-gray-600">Foto saat ini:</span>
+                                <span className="text-sm text-gray-600">Current photo:</span>
                                 <div className="flex align-items-center">
                                     <Checkbox
                                         inputId="remove_photo"
                                         checked={removePhoto}
-                                        onChange={(e) => setRemovePhoto(e.checked)}
+                                        onChange={(e) => handleRemovePhotoChange(e.checked)}
                                     />
                                     <label htmlFor="remove_photo" className="ml-2 text-sm cursor-pointer">
-                                        Hapus foto
+                                        Remove photo
                                     </label>
                                 </div>
                             </div>
@@ -307,6 +326,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
 
                     {/* Komponen FileUpload yang sudah disempurnakan */}
                     <FileUpload
+                        key={`fileupload-${issue?.id || 'new'}-${visible}`}
                         ref={fileUploadRef}
                         name="photo"
                         accept="image/*"
@@ -316,12 +336,12 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                         multiple={false}
                         chooseLabel={issue && issue.photo_url ? "Ganti Foto" : "Pilih Foto"}
                         itemTemplate={itemTemplate}
-                        emptyTemplate={<p className="m-0">Tarik dan lepas gambar di sini.</p>}
+                        emptyTemplate={<p className="m-0">Drag and drop the image here.</p>}
                         disabled={removePhoto}
                     />
                      {removePhoto && (
                         <div className="mt-2">
-                            <small className="text-red-600">Foto saat ini akan dihapus saat disimpan.</small>
+                            <small className="text-red-600">The current photo will be deleted when saved.</small>
                         </div>
                     )}
                 </div>

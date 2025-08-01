@@ -1,24 +1,23 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react"; // Import useCallback
+import React, { useEffect, useState, useCallback } from "react"; 
 import { Card } from "primereact/card";
 import { Button } from "primereact/button";
 import { Avatar } from "primereact/avatar";
 import { Divider } from "primereact/divider";
 import { Chip } from "primereact/chip";
-import { Skeleton } from "primereact/skeleton";
 import { useRouter } from "next/navigation";
 import { ProgressSpinner } from "primereact/progressspinner";
 
 const ProfilePage = () => {
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
     const router = useRouter();
 
-    // Bungkus fungsi fetch dengan useCallback
     const fetchProfile = useCallback(async () => {
-        setIsLoading(true); // Set loading di awal fetch
+        setIsLoading(true); 
         try {
-            const res = await fetch("/api/user-detail", { // Gunakan path relatif
+            const res = await fetch("/api/profile", { 
                 credentials: "include"
             });
 
@@ -26,7 +25,6 @@ const ProfilePage = () => {
                 const result = await res.json();
                 setUser(result.data);
             } else {
-                // Redirect ke login jika tidak terautentikasi
                 router.push("/auth/login");
             }
         } catch (err) {
@@ -35,11 +33,11 @@ const ProfilePage = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [router]); // Tambahkan router sebagai dependensi useCallback
+    }, [router]);
 
     useEffect(() => {
         fetchProfile();
-    }, [fetchProfile]); // Gunakan fetchProfile sebagai dependensi useEffect
+    }, [fetchProfile]); 
 
     const formatDate = (dateString) => {
         if (!dateString) return "-";
@@ -50,24 +48,24 @@ const ProfilePage = () => {
         });
     };
 
-    if (isLoading) {
-        return (
-            <div className="flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
-                <ProgressSpinner animationDuration=".5s" />
-            </div>
-        );
-    }
+   if (isLoading) {
+       return (
+           <div className="flex justify-content-center align-items-center" style={{ minHeight: "80vh" }}>
+               <ProgressSpinner animationDuration=".5s" />
+           </div>
+       );
+   }
 
-    if (!user) {
-        return (
-            <div className="flex flex-column justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
-                <i className="pi pi-exclamation-circle text-6xl text-red-500 mb-3"></i>
-                <h3 className="text-2xl font-medium">Gagal Memuat Profil</h3>
-                <p className="text-600 mb-3">Tidak dapat mengambil data pengguna. Silakan coba lagi.</p>
-                <Button label="Coba Lagi" icon="pi pi-refresh" className="p-button-text" onClick={fetchProfile} />
-            </div>
-        );
-    }
+   if (error || !user) {
+       return (
+           <div className="flex flex-column justify-content-center align-items-center" style={{ minHeight: "80vh" }}>
+               <i className="pi pi-exclamation-circle text-6xl text-red-500 mb-3"></i>
+               <h3 className="text-2xl font-medium">Gagal Memuat Profil</h3>
+               <p className="text-600 mb-3">{error || "Tidak dapat mengambil data pengguna."}</p>
+               <Button label="Coba Lagi" icon="pi pi-refresh" className="p-button-text" onClick={fetchProfile} />
+           </div>
+       );
+   }
 
     return (
         <div className="flex justify-content-center p-3 md:p-5">
@@ -81,7 +79,6 @@ const ProfilePage = () => {
 
                     <div className="flex-1 text-center md:text-left">
                         <h1 className="text-4xl font-bold mb-2 text-900">{user.full_name}</h1>
-                        {/* PERBAIKAN: Ganti " dengan &quot; */}
                         {user.bio && <p className="text-700 italic border-left-3 border-primary pl-3">&quot;{user.bio}&quot;</p>}
                     </div>
 

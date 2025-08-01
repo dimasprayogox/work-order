@@ -6,6 +6,8 @@ import { Button } from "primereact/button";
 import { ConfirmDialog } from "primereact/confirmdialog";
 import { Divider } from "primereact/divider";
 import { Dialog } from "primereact/dialog";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import dynamic from "next/dynamic";
@@ -38,14 +40,24 @@ const PartPage = () => {
     const [pdfUrl, setPdfUrl] = useState("");
     const [fileName, setFileName] = useState("PartsReport");
     const [printConfig, setPrintConfig] = useState({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
         marginLeft: 10,
         marginRight: 10,
         marginTop: 10,
         marginBottom: 10
     });
+
+    const columnOptions = [
+        { header: "No", key: "no", visible: true },
+        { header: "Part Number", key: "part_number", visible: true },
+        { header: "Name", key: "name", visible: true },
+        { header: "Description", key: "description", visible: true },
+        { header: "Quantity Stock", key: "quantity_in_stock", visible: true },
+        { header: "Minimum Stock", key: "min_stock", visible: true },
+        { header: "Location", key: "location", visible: true }
+    ];
 
     const showToast = useCallback((sev, sum, det) => {
         toast.current?.show({ severity: sev, summary: sum, detail: det });
@@ -92,6 +104,65 @@ const PartPage = () => {
         setDeleteOpen(true);
     };
 
+    //export excel
+    const exportExcel = async () => {
+        if (!parts.length) {
+            showToast("warn", "No Data", "There are no parts to export");
+            return;
+        }
+
+        try {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Parts");
+
+            // Add headers
+            const headers = columnOptions.filter((col) => col.visible).map((col) => col.header);
+            worksheet.addRow(headers);
+
+            // Add data with numbering
+            parts.forEach((part, index) => {
+                const rowData = [
+                    index + 1, // Numbering
+                    part.part_number || "-",
+                    part.name || "-",
+                    part.description || "-",
+                    part.quantity_in_stock || 0,
+                    part.min_stock || 0,
+                    part.location || "-"
+                ];
+                worksheet.addRow(rowData);
+            });
+
+            // Style headers
+            worksheet.getRow(1).eachCell((cell) => {
+                cell.font = { bold: true };
+                cell.fill = {
+                    type: "pattern",
+                    pattern: "solid",
+                    fgColor: { argb: "FFE0E0E0" }
+                };
+                cell.alignment = { vertical: "middle", horizontal: "center" };
+            });
+
+            // Auto-fit columns
+            worksheet.columns.forEach((column, index) => {
+                const header = headers[index];
+                // Set column width based on header length
+                column.width = Math.max(header.length * 1.5, 10);
+                // Set number format for numeric columns
+                if (index === 0 || index === 4 || index === 5) {
+                    column.numFmt = "0";
+                }
+            });
+
+            // Generate Excel file
+            const buffer = await workbook.xlsx.writeBuffer();
+            saveAs(new Blob([buffer], { type: "application/octet-stream" }), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            showToast("success", "Success", "Data berhasil diekspor ke Excel");
+        } catch (error) {
+            showToast("error", "Error", `Failed to export: ${error.message}`);
+        }
+    };
     // --- Export to PDF ---
     const exportPdf = (config = null) => {
         const currentConfig = config || printConfig;
@@ -107,27 +178,11 @@ const PartPage = () => {
             format: currentConfig.format
         });
 
-        const headers = [
-            "Part Number",
-            "Name",
-            "Description",
-            "Category",
-            "Stock",
-            "Unit",
-            "Location"
-        ];
+        const headers = ["No", "Part Number", "Name", "Description", "Quantity Stock", "Minimun Stock", "Location"];
 
-        const data = parts.map(part => [
-            part.part_number || "-",
-            part.name || "-",
-            part.description || "-",
-            part.category || "-",
-            part.stock?.toString() || "0",
-            part.unit || "-",
-            part.location || "-"
-        ]);
+        const data = parts.map((part, index) => [(index + 1).toString(), part.part_number || "-", part.name || "-", part.description || "-", part.quantity_in_stock?.toString() || "0", part.min_stock?.toString() || "0", part.location || "-"]);
 
-        doc.text('Parts Report', currentConfig.marginLeft, currentConfig.marginTop);
+        doc.text("Parts Report", currentConfig.marginLeft, currentConfig.marginTop);
 
         autoTable(doc, {
             startY: currentConfig.marginTop + 10,
@@ -141,7 +196,7 @@ const PartPage = () => {
             }
         });
 
-        const pdfBlob = doc.output('blob');
+        const pdfBlob = doc.output("blob");
         const pdfUrl = URL.createObjectURL(pdfBlob);
         setPdfUrl(pdfUrl);
         setJsPdfPreviewOpen(true);
@@ -169,23 +224,10 @@ const PartPage = () => {
                     <Button label="New" icon="pi pi-plus" outlined severity="success" onClick={() => setFormOpen(true)} />
                     <Divider layout="vertical" />
                     <Button label="Import" icon="pi pi-file-import" outlined />
-                    <Button label="Export" icon="pi pi-file-excel" outlined />
-                    <Button
-                        label="Print"
-                        icon="pi pi-print"
-                        outlined
-                        onClick={() => setAdjustDialog(true)}
-                    />
+                    <Button label="Export" icon="pi pi-file-excel" outlined onClick={exportExcel} />
+                    <Button label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
                     <Divider layout="vertical" />
-                    <Button
-                        size="small"
-                        label={`Delete (${selectedParts.length})`}
-                        icon="pi pi-trash"
-                        outlined
-                        severity="danger"
-                        onClick={handleDeleteSelected}
-                        disabled={selectedParts.length === 0}
-                    />
+                    <Button size="small" label={`Delete (${selectedParts.length})`} icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedParts.length === 0} />
                     <Divider layout="vertical" />
                     <Button label="Refresh" icon="pi pi-refresh" outlined onClick={handleRefresh} />
                 </div>
@@ -223,23 +265,10 @@ const PartPage = () => {
                 />
 
                 {/* Print Configuration Dialog */}
-                <AdjustPrintMarginLaporan
-                    key={adjustDialog ? 'open' : 'closed'}
-                    adjustDialog={adjustDialog}
-                    setAdjustDialog={setAdjustDialog}
-                    handleAdjust={handleAdjust}
-                    printConfig={printConfig}
-                    setPrintConfig={setPrintConfig}
-                />
+                <AdjustPrintMarginLaporan key={adjustDialog ? "open" : "closed"} adjustDialog={adjustDialog} setAdjustDialog={setAdjustDialog} handleAdjust={handleAdjust} printConfig={printConfig} setPrintConfig={setPrintConfig} />
 
                 {/* PDF Preview Dialog */}
-                <Dialog
-                    visible={jsPdfPreviewOpen}
-                    onHide={() => setJsPdfPreviewOpen(false)}
-                    modal
-                    style={{ width: '90vw', height: '90vh' }}
-                    header="PDF Preview"
-                >
+                <Dialog visible={jsPdfPreviewOpen} onHide={() => setJsPdfPreviewOpen(false)} modal style={{ width: "90vw", height: "90vh" }} header="PDF Preview">
                     <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
                 </Dialog>
             </div>
