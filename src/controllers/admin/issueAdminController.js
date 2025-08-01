@@ -3,6 +3,7 @@
 import { Issue } from "../../models/Issue.js";
 import { Machine } from "../../models/Machine.js";
 import { WorkOrder } from "../../models/WorkOrder.js";
+import { User } from "../../models/User.js";
 import path from "path";
 import { notifyManager } from "../../utils/notifyManager.js";
 import { minioClient, checkAndCreateBucket } from "../../utils/minio.js";
@@ -133,6 +134,18 @@ export const IssueAdminController = {
         }
     },
 
+    async getUsers(req, res) {
+        try {
+            const users = await User.query()
+                .select('id', 'full_name', 'email', 'role')
+                .orderBy('full_name', 'asc');
+            res.status(200).json({ message: "Users fetched successfully", data: users });
+        } catch (err) {
+            console.error("Error fetching users (admin):", err);
+            res.status(500).json({ message: "Failed to fetch users", error: err.message });
+        }
+    },
+    
     async getById(req, res) {
         try {
             const id = req.params.id;

@@ -10,6 +10,7 @@ router.use(authorizeRole('admin'));
 
 router.post("/", upload.single("photo"), IssueAdminController.store);
 router.get("/", IssueAdminController.getAll);
+router.get("/users", IssueAdminController.getUsers);
 router.get("/:id", IssueAdminController.getById);
 router.patch("/:id", upload.single("photo"), IssueAdminController.update);
 router.delete("/:id", IssueAdminController.delete);
