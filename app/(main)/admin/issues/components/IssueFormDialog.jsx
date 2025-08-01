@@ -1,4 +1,3 @@
-// app/(main)/issues/components/IssueFormDialog.jsx
 "use client";
 
 import { Dialog } from "primereact/dialog";
@@ -23,7 +22,36 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
     const [submitted, setSubmitted] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const [removePhoto, setRemovePhoto] = useState(false);
+    const [users, setUsers] = useState([]); // Tambah state untuk users
+    const [loadingUsers, setLoadingUsers] = useState(false); // Loading state untuk users
     const fileUploadRef = useRef(null);
+
+    // Fetch users ketika dialog dibuka
+    useEffect(() => {
+        if (visible) {
+            fetchUsers();
+        }
+    }, [visible]);
+
+    // Fetch users function
+    const fetchUsers = async () => {
+        setLoadingUsers(true);
+        try {
+            const res = await fetch("/api/admin/issues/users", {
+                credentials: "include"
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setUsers(data.data || []);
+            } else {
+                showToast("error", "Error", "Gagal mengambil data users");
+            }
+        } catch (error) {
+            showToast("error", "Error", "Gagal mengambil data users");
+        } finally {
+            setLoadingUsers(false);
+        }
+    };
 
     useEffect(() => {
         if (issue) {
@@ -118,6 +146,12 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
         value: machine.id
     }));
 
+    // Transform users untuk dropdown options
+    const userOptions = users.map(user => ({
+        label: `${user.full_name} (${user.role})`,
+        value: user.id
+    }));
+
     const customUploadHandler = (event) => {
         handleFileSelect(event);
     };
@@ -191,6 +225,27 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                     )}
                 </div>
 
+                {/* Reported By Field */}
+                <div className="field col-12">
+                    <label htmlFor="reported_by_id" className="font-medium">
+                        Reported By (Optional)
+                    </label>
+                    <Dropdown
+                        id="reported_by_id"
+                        value={form.reported_by_id}
+                        options={userOptions}
+                        onChange={(e) => handleChange("reported_by_id", e.value)}
+                        placeholder="Select user (optional)"
+                        filter
+                        showClear
+                        emptyMessage={loadingUsers ? "Loading users..." : "No users available"}
+                        disabled={loadingUsers}
+                    />
+                    <small className="text-gray-500">
+                        Leave empty to use current admin user
+                    </small>
+                </div>
+
                 {/* Description Field */}
                 <div className="field col-12">
                     <label htmlFor="description" className="font-medium">
@@ -207,22 +262,6 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                     {submitted && !form.description.trim() && (
                         <small className="p-error">Description is required</small>
                     )}
-                </div>
-
-                {/* Reported By ID Field */}
-                <div className="field col-12">
-                    <label htmlFor="reported_by_id" className="font-medium">
-                        Reported By ID (Optional)
-                    </label>
-                    <InputText
-                        id="reported_by_id"
-                        value={form.reported_by_id}
-                        onChange={(e) => handleChange("reported_by_id", e.target.value)}
-                        placeholder="Enter user ID (UUID format)"
-                    />
-                    <small className="text-gray-500">
-                        Leave empty to use current admin user
-                    </small>
                 </div>
 
                 {/* Photo Field */}
