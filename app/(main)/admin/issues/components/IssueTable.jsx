@@ -10,6 +10,7 @@ import { Image } from "primereact/image";
 import { useState, useEffect } from "react";
 import { FilterMatchMode } from "primereact/api";
 import { ConfirmDialog } from "primereact/confirmdialog";
+import { motion } from "framer-motion";
 
 const IssueTable = ({
     issues,
@@ -47,37 +48,46 @@ const IssueTable = ({
     };
 
     const statusBodyTemplate = (rowData) => {
-        const getSeverity = (status) => {
-            switch (status) {
-                case 'open':
-                    return 'danger';
-                case 'in_progress':
-                    return 'warning';
-                case 'resolved':
-                    return 'success';
-                case 'closed':
-                    return 'info';
-                default:
-                    return null;
-            }
-        };
+        let severity = "info";
+        let icon = "";
+        let displayText = "";
 
-        const getStatusLabel = (status) => {
-            switch (status) {
-                case 'open':
-                    return 'Open';
-                case 'in_progress':
-                    return 'In Progress';
-                case 'resolved':
-                    return 'Resolved';
-                case 'closed':
-                    return 'Closed';
-                default:
-                    return status;
-            }
-        };
+        switch (rowData.status) {
+            case "open":
+                severity = "danger";
+                icon = "pi pi-exclamation-circle";
+                displayText = "Pending";
+                break;
+            case "in_progress":
+                severity = "info";
+                icon = "pi pi-spin pi-spinner";
+                displayText = "In Progress";
+                break;
+            case "resolved":
+                severity = "success";
+                icon = "pi pi-check-circle";
+                displayText = "Resolved";
+                break;
+            case "closed":
+                severity = "secondary";
+                icon = "pi pi-lock";
+                displayText = "Closed";
+                break;
+            default:
+                severity = "warning";
+                icon = "pi pi-question-circle";
+                displayText = "Unknown";
+        }
 
-        return <Tag value={getStatusLabel(rowData.status)} severity={getSeverity(rowData.status)} />;
+        return (
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
+                <Tag
+                    value={<span className="flex align-items-center gap-1"><i className={icon}></i> {displayText}</span>}
+                    severity={severity}
+                    className="font-medium"
+                />
+            </motion.div>
+        );
     };
 
     const machineBodyTemplate = (rowData) => {
