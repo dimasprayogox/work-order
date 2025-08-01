@@ -20,7 +20,7 @@ import machineCategoryRoutes from './routes/admin/machine-category.routes.js';
 import machineRoutes from './routes/admin/machine.routes.js';
 import adminPartRoutes from './routes/admin/part.route.js';
 import adminPartRequestRoutes from './routes/admin/partRequest.route.js';
-
+import issueAdminRoute from './routes/admin/issue.route.js';
 
 
 //employee
@@ -97,6 +97,7 @@ app.use('/api/admin/machine-categories', machineCategoryRoutes);
 app.use('/api/admin/machines', machineRoutes);
 app.use('/api/admin/parts', adminPartRoutes);
 app.use('/api/admin/part-requests', adminPartRequestRoutes);
+app.use('/api/admin/issues', issueAdminRoute);
 
 //employee
 app.use('/api/employee/dashboard', employeeDashboardRoutes);
