@@ -37,21 +37,7 @@ export default function CreateScheduleDialog({ visible, onHide, showToast, onSch
         { label: "Tinggi", value: "high" }
     ];
 
-    useEffect(() => {
-        if (visible) {
-            setFormData({
-                title: "",
-                description: "",
-                machine_id: "",
-                frequency: "",
-                next_due_date: null,
-                priority: "medium"
-            });
-            setFormErrors({});
-            fetchMachines();
-        }
-    }, [visible, fetchMachines]);
-
+    // Pindahkan deklarasi fetchMachines ke sini, sebelum useEffect
     const fetchMachines = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/manager/machines`, {
@@ -67,6 +53,21 @@ export default function CreateScheduleDialog({ visible, onHide, showToast, onSch
             showToast("error", "Error", error.message);
         }
     }, [showToast]);
+
+    useEffect(() => {
+        if (visible) {
+            setFormData({
+                title: "",
+                description: "",
+                machine_id: "",
+                frequency: "",
+                next_due_date: null,
+                priority: "medium"
+            });
+            setFormErrors({});
+            fetchMachines();
+        }
+    }, [visible, fetchMachines]);
 
     const validateForm = () => {
         const errors = {};

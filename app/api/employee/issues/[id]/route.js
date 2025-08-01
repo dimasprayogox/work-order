@@ -3,8 +3,8 @@ import { API_ENDPOINTS } from "../../../api";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
-export const PATCH = async (request, { params }) => {
-    const { id } = params;
+export const PATCH = async (request, contex) => {
+    const { id } = contex.params;
     const token = request.cookies.get("authToken")?.value;
 
     if (!token) {
@@ -13,11 +13,16 @@ export const PATCH = async (request, { params }) => {
     if (!id) {
         return NextResponse.json({ message: "Issue ID is required" }, { status: 400 });
     }
-
     try {
-        const body = await request.json();
+        const form = await request.formData();
+        const body = new FormData();
+        form.forEach((value, key) => body.append(key, value));
+
         const response = await Axios.patch(API_ENDPOINTS.EMPLOYEE_ISSUE_BY_ID(id), body, {
-            headers: { Authorization: `Bearer ${token}` }
+          headers: {
+            Authorization: `Bearer ${token}`,
+             'Content-Type': 'multipart/form-data'
+          }
         });
         return NextResponse.json(response.data);
     } catch (err) {
@@ -29,8 +34,8 @@ export const PATCH = async (request, { params }) => {
     }
 };
 
-export const DELETE = async (request, { params }) => {
-    const { id } = params;
+export const DELETE = async (request, contex) => {
+    const { id } = contex.params;
     const token = request.cookies.get("authToken")?.value;
 
     if (!token) {

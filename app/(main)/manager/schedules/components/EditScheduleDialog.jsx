@@ -37,21 +37,7 @@ export default function EditScheduleDialog({ visible, onHide, schedule, showToas
         { label: "Tinggi", value: "high" }
     ];
 
-    useEffect(() => {
-        if (visible && schedule) {
-            setFormData({
-                title: schedule.title || "",
-                description: schedule.description || "",
-                machine_id: schedule.machine_id || "",
-                frequency: schedule.frequency || "",
-                next_due_date: schedule.next_due_date ? new Date(schedule.next_due_date) : null,
-                priority: schedule.priority || "medium"
-            });
-            setFormErrors({});
-            fetchMachines();
-        }
-    }, [visible, schedule, fetchMachines]);
-
+    // Pindahkan deklarasi fetchMachines ke sini, sebelum useEffect
     const fetchMachines = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/manager/machines`, {
@@ -67,6 +53,21 @@ export default function EditScheduleDialog({ visible, onHide, schedule, showToas
             showToast("error", "Error", error.message);
         }
     }, [showToast]);
+    
+    useEffect(() => {
+        if (visible && schedule) {
+            setFormData({
+                title: schedule.title || "",
+                description: schedule.description || "",
+                machine_id: schedule.machine_id || "",
+                frequency: schedule.frequency || "",
+                next_due_date: schedule.next_due_date ? new Date(schedule.next_due_date) : null,
+                priority: schedule.priority || "medium"
+            });
+            setFormErrors({});
+            fetchMachines();
+        }
+    }, [visible, schedule, fetchMachines]);
 
     const validateForm = () => {
         const errors = {};

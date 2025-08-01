@@ -9,8 +9,6 @@ import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
 import { Message } from "primereact/message";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
-
 export default function CreateWorkOrderDialog({ visible, onHide, showToast, onWorkOrderCreated }) {
     const [formData, setFormData] = useState({
         title: "",
@@ -29,6 +27,23 @@ export default function CreateWorkOrderDialog({ visible, onHide, showToast, onWo
         { label: "Tinggi", value: "high" }
     ];
 
+    const fetchMachines = useCallback(async () => {
+        try {
+            // Menggunakan route handler proxy yang baru
+            const response = await fetch("/api/manager/machines", {
+                credentials: "include"
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setMachines(result.data.map(m => ({ label: m.name, value: m.id })));
+            } else {
+                throw new Error(result.message || "Gagal mengambil daftar mesin");
+            }
+        } catch (error) {
+            showToast("error", "Error", error.message);
+        }
+    }, [showToast]);
+
     useEffect(() => {
         if (visible) {
             setFormData({
@@ -42,22 +57,6 @@ export default function CreateWorkOrderDialog({ visible, onHide, showToast, onWo
             fetchMachines();
         }
     }, [visible, fetchMachines]);
-
-    const fetchMachines = useCallback(async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/manager/machines`, {
-                credentials: "include"
-            });
-            const result = await response.json();
-            if (response.ok) {
-                setMachines(result.data.map(m => ({ label: m.name, value: m.id })));
-            } else {
-                throw new Error(result.message || "Gagal mengambil daftar mesin");
-            }
-        } catch (error) {
-            showToast("error", "Error", error.message);
-        }
-    }, [showToast]);
 
     const validateForm = () => {
         const errors = {};
@@ -84,7 +83,8 @@ export default function CreateWorkOrderDialog({ visible, onHide, showToast, onWo
                 scheduled_date: formData.scheduled_date.toISOString(),
             };
 
-            const response = await fetch(`${API_BASE_URL}/manager/work-orders`, {
+            // Menggunakan route handler proxy POST yang baru
+            const response = await fetch("/api/manager/work-orders", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
@@ -96,6 +96,7 @@ export default function CreateWorkOrderDialog({ visible, onHide, showToast, onWo
                 throw new Error(result.message || "Gagal membuat Work Order baru.");
             }
 
+            showToast("success", "Berhasil", "Work Order baru berhasil dibuat.");
             onWorkOrderCreated();
         } catch (error) {
             showToast("error", "Error", error.message);

@@ -1,4 +1,3 @@
-// my-project/app/(main)/manager/work-orders/page.jsx
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -27,7 +26,7 @@ import {
     statusBodyTemplate as commonStatusBodyTemplate,
     dateBodyTemplate as commonDateBodyTemplate,
     technicianBodyTemplate
-} from "./components/WorkOrderTable"; // Sesuaikan path jika ini adalah komponen terpisah
+} from "./components/WorkOrderTable";
 
 import DelegateTechnicianDialog from "./components/DelegateTechnicianDialog";
 import WorkOrderDetailsDialog from "./components/WorkOrderDetailsDialog";
@@ -99,7 +98,9 @@ export default function WorkOrderPage() {
     const fetchWorkOrders = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch(`/api/manager/work-orders`); // Menggunakan proxy API Next.js
+            const response = await fetch(`/api/manager/work-orders`, {
+                credentials: "include"
+            });
             if (!response.ok) throw new Error((await response.json()).message || "Gagal mengambil daftar Work Order.");
             const result = await response.json();
             setWorkOrders(result.data || []);
@@ -147,8 +148,9 @@ export default function WorkOrderPage() {
                 setLoading(true);
                 try {
                     for (const wo of selectedWorkOrders) {
-                        const response = await fetch(`/api/manager/work-orders/${wo.id}`, { // Menggunakan proxy API Next.js
+                        const response = await fetch(`/api/manager/work-orders/${wo.id}`, {
                             method: "DELETE",
+                            credentials: "include"
                         });
                         if (!response.ok) {
                             const result = await response.json();
@@ -198,13 +200,8 @@ export default function WorkOrderPage() {
     const exportExcel = async () => {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Work Orders');
-
-        const headers = columnOptions
-            .filter(col => col.visible)
-            .map(col => col.header);
-
+        const headers = columnOptions.filter(col => col.visible).map(col => col.header);
         worksheet.addRow(headers);
-
         workOrders.forEach(wo => {
             const rowData = columnOptions
                 .filter(col => col.visible)
@@ -223,11 +220,9 @@ export default function WorkOrderPage() {
                 });
             worksheet.addRow(rowData);
         });
-
         worksheet.getRow(1).eachCell((cell) => {
             cell.font = { bold: true };
         });
-
         const buffer = await workbook.xlsx.writeBuffer();
         saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
         showToast("success", "Ekspor Berhasil", "Data berhasil diekspor ke Excel.");
@@ -239,9 +234,7 @@ export default function WorkOrderPage() {
             unit: printConfig.unit,
             format: printConfig.format
         });
-
         const visibleColumns = columnOptions.filter(col => col.visible);
-
         const headers = visibleColumns.map(col => col.header);
         const data = workOrders.map(wo => {
             return visibleColumns.map(col => {
@@ -258,9 +251,7 @@ export default function WorkOrderPage() {
                 }
             });
         });
-
         doc.text('Laporan Work Order', printConfig.marginLeft, printConfig.marginTop);
-
         autoTable(doc, {
             startY: printConfig.marginTop + 10,
             head: [headers],
@@ -272,7 +263,6 @@ export default function WorkOrderPage() {
                 bottom: printConfig.marginBottom
             }
         });
-
         const pdfBlob = doc.output('blob');
         const pdfUrl = URL.createObjectURL(pdfBlob);
         setPdfUrl(pdfUrl);
@@ -305,7 +295,6 @@ export default function WorkOrderPage() {
                 const worksheet = workbook.getWorksheet(1);
                 const jsonData = [];
                 const headerRow = worksheet.getRow(1);
-
                 worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
                     if (rowNumber > 1) {
                         let rowObject = {};
@@ -328,18 +317,17 @@ export default function WorkOrderPage() {
                         priority: item.priority || 'medium',
                         scheduled_date: item.scheduled_date ? new Date(item.scheduled_date).toISOString() : undefined,
                     };
-
-                    const res = await fetch(`/api/manager/work-orders`, { // Menggunakan proxy API Next.js
+                    const res = await fetch(`/api/manager/work-orders`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload),
+                        credentials: "include"
                     });
                     if (!res.ok) {
                         const body = await res.json();
                         throw new Error(body.message || `Gagal mengimpor item: ${item.title || 'Tidak diketahui'}`);
                     }
                 }
-
                 showToast("success", "Impor Berhasil", "Data berhasil diimpor.");
                 await fetchWorkOrders();
             };
@@ -390,80 +378,70 @@ export default function WorkOrderPage() {
         <div className="p-4">
             <Toast ref={toast} />
             <ConfirmDialog />
-
             <div className="card">
-                <div className="flex justify-content-between items-start mb-4">
-                    <div>
-                        <h3 className="text-2xl font-semibold">Manajemen Work Order</h3>
-                        <p className="text-sm text-gray-500">Kelola dan pantau semua Work Order.</p>
-                    </div>
+                <h3 className="text-2xl font-semibold">Manajemen Work Order</h3>
+                <div className="flex flex-wrap gap-2 mb-4 items-center">
+                    <Button
+                        size="small"
+                        label="Buat Permintaan Baru"
+                        icon="pi pi-plus"
+                        outlined
+                        severity="success"
+                        onClick={() => setCreateWorkOrderDialogVisible(true)}
+                        tooltip="Buat Work Order Baru"
+                        tooltipOptions={{ position: 'bottom' }}
+                    />
+                    <Button
+                        size="small"
+                        label="Impor"
+                        icon="pi pi-file-import"
+                        outlined
+                        onClick={() => fileInputRef.current?.click()}
+                        tooltip="Impor dari Excel"
+                        tooltipOptions={{ position: 'bottom' }}
+                    />
+                    <Button
+                        size="small"
+                        label="Ekspor"
+                        icon="pi pi-file-export"
+                        outlined
+                        onClick={exportExcel}
+                        tooltip="Ekspor ke Excel"
+                        tooltipOptions={{ position: 'bottom' }}
+                    />
+                    <Button
+                        size="small"
+                        label="Cetak"
+                        icon="pi pi-print"
+                        outlined
+                        onClick={handlePrint}
+                        tooltip="Cetak Laporan"
+                        tooltipOptions={{ position: 'bottom' }}
+                    />
+                    <Divider layout="vertical" />
+                    <Button
+                        size="small"
+                        label="Hapus Terpilih"
+                        icon="pi pi-trash"
+                        severity="danger"
+                        onClick={handleDeleteSelected}
+                        disabled={selectedWorkOrders.length === 0}
+                        className="p-button-outlined"
+                        tooltip="Hapus Work Order yang dipilih"
+                        tooltipOptions={{ position: 'bottom' }}
+                    />
+                    <Divider layout="vertical" />
+                    <Button
+                        size="small"
+                        label="Refresh"
+                        icon="pi pi-refresh"
+                        outlined
+                        onClick={fetchWorkOrders}
+                        disabled={loading}
+                        tooltip="Refresh Data"
+                        tooltipOptions={{ position: 'bottom' }}
+                    />
                 </div>
-
-                <div className="flex flex-wrap justify-content-between gap-2 mb-4">
-                    <div className="flex flex-wrap gap-2">
-                        <Button
-                            size="small"
-                            label="Buat Work Order Baru"
-                            icon="pi pi-plus"
-                            className="p-button-primary"
-                            onClick={() => setCreateWorkOrderDialogVisible(true)}
-                            tooltip="Buat Work Order Baru"
-                            tooltipOptions={{ position: 'bottom' }}
-                        />
-                        <Button
-                            size="small"
-                            label="Impor"
-                            icon="pi pi-file-import"
-                            outlined
-                            onClick={() => fileInputRef.current?.click()}
-                            tooltip="Impor dari Excel"
-                            tooltipOptions={{ position: 'bottom' }}
-                        />
-                        <Button
-                            size="small"
-                            label="Ekspor"
-                            icon="pi pi-file-export"
-                            outlined
-                            onClick={exportExcel}
-                            tooltip="Ekspor ke Excel"
-                            tooltipOptions={{ position: 'bottom' }}
-                        />
-                        <Button
-                            size="small"
-                            label="Cetak"
-                            icon="pi pi-print"
-                            outlined
-                            onClick={handlePrint}
-                            tooltip="Cetak Laporan"
-                            tooltipOptions={{ position: 'bottom' }}
-                        />
-                        <Divider layout="vertical" />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        <Button
-                            size="small"
-                            label="Refresh"
-                            icon="pi pi-refresh"
-                            outlined
-                            onClick={fetchWorkOrders}
-                            disabled={loading}
-                            tooltip="Refresh Data"
-                            tooltipOptions={{ position: 'bottom' }}
-                        />
-                        <Button
-                            size="small"
-                            label="Hapus Terpilih"
-                            icon="pi pi-trash"
-                            severity="danger"
-                            onClick={handleDeleteSelected}
-                            disabled={selectedWorkOrders.length === 0}
-                            className="p-button-outlined"
-                            tooltip="Hapus Work Order yang dipilih"
-                            tooltipOptions={{ position: 'bottom' }}
-                        />
-                    </div>
-                </div>
-
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                     <Panel header="Daftar Work Order" className="shadow-2">
                         {loading ? (
@@ -505,7 +483,6 @@ export default function WorkOrderPage() {
                     </Panel>
                 </motion.div>
             </div>
-
             <DelegateTechnicianDialog
                 visible={assignDialogVisible}
                 onHide={() => setAssignDialogVisible(false)}
@@ -513,20 +490,17 @@ export default function WorkOrderPage() {
                 showToast={showToast}
                 onTechnicianAssigned={handleTechnicianAssigned}
             />
-
             <WorkOrderDetailsDialog
                 visible={viewDetailsDialogVisible}
                 onHide={() => setViewDetailsDialogVisible(false)}
                 workOrder={selectedWorkOrder}
             />
-
             <CreateWorkOrderDialog
                 visible={createWorkOrderDialogVisible}
                 onHide={() => setCreateWorkOrderDialogVisible(false)}
                 showToast={showToast}
                 onWorkOrderCreated={handleWorkOrderCreated}
             />
-
             <input
                 type="file"
                 ref={fileInputRef}
@@ -534,7 +508,6 @@ export default function WorkOrderPage() {
                 onChange={handleImport}
                 accept=".xlsx,.xls"
             />
-
             <AdjustPrintMarginLaporan
                 adjustDialog={adjustDialog}
                 setAdjustDialog={setAdjustDialog}
@@ -542,7 +515,6 @@ export default function WorkOrderPage() {
                 printConfig={printConfig}
                 setPrintConfig={setPrintConfig}
             />
-
             <Dialog
                 visible={jsPdfPreviewOpen}
                 onHide={() => setJsPdfPreviewOpen(false)}

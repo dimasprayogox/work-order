@@ -1,4 +1,3 @@
-// my-project/app/(main)/manager/schedules/page.jsx
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -18,14 +17,16 @@ import { saveAs } from 'file-saver';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
+import { Tag } from "primereact/tag";
 
 import {
     frequencyBodyTemplate,
     nextDueDateBodyTemplate,
     machineBodyTemplate,
     actionBodyTemplate,
-    createdByBodyTemplate
-} from "./components/ScheduleTable"; // Sesuaikan path jika ini adalah komponen terpisah
+    createdByBodyTemplate,
+} from "./components/ScheduleTable";
 import CreateScheduleDialog from "./components/CreateScheduleDialog";
 import EditScheduleDialog from "./components/EditScheduleDialog";
 import ScheduleDetailsDialog from "./components/ScheduleDetailsDialog";
@@ -81,7 +82,7 @@ export default function SchedulePage() {
     const fetchSchedules = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch(`/api/manager/schedules`); // Menggunakan proxy API Next.js
+            const response = await fetch(`/api/manager/schedules`);
             const result = await response.json();
 
             if (!response.ok) {
@@ -124,15 +125,18 @@ export default function SchedulePage() {
             accept: async () => {
                 setLoading(true);
                 try {
-                    for (const schedule of selectedSchedules) {
-                        const response = await fetch(`/api/manager/schedules/${schedule.id}`, { // Menggunakan proxy API Next.js
-                            method: "DELETE",
-                        });
+                    const deletePromises = selectedSchedules.map(schedule =>
+                        fetch(`/api/manager/schedules/${schedule.id}`, { method: "DELETE" })
+                    );
+                    
+                    const results = await Promise.all(deletePromises);
+                    for (const response of results) {
                         if (!response.ok) {
-                            const result = await response.json();
-                            throw new Error(result.message || `Gagal menghapus Jadwal: ${schedule.title}`);
+                            const errorResult = await response.json();
+                            throw new Error(errorResult.message || `Gagal menghapus Jadwal`);
                         }
                     }
+
                     showToast("success", "Berhasil", "Jadwal perawatan terpilih berhasil dihapus.");
                     fetchSchedules();
                     setSelectedSchedules([]);
@@ -308,7 +312,7 @@ export default function SchedulePage() {
                         is_active: item.is_active !== undefined ? Boolean(item.is_active) : true,
                     };
 
-                    const res = await fetch(`/api/manager/schedules`, { // Menggunakan proxy API Next.js
+                    const res = await fetch(`/api/manager/schedules`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload),
@@ -327,7 +331,7 @@ export default function SchedulePage() {
         } finally {
             setLoading(false);
             if (fileInputRef.current) {
-                fileInputRef.current.value = "";
+                fileInputRef.value = "";
             }
         }
     };
@@ -355,62 +359,130 @@ export default function SchedulePage() {
         </div>
     );
 
+    // New body template for Title with interactive animation
+    const titleBodyTemplate = (rowData) => (
+        <motion.span
+            whileHover={{ x: 5 }}
+            transition={{ type: "spring", stiffness: 300 }}
+            className="font-medium text-blue-600 cursor-pointer"
+        >
+            {rowData.title}
+        </motion.span>
+    );
+
+    // New body template for Machine with interactive animation
+    const machineBodyTemplateWithAnimation = (rowData) => (
+        <motion.span
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300 }}
+            className="text-gray-800"
+        >
+            {rowData.machine?.name || "N/A"}
+        </motion.span>
+    );
+
+    // New body template for Created By with interactive animation
+    const createdByBodyTemplateWithAnimation = (rowData) => (
+        <motion.span
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300 }}
+            className="text-gray-800"
+        >
+            {rowData.createdBy?.full_name || rowData.createdBy?.username || "N/A"}
+        </motion.span>
+    );
+    
+    // Updated action body template for consistency
+    const actionBodyTemplateNew = (rowData) => {
+        return (
+            <div className="flex gap-2">
+                <motion.div whileHover={{ scale: 1.1 }} transition={{ type: "spring", stiffness: 400 }}>
+                    <Button
+                        icon="pi pi-pencil"
+                        className="p-button-rounded p-button-secondary"
+                        tooltip="Edit Jadwal"
+                        onClick={() => handleEditSchedule(rowData)}
+                    />
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.1 }} transition={{ type: "spring", stiffness: 400 }}>
+                    <Button
+                        icon="pi pi-eye"
+                        className="p-button-rounded p-button-info"
+                        tooltip="Lihat Detail"
+                        onClick={() => handleViewDetails(rowData)}
+                    />
+                </motion.div>
+            </div>
+        );
+    };
+
+    const priorityBodyTemplate = (rowData) => {
+        let severity;
+        switch (rowData.priority) {
+            case "high": severity = "danger"; break;
+            case "medium": severity = "warning"; break;
+            case "low": severity = "success"; break;
+            default: severity = "secondary"; break;
+        }
+        return (
+            <motion.div whileHover={{ scale: 1.1 }} transition={{ type: "spring", stiffness: 400 }}>
+                <Tag value={rowData.priority.toUpperCase()} severity={severity} />
+            </motion.div>
+        );
+    };
+
     return (
         <div className="p-4">
             <Toast ref={toast} position="top-right" />
             <ConfirmDialog />
 
             <div className="card">
-                <h3 className="text-2xl font-bold mb-4">Manajemen Jadwal Perawatan</h3>
+                <h3 className="text-2xl font-bold mb-4">Halaman Work Order Saya</h3>
 
                 <div className="flex flex-wrap gap-2 mb-4 items-center">
                     <Button
-                        label="Refresh"
-                        icon="pi pi-refresh"
-                        onClick={fetchSchedules}
-                        className="p-button-outlined"
-                    />
-                    <Button
-                        label="Buat Jadwal Baru"
+                        label="Buat Permintaan Baru"
                         icon="pi pi-plus"
                         onClick={() => setCreateDialogVisible(true)}
-                        className="p-button-primary"
+                        className="p-button-success p-button-outlined"
                     />
                     <Button
-                        label="Hapus Terpilih"
-                        icon="pi pi-trash"
-                        severity="danger"
-                        onClick={handleDeleteSelected}
-                        disabled={selectedSchedules.length === 0}
-                        className="p-button-outlined"
-                    />
-                    <Divider layout="vertical" />
-                    <Button
-                        size="small"
                         label="Impor"
                         icon="pi pi-file-import"
-                        outlined
+                        className="p-button-info p-button-outlined"
                         onClick={() => fileInputRef.current?.click()}
                         tooltip="Impor dari Excel"
                         tooltipOptions={{ position: 'bottom' }}
                     />
                     <Button
-                        size="small"
                         label="Ekspor"
                         icon="pi pi-file-export"
-                        outlined
+                        className="p-button-info p-button-outlined"
                         onClick={exportExcel}
                         tooltip="Ekspor ke Excel"
                         tooltipOptions={{ position: 'bottom' }}
                     />
                     <Button
-                        size="small"
                         label="Cetak"
                         icon="pi pi-print"
-                        outlined
+                        className="p-button-info p-button-outlined"
                         onClick={handlePrint}
                         tooltip="Cetak Laporan"
                         tooltipOptions={{ position: 'bottom' }}
+                    />
+                    <Button
+                        label="Hapus Terpilih"
+                        icon="pi pi-trash"
+                        severity="danger"
+                        outlined
+                        onClick={handleDeleteSelected}
+                        disabled={selectedSchedules.length === 0}
+                    />
+                    <Button
+                        label="Refresh"
+                        icon="pi pi-refresh"
+                        outlined
+                        onClick={fetchSchedules}
                     />
                 </div>
 
@@ -434,14 +506,15 @@ export default function SchedulePage() {
                             header={header}
                         >
                             <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
-                            <Column field="title" header="Judul" sortable />
-                            <Column field="machine.name" header="Mesin" body={machineBodyTemplate} sortable />
+                            <Column field="title" header="Judul" sortable body={titleBodyTemplate} />
+                            <Column field="machine.name" header="Mesin" body={machineBodyTemplateWithAnimation} sortable />
                             <Column field="frequency" header="Frekuensi" body={frequencyBodyTemplate} sortable />
                             <Column field="next_due_date" header="Jatuh Tempo Berikutnya" body={nextDueDateBodyTemplate} sortable />
-                            <Column header="Dibuat Oleh" body={createdByBodyTemplate} sortable sortField="created_by.full_name" />
+                            <Column field="priority" header="Prioritas" body={priorityBodyTemplate} sortable />
+                            <Column header="Dibuat Oleh" body={createdByBodyTemplateWithAnimation} sortable sortField="created_by.full_name" />
                             <Column
                                 header="Aksi"
-                                body={(rowData) => actionBodyTemplate(rowData, handleEditSchedule, handleViewDetails)}
+                                body={actionBodyTemplateNew}
                                 style={{ minWidth: "12rem" }}
                             />
                         </DataTable>

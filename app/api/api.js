@@ -1,23 +1,16 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100";
+// app/api/api.js
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
 
 export const API_ENDPOINTS = {
-    // Auth
+    // --- Auth Endpoints ---
     LOGINUSERS: `${API_URL}/auth/login`,
     LOGOUT: `${API_URL}/auth/logout`,
 
-    // Work Request
+    // --- General & Legacy Endpoints ---
     GETALLWORKREQUEST: `${API_URL}/work-request`,
-
-    // Work Order (General)
     GETALLWORKORDER: `${API_URL}/work-order`,
-
-    // Schedule Maintenance List (General)
     GETALLSCHEDULEMAINTENANCE: `${API_URL}/schedule-maintenance-list`,
-
-    // Continent
     GETALLCONTINENT: `${API_URL}/continent`,
-
-    // Parts forecaster
     GETALLPARTSFORECASTER: `${API_URL}/parts-forecaster`,
 
     // detail profile
@@ -32,7 +25,7 @@ export const API_ENDPOINTS = {
     TECHNICIAN_PART_REQUEST_BY_ID: (id) => `${API_URL}/technician/part-request/${id}`,
     TECHNICIAN_PART_BASE: `${API_URL}/technician/part-request/part`,
 
-    // Logistics
+    // --- Logistics Endpoints ---
     LOGISTICS_DASHBOARD: `${API_URL}/logistics/dashboard`,
     LOGISTICS_PARTS: `${API_URL}/logistics/parts`,
     LOGISTICS_DELETE_PARTS_MANY: `${API_URL}/logistics/parts/delete-many`,
@@ -42,7 +35,7 @@ export const API_ENDPOINTS = {
     LOGISTICS_USAGE_LOG: `${API_URL}/logistics/part-usage/usage-log`,
     LOGISTICS_PARTS_BY_ID: (id) => `${API_URL}/logistics/parts/${id}`,
 
-    // Admin
+    // --- Admin Endpoints ---
     USERS: `${API_URL}/admin/users`,
     USER_BY_ID: (id) => `${API_URL}/admin/users/${id}`,
     DELETE_USERS_MANY: `${API_URL}/admin/users/delete-many`,
@@ -60,6 +53,9 @@ export const API_ENDPOINTS = {
     ADMIN_PART_REQUEST_BY_ID: (id) => `${API_URL}/admin/part-requests/${id}`,
     ADMIN_PART_REQUEST_STATUS: (id) => `${API_URL}/admin/part-requests/${id}/status`,
     ADMIN_PART_REQUEST_DELETE_MANY: `${API_URL}/admin/part-requests/delete-many`,
+    ADMIN_ISSUES: `${API_URL}/admin/issues`,
+    ADMIN_ISSUE_BY_ID: (id) => `${API_URL}/admin/issues/${id}`,
+    ADMIN_ISSUES_DELETE_MANY: `${API_URL}/admin/issues/delete-many`,
 
     // --- Manager Endpoints ---
     MANAGER_DASHBOARD_OVERVIEW: `${API_URL}/manager/dashboard/overview`,

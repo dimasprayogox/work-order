@@ -1,6 +1,3 @@
-// my-project/app/(main)/manager/dashboard/page.jsx
-/* eslint-disable @next/next/no-img-element */
-
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
@@ -18,20 +15,18 @@ import { Chart } from 'primereact/chart';
 import { classNames } from 'primereact/utils';
 import { Toast } from "primereact/toast";
 
-// Konfigurasi status yang disederhanakan
 const statusConfig = {
-    pending: { label: "Pending", color: "#ef4444", bgColor: "bg-red-100", textColor: "text-red-800", icon: "pi-exclamation-triangle" },
-    in_progress: { label: "Dalam Proses", color: "#3b82f6", bgColor: "bg-blue-100", textColor: "text-blue-800", icon: "pi-spinner pi-spin" },
-    completed: { label: "Selesai", color: "#10b981", bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check" },
-    // Status mesin (jika ada, meskipun tidak terkait langsung dengan Work Order status enum)
-    active: { label: "Aktif", color: "#10b981", bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check-circle" },
-    idle: { label: "Diam", color: "#6b7280", bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-pause" },
-    maintenance: { label: "Perawatan", color: "#f59e0b", bgColor: "bg-orange-100", textColor: "text-orange-800", icon: "pi-wrench" },
-    broken: { label: "Rusak", color: "#ef4444", bgColor: "bg-red-100", textColor: "text-red-800", icon: "pi-times-circle" }
+    pending: { label: "Pending", color: "#ef4444", bgColor: "bg-red-500", textColor: "text-white", icon: "pi-exclamation-triangle" },
+    in_progress: { label: "In Progress", color: "#3b82f6", bgColor: "bg-blue-500", textColor: "text-white", icon: "pi-spinner pi-spin" },
+    completed: { label: "Completed", color: "#10b981", bgColor: "bg-green-500", textColor: "text-white", icon: "pi-check" },
+    active: { label: "Aktif", color: "#10b981", bgColor: "bg-green-500", textColor: "text-white", icon: "pi-check-circle" },
+    idle: { label: "Diam", color: "#6b7280", bgColor: "bg-gray-500", textColor: "text-white", icon: "pi-pause" },
+    maintenance: { label: "Perawatan", color: "#f59e0b", bgColor: "bg-orange-500", textColor: "text-white", icon: "pi-wrench" },
+    broken: { label: "Rusak", color: "#ef4444", bgColor: "bg-red-500", textColor: "text-white", icon: "pi-times-circle" }
 };
 
 const getStatusStyle = (status) => {
-    return statusConfig[status] || { label: status, color: "gray", bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-question" };
+    return statusConfig[status] || { label: status, color: "gray", bgColor: "bg-gray-500", textColor: "text-white", icon: "pi-question" };
 };
 
 const ManagerDashboardPage = () => {
@@ -47,8 +42,8 @@ const ManagerDashboardPage = () => {
     const woStatusOptions = [
         { label: "Semua Status", value: "" },
         { label: "Pending", value: "pending" },
-        { label: "Dalam Proses", value: "in_progress" },
-        { label: "Selesai", value: "completed" }
+        { label: "In Progress", value: "in_progress" },
+        { label: "Completed", value: "completed" }
     ];
 
     const showToast = useCallback((severity, summary, detail) => {
@@ -58,7 +53,6 @@ const ManagerDashboardPage = () => {
     const fetchDashboardData = useCallback(async () => {
         setLoading(true);
         try {
-            // Menggunakan proxy API Next.js
             const overviewResponse = await fetch(`/api/manager/dashboard/overview`);
             const allWoResponse = await fetch(`/api/manager/dashboard/work-orders/all`);
             const scheduleResponse = await fetch(`/api/manager/schedules`);
@@ -133,11 +127,14 @@ const ManagerDashboardPage = () => {
     const statusBodyTemplate = (rowData) => {
         const config = getStatusStyle(rowData.status);
         return (
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
-                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
-                    <i className={`pi ${config.icon}`}></i>
-                    <span className="font-medium">{config.label}</span>
-                </div>
+            <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                className={`inline-flex items-center gap-2 px-2 py-1 text-xs rounded-full cursor-pointer ${config.bgColor} ${config.textColor}`}
+            >
+                <i className={`pi ${config.icon}`}></i>
+                <span className="font-medium whitespace-nowrap">{config.label}</span>
             </motion.div>
         );
     };
@@ -147,12 +144,32 @@ const ManagerDashboardPage = () => {
     };
 
     const machineBodyTemplate = (rowData) => {
-        return <Tag value={rowData.machine?.name || "N/A"} className="bg-gray-100 text-gray-800 font-medium" />;
+        return (
+            <Tag
+                value={rowData.machine?.name || "N/A"}
+                className="bg-gray-100 text-gray-800 font-medium border-round-lg px-2 py-1"
+                style={{ backgroundColor: '#f3f4f6', color: '#1f2937' }}
+            />
+        );
     };
-
+    
     const technicianBodyTemplate = (rowData) => {
-        return <Tag value={rowData.assignedTo?.full_name || "Belum Ditugaskan"} className="bg-blue-100 text-blue-800 font-medium" />;
+        return (
+            <Tag
+                value={rowData.assignedTo?.full_name || "Belum Ditugaskan"}
+                className="bg-blue-100 text-blue-800 font-medium border-round-lg px-2 py-1"
+                style={{ backgroundColor: '#e0f2fe', color: '#1d4ed8' }}
+            />
+        );
     };
+    
+    const titleBodyTemplate = (rowData) => (
+        <motion.div whileHover={{ x: 5 }} transition={{ type: "spring", stiffness: 300 }}>
+            <span className="font-medium text-blue-600 cursor-pointer">
+                {rowData.title}
+            </span>
+        </motion.div>
+    );
 
     const filteredWorkOrders = workOrders.filter((wo) => {
         const matchesStatus = !woStatusFilter || wo.status === woStatusFilter;
@@ -302,7 +319,7 @@ const ManagerDashboardPage = () => {
                                 <h5 className="font-bold mb-4">Pemantauan Semua Work Order</h5>
                                 <DataTable
                                     value={filteredWorkOrders}
-                                    className="border-round-lg"
+                                    className="p-datatable-gridlines p-datatable-striped"
                                     rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
                                     paginator
                                     rows={10}
@@ -311,130 +328,62 @@ const ManagerDashboardPage = () => {
                                     currentPageReportTemplate="Menampilkan {first} sampai {last} dari {totalRecords} work order"
                                     emptyMessage="Tidak ada work order ditemukan"
                                     header={
-                                        <div className="flex align-items-center justify-content-between gap-2">
-                                            <div>
-                                                <span className="text-xl font-bold mr-3">Work Orders</span>
-                                                <Dropdown placeholder="Filter Status" value={woStatusFilter} options={woStatusOptions} onChange={(e) => setWoStatusFilter(e.value)} className="w-10rem" />
+                                        <div className="flex justify-content-between align-items-center p-4">
+                                            <div className="flex align-items-center gap-2">
+                                                <span className="font-semibold text-lg">Work Orders</span>
+                                                <Dropdown
+                                                    placeholder="Semua Status"
+                                                    value={woStatusFilter}
+                                                    options={woStatusOptions}
+                                                    onChange={(e) => setWoStatusFilter(e.value)}
+                                                    className="w-full md:w-12rem"
+                                                />
                                             </div>
-                                            <InputText placeholder="Cari" value={woSearchText} onChange={(e) => setSearchText(e.target.value)} className="w-15rem" />
+                                            <span className="p-input-icon-left">
+                                                <i className="pi pi-search" />
+                                                <InputText
+                                                    placeholder="Cari"
+                                                    value={woSearchText}
+                                                    onChange={(e) => setSearchText(e.target.value)}
+                                                    className="w-full md:w-15rem"
+                                                />
+                                            </span>
                                         </div>
                                     }
                                 >
-                                    <Column field="title" header="Judul" sortable body={(rowData) => (
-                                        <motion.div whileHover={{ x: 5 }} className="font-medium text-blue-600">
-                                            {rowData.title}
-                                        </motion.div>
-                                    )} />
-                                    <Column field="machine.name" header="Mesin" body={machineBodyTemplate} sortable sortField="machine.name" />
-                                    <Column field="assignedTo.full_name" header="Teknisi Ditugaskan" body={technicianBodyTemplate} sortable sortField="assignedTo.full_name" />
-                                    <Column field="scheduled_date" header="Tanggal Terjadwal" body={(rowData) => dateBodyTemplate(rowData, 'scheduled_date')} sortable />
-                                    <Column field="status" header="Status" body={statusBodyTemplate} sortable />
-                                </DataTable>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid mt-4">
-                        <div className="col-12">
-                            <div className="card overflow-hidden">
-                                <h5 className="font-bold mb-4">Jadwal Maintenance</h5>
-                                <div className="w-full overflow-auto">
-                                    <Calendar
-                                        inline
-                                        value={null}
-                                        readOnlyInput
-                                        style={{ width: '100%', minWidth: '300px' }}
-                                        dateTemplate={(date) => {
-                                            const eventsOnThisDay = allScheduledEvents.filter(
-                                                (event) =>
-                                                    event.date.getDate() === date.day &&
-                                                    event.date.getMonth() === date.month &&
-                                                    event.date.getFullYear() === date.year
-                                            );
-                                            const hasEvent = eventsOnThisDay.length > 0;
-                                            const hasWorkOrder = eventsOnThisDay.some(e => e.type === 'workOrder');
-                                            const hasMaintenance = eventsOnThisDay.some(e => e.type === 'maintenanceSchedule');
-
-                                            let icon = null;
-                                            if (hasWorkOrder && hasMaintenance) {
-                                                icon = <i className="pi pi-calendar-times text-white" style={{ fontSize: '0.5rem' }}></i>; // Both
-                                            } else if (hasWorkOrder) {
-                                                icon = <i className="pi pi-briefcase text-white" style={{ fontSize: '0.5rem' }}></i>; // Work Order
-                                            } else if (hasMaintenance) {
-                                                icon = <i className="pi pi-cog text-white" style={{ fontSize: '0.5rem' }}></i>; // Maintenance Schedule
-                                            }
-
-                                            return (
-                                                <div className={classNames('relative p-1 rounded-full w-2rem h-2rem flex align-items-center justify-content-center', {
-                                                    'bg-blue-500 text-white': hasEvent, // Warna dasar jika ada event
-                                                    'text-gray-900': !hasEvent,
-                                                    'font-bold': hasEvent,
-                                                    'border-2 border-primary': date.today
-                                                })}>
-                                                    {date.day}
-                                                    {hasEvent && (
-                                                        <div className="absolute -bottom-1 -right-1 bg-orange-500 rounded-full w-1rem h-1rem flex align-items-center justify-content-center text-xs">
-                                                            {icon}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        }}
+                                    <Column
+                                        field="title"
+                                        header="Judul"
+                                        sortable
+                                        body={titleBodyTemplate}
                                     />
-                                </div>
-                                <div className="mt-4">
-                                    <h6 className="font-bold mb-2">Detail Jadwal Mendatang:</h6>
-                                    {allScheduledEvents.length > 0 ? (
-                                        <ul className="list-none p-0">
-                                            {allScheduledEvents
-                                                .filter(event => event.date >= new Date()) // Hanya event di masa mendatang
-                                                .slice(0, 5) // Batasi hingga 5 event
-                                                .map((event, index) => (
-                                                    <li key={index} className="mb-2 p-2 bg-gray-50 rounded-md">
-                                                        <div className="flex justify-content-between align-items-start">
-                                                            <div>
-                                                                <span className="font-medium text-blue-600">
-                                                                    {event.date.toLocaleDateString('id-ID', {
-                                                                        weekday: 'short',
-                                                                        month: 'short',
-                                                                        day: 'numeric',
-                                                                        year: 'numeric'
-                                                                    })}:
-                                                                </span>
-                                                                <div className="mt-1">
-                                                                    <strong>{event.title}</strong> ({event.machineName || 'N/A'})
-                                                                    {event.type === 'workOrder' && (
-                                                                        <span className="ml-2 text-sm text-gray-500">
-                                                                            (WO - {getStatusStyle(event.status).label})
-                                                                        </span>
-                                                                    )}
-                                                                    {event.type === 'maintenanceSchedule' && (
-                                                                        <span className="ml-2 text-sm text-gray-500">
-                                                                            (Jadwal PM)
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                {(event.description || event.notes) && (
-                                                                    <div className="text-sm text-gray-600 mt-1">
-                                                                        <i className="pi pi-info-circle mr-1"></i>
-                                                                        {event.description || event.notes}
-                                                                    </div>
-                                                                )}
-                                                                {event.type === 'workOrder' && event.assignedTo && (
-                                                                    <div className="text-sm text-gray-600 mt-1">
-                                                                        <i className="pi pi-user mr-1"></i>
-                                                                        Teknisi: {event.assignedTo}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </li>
-                                                ))}
-                                        </ul>
-                                    ) : (
-                                        <p className="text-gray-500">Tidak ada jadwal maintenance atau work order mendatang.</p>
-                                    )}
-                                </div>
+                                    <Column
+                                        field="machine.name"
+                                        header="Mesin"
+                                        body={machineBodyTemplate}
+                                        sortable
+                                        sortField="machine.name"
+                                    />
+                                    <Column
+                                        field="assignedTo.full_name"
+                                        header="Teknisi Ditugaskan"
+                                        body={technicianBodyTemplate}
+                                        sortable
+                                        sortField="assignedTo.full_name"
+                                    />
+                                    <Column
+                                        field="scheduled_date"
+                                        header="Tanggal Terjadwal"
+                                        body={(rowData) => dateBodyTemplate(rowData, 'scheduled_date')}
+                                        sortable
+                                    />
+                                    <Column
+                                        field="status"
+                                        header="Status"
+                                        body={statusBodyTemplate}
+                                        sortable
+                                    />
+                                </DataTable>
                             </div>
                         </div>
                     </div>
