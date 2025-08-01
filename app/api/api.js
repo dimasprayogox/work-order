@@ -57,6 +57,9 @@ export const API_ENDPOINTS = {
     ADMIN_PART_REQUEST_BY_ID: (id) => `${API_URL}/admin/part-requests/${id}`,
     ADMIN_PART_REQUEST_STATUS: (id) => `${API_URL}/admin/part-requests/${id}/status`,
     ADMIN_PART_REQUEST_DELETE_MANY: `${API_URL}/admin/part-requests/delete-many`,
+    ADMIN_ISSUES: `${API_URL}/admin/issues`,
+    ADMIN_ISSUE_BY_ID: (id) => `${API_URL}/admin/issues/${id}`,
+    ADMIN_ISSUES_DELETE_MANY: `${API_URL}/admin/issues/delete-many`,
 
     // --- Manager Endpoints ---
     MANAGER_DASHBOARD_OVERVIEW: `${API_URL}/manager/dashboard/overview`,
