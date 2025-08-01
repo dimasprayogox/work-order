@@ -6,9 +6,37 @@ import { Button } from "primereact/button";
 import { Tag } from "primereact/tag";
 import { Image } from "primereact/image";
 import { Divider } from "primereact/divider";
+import { useState, useEffect } from "react";
 
 const IssueDetailDialog = ({ visible, onHide, issue }) => {
-    if (!issue) return null;
+    const [reportedByUser, setReportedByUser] = useState(null);
+    const [loadingUser, setLoadingUser] = useState(false);
+
+    // Fetch user data when issue changes
+    useEffect(() => {
+        if (issue && issue.reported_by_id && !issue.reported_by?.full_name) {
+            fetchReportedByUser();
+        }
+    }, [issue]);
+
+    const fetchReportedByUser = async () => {
+        setLoadingUser(true);
+        try {
+            const res = await fetch("/api/admin/issues/users", {
+                credentials: "include"
+            });
+            const data = await res.json();
+            if (res.ok) {
+                const users = data.data || [];
+                const user = users.find(u => u.id === issue.reported_by_id);
+                setReportedByUser(user);
+            }
+        } catch (error) {
+            console.error("Error fetching user:", error);
+        } finally {
+            setLoadingUser(false);
+        }
+    };
 
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
@@ -22,35 +50,58 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
         });
     };
 
-    const getStatusSeverity = (status) => {
+    const getStatusDetails = (status) => {
         switch (status) {
-            case 'open':
-                return 'danger';
-            case 'in_progress':
-                return 'warning';
-            case 'resolved':
-                return 'success';
-            case 'closed':
-                return 'info';
+            case "open":
+                return {
+                    severity: "danger",
+                    icon: "pi pi-exclamation-circle",
+                    displayText: "Open"
+                };
+            case "in_progress":
+                return {
+                    severity: "info",
+                    icon: "pi pi-spin pi-spinner",
+                    displayText: "In Progress"
+                };
+            case "resolved":
+                return {
+                    severity: "success",
+                    icon: "pi pi-check-circle",
+                    displayText: "Resolved"
+                };
+            case "closed":
+                return {
+                    severity: "secondary",
+                    icon: "pi pi-lock",
+                    displayText: "Closed"
+                };
             default:
-                return null;
+                return {
+                    severity: "warning",
+                    icon: "pi pi-question-circle",
+                    displayText: "Unknown"
+                };
         }
     };
 
-    const getStatusLabel = (status) => {
-        switch (status) {
-            case 'open':
-                return 'Open';
-            case 'in_progress':
-                return 'In Progress';
-            case 'resolved':
-                return 'Resolved';
-            case 'closed':
-                return 'Closed';
-            default:
-                return status;
+    const getReportedByName = () => {
+        if (issue?.reported_by?.full_name) {
+            return issue.reported_by.full_name;
         }
+        if (reportedByUser?.full_name) {
+            return reportedByUser.full_name;
+        }
+        if (loadingUser) {
+            return "Loading...";
+        }
+        return "Unknown User";
     };
+
+    // Return null after all hooks
+    if (!issue) return null;
+
+    const statusDetails = getStatusDetails(issue.status);
 
     const footerContent = (
         <div className="flex justify-content-end">
@@ -106,9 +157,9 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
                     <div className="field mb-4">
                         <label className="font-semibold text-gray-800 block mb-2">Status</label>
                         <Tag
-                            value={getStatusLabel(issue.status)}
-                            severity={getStatusSeverity(issue.status)}
-                            className="text-base"
+                            value={<span className="flex align-items-center gap-1"><i className={statusDetails.icon}></i> {statusDetails.displayText}</span>}
+                            severity={statusDetails.severity}
+                            className="font-medium text-base"
                         />
                     </div>
 
@@ -177,12 +228,14 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
                         </div>
                     )}
 
-                    {issue.reported_by_id && (
+                    {(issue.reported_by_id || issue.reported_by) && (
                         <div className="field mb-3">
                             <label className="font-semibold text-gray-800 block mb-2">Reported By</label>
                             <div className="flex align-items-center gap-2">
                                 <i className="pi pi-user text-gray-500"></i>
-                                <code className="text-xs text-gray-600">{issue.reported_by_id}</code>
+                                <span className="text-sm text-gray-700">
+                                    {getReportedByName()}
+                                </span>
                             </div>
                         </div>
                     )}
