@@ -90,8 +90,13 @@ const WorkOrderAddModal = ({ visible, onHide, machines, onAddSuccess, showToast 
             const result = await response.json();
 
             if (!response.ok) {
-                const errorDetail = result.message || JSON.stringify(result.errors) || "Gagal menambahkan work order.";
-                throw new Error(errorDetail);
+                if (result.errors) {
+                    setErrors(result.errors);
+                    showToast("error", "Validasi Gagal", "Mohon perbaiki kesalahan pada formulir.");
+                } else {
+                    showToast("error", "Gagal", result.message || "Terjadi kesalahan.");
+                }
+                return;
             }
 
             showToast("success", "Berhasil", "Work order berhasil ditambahkan!");
