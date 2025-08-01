@@ -53,6 +53,13 @@ export const API_ENDPOINTS = {
     ADMIN_ISSUES: `${API_URL}/admin/issues`,
     ADMIN_ISSUE_BY_ID: (id) => `${API_URL}/admin/issues/${id}`,
     ADMIN_ISSUES_DELETE_MANY: `${API_URL}/admin/issues/delete-many`,
+    ADMIN_WORK_ORDER_ASSIGNMENTS: `${API_URL}/admin/work-order-assignments`,
+    ADMIN_WORK_ORDER_ASSIGN: `${API_URL}/admin/work-order-assignments/assign`,
+    ADMIN_WORK_ORDER_BULK_ASSIGN: `${API_URL}/admin/work-order-assignments/bulk-assign`,
+    ADMIN_WORK_ORDER_REASSIGN: (id) => `${API_URL}/admin/work-order-assignments/${id}/reassign`,
+    ADMIN_WORK_ORDER_UNASSIGN: (id) => `${API_URL}/admin/work-order-assignments/${id}/unassign`,
+    ADMIN_WORK_ORDER_ASSIGNMENT_TECHNICIANS: `${API_URL}/admin/work-order-assignments/technicians`,
+    ADMIN_WORK_ORDER_ASSIGNMENT_STATS: `${API_URL}/admin/work-order-assignments/stats`,
 
     // --- Manager Endpoints ---
     MANAGER_DASHBOARD_OVERVIEW: `${API_URL}/manager/dashboard/overview`,
