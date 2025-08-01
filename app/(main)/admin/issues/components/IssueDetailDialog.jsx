@@ -6,20 +6,14 @@ import { Button } from "primereact/button";
 import { Tag } from "primereact/tag";
 import { Image } from "primereact/image";
 import { Divider } from "primereact/divider";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const IssueDetailDialog = ({ visible, onHide, issue }) => {
     const [reportedByUser, setReportedByUser] = useState(null);
     const [loadingUser, setLoadingUser] = useState(false);
 
     // Fetch user data when issue changes
-    useEffect(() => {
-        if (issue && issue.reported_by_id && !issue.reported_by?.full_name) {
-            fetchReportedByUser();
-        }
-    }, [issue]);
-
-    const fetchReportedByUser = async () => {
+    const fetchReportedByUser = useCallback(async () => {
         setLoadingUser(true);
         try {
             const res = await fetch("/api/admin/issues/users", {
@@ -36,7 +30,13 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
         } finally {
             setLoadingUser(false);
         }
-    };
+    }, [issue?.reported_by_id]);
+
+    useEffect(() => {
+        if (issue && issue.reported_by_id && !issue.reported_by?.full_name) {
+            fetchReportedByUser();
+        }
+    }, [issue, fetchReportedByUser]);
 
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
