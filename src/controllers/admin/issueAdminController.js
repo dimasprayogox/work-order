@@ -165,8 +165,8 @@ export const IssueAdminController = {
     async update(req, res) {
         try {
             const id = req.params.id;
-
             const parsed = updateIssueAdminSchema.safeParse(req.body);
+            
             if (!parsed.success) {
                 return res.status(400).json({
                     message: "Validation failed",
@@ -191,6 +191,10 @@ export const IssueAdminController = {
             }
             if (data.machine_id !== undefined) {
                 updateData.machine_id = data.machine_id;
+            }
+            // ✅ Add reported_by_id handling
+            if (data.reported_by_id !== undefined) {
+                updateData.reported_by_id = data.reported_by_id;
             }
 
             if (req.file) {
