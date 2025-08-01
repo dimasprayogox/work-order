@@ -112,7 +112,7 @@ const ConfirmDeleteDialog = ({ visible, onHide, issue, selectedIssues = [], fetc
                             `Anda akan menghapus ${selectedIssues.length} issue yang dipilih.`
                         ) : (
                             <>
-                                Anda akan menghapus issue <strong>"{issue?.title}"</strong>.
+                                Anda akan menghapus issue <strong>&quot;{issue?.title}&quot;</strong>.
                             </>
                         )}
                         <br />
