@@ -33,12 +33,12 @@ export const POST = async (request) => {
     try {
         const body = await request.json();
         if (body.ids && Array.isArray(body.ids)) {
-            const response = await Axios.post(API_ENDPOINTS.DELETE_PARTS_MANY, body, {
+            const response = await Axios.post(API_ENDPOINTS.LOGISTICS_DELETE_PARTS_MANY, body, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             return NextResponse.json(response.data, { status: 200 });
         } else {
-            const response = await Axios.post(API_ENDPOINTS.PARTS, body, {
+            const response = await Axios.post(API_ENDPOINTS.LOGISTICS_PARTS, body, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             return NextResponse.json(response.data, { status: 201 });
