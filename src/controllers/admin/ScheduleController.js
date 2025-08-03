@@ -67,7 +67,8 @@ export const ScheduleController = {
                 description: data.description,
                 machine_id: data.machine_id,
                 frequency: data.frequency,
-                priority: data.priority
+                priority: data.priority,
+                is_active: data.is_active !== undefined ? data.is_active : true
             });
 
             res.status(201).json({ success: true, data: schedule });
@@ -111,6 +112,7 @@ export const ScheduleController = {
 
             const dueSchedules = await Schedule.query()
                 .where('next_due_date', '<=', now)
+                .where('is_active', 1)
                 .withGraphFetched('machine');
 
             const createdWOs = [];
