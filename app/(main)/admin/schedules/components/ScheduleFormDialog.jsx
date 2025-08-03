@@ -8,6 +8,7 @@ import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
 import { classNames } from "primereact/utils";
 import { useState, useEffect } from "react";
+import { Checkbox } from "primereact/checkbox";
 
 const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedules, showToast }) => {
     const [form, setForm] = useState({
@@ -16,7 +17,8 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedule
         machine_id: "",
         frequency: "",
         priority: "medium",
-        next_due_date: null
+        next_due_date: null,
+        is_active: true
     });
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -44,7 +46,10 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedule
                 machine_id: schedule.machine_id || "",
                 frequency: schedule.frequency || "",
                 priority: schedule.priority || "medium",
-                next_due_date: schedule.next_due_date ? new Date(schedule.next_due_date) : null
+                next_due_date: schedule.next_due_date ? new Date(schedule.next_due_date) : null,
+                is_active: typeof schedule.is_active === "boolean"
+                    ? schedule.is_active
+                    : Boolean(Number(schedule.is_active))
             });
         } else {
             setForm({
@@ -53,7 +58,8 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedule
                 machine_id: "",
                 frequency: "",
                 priority: "medium",
-                next_due_date: null
+                next_due_date: null,
+                is_active: true
             });
         }
         setSubmitted(false);
@@ -84,7 +90,8 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedule
                 machine_id: form.machine_id,
                 frequency: form.frequency,
                 priority: form.priority,
-                next_due_date: form.next_due_date.toISOString()
+                next_due_date: form.next_due_date.toISOString(),
+                is_active: form.is_active // <-- tambahkan ini
             };
 
             const res = await fetch(
@@ -239,6 +246,19 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedule
                         rows={3}
                     />
                     <small className="text-gray-500">Optional: Provide additional details about this maintenance schedule</small>
+                </div>
+
+                {/* Active Status Field */}
+                <div className="field mb-4">
+                    <label htmlFor="is_active" className="font-semibold text-gray-800 block mb-2">
+                        Aktifkan Jadwal
+                    </label>
+                    <Checkbox
+                        inputId="is_active"
+                        checked={form.is_active}
+                        onChange={e => setForm({ ...form, is_active: e.checked })}
+                    />
+                    <span className="ml-2">{form.is_active ? "Aktif" : "Nonaktif"}</span>
                 </div>
             </div>
         </Dialog>
