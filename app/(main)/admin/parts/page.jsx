@@ -283,8 +283,8 @@ const AdminPartPage = () => {
       <div className="card">
         <div className="flex justify-content-between items-start mb-4">
           <div>
-            <h3 className="text-2xl font-semibold">Admin - Manajemen Parts</h3>
-            <p className="text-sm text-gray-500">Kelola parts dalam sistem.</p>
+            <h3 className="text-2xl font-semibold">Parts Management</h3>
+            <p className="text-sm text-gray-500">Manage parts in the system.</p>
           </div>
         </div>
 

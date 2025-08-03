@@ -297,8 +297,8 @@ const MachinePage = () => {
             <div className="card">
                 <div className="flex justify-content-between items-start mb-4">
                     <div>
-                        <h3 className="text-2xl font-semibold">Manajemen Mesin</h3>
-                        <p className="text-sm text-gray-500">Kelola data mesin dalam sistem.</p>
+                        <h3 className="text-2xl font-semibold">Machine Management</h3>
+                        <p className="text-sm text-gray-500">Manage machine data in the system.</p>
                     </div>
                 </div>
 

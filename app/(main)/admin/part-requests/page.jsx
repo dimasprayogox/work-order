@@ -342,8 +342,8 @@ const AdminPartRequestPage = () => {
             <div className="card">
                 <div className="flex justify-content-between items-start mb-4">
                     <div>
-                        <h3 className="text-2xl font-semibold">Admin - Part Request Management</h3>
-                        <p className="text-sm text-gray-500">Kelola permintaan part dalam sistem.</p>
+                        <h3 className="text-2xl font-semibold">Part Request Management</h3>
+                        <p className="text-sm text-gray-500">Manage part requests in the system.</p>
                     </div>
                 </div>
 

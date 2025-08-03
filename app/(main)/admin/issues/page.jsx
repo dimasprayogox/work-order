@@ -308,8 +308,8 @@ const IssuePage = () => {
             <div className="card">
                 <div className="flex justify-content-between items-start mb-4">
                     <div>
-                        <h3 className="text-2xl font-semibold">Manajemen Issue</h3>
-                        <p className="text-sm text-gray-500">Kelola data issue dalam sistem.</p>
+                        <h3 className="text-2xl font-semibold">Issue Management</h3>
+                        <p className="text-sm text-gray-500">Manage data issues in the system.</p>
                     </div>
                 </div>
 

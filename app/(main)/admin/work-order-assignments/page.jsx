@@ -191,7 +191,7 @@ const WorkOrderAssignmentPage = () => {
                 <div className="flex justify-content-between items-start mb-4">
                     <div>
                         <h3 className="text-2xl font-semibold">Work Order Assignment</h3>
-                        <p className="text-sm text-gray-500">Kelola penugasan work order ke teknisi.</p>
+                        <p className="text-sm text-gray-500">Manage work order assignments to technicians.</p>
                     </div>
                 </div>
 

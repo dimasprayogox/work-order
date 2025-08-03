@@ -298,8 +298,8 @@ const UserPage = () => {
             <div className="card">
                 <div className="flex justify-content-between items-start mb-4">
                     <div>
-                        <h3 className="text-2xl font-semibold">Manajemen Users</h3>
-                        <p className="text-sm text-gray-500">Kelola user dalam sistem.</p>
+                        <h3 className="text-2xl font-semibold">User Management</h3>
+                        <p className="text-sm text-gray-500">Manage users in the system.</p>
                     </div>
                 </div>
 

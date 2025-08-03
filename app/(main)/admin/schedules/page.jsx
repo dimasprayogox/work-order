@@ -353,8 +353,8 @@ const SchedulePage = () => {
             <div className="card">
                 <div className="flex justify-content-between items-start mb-4">
                     <div>
-                        <h3 className="text-2xl font-semibold">Manajemen Jadwal Maintenance</h3>
-                        <p className="text-sm text-gray-500">Kelola jadwal maintenance rutin untuk mesin.</p>
+                        <h3 className="text-2xl font-semibold">Maintenance Schedule Management</h3>
+                        <p className="text-sm text-gray-500">Manage routine maintenance schedules for machines.</p>
                     </div>
                 </div>
 
