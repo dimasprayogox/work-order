@@ -36,6 +36,7 @@ export const API_ENDPOINTS = {
     LOGISTICS_PARTS_BY_ID: (id) => `${API_URL}/logistics/parts/${id}`,
 
     // --- Admin Endpoints ---
+    ADMIN_DASHBOARD_OVERVIEW: `${API_URL}/admin/dashboard/overview`,
     USERS: `${API_URL}/admin/users`,
     USER_BY_ID: (id) => `${API_URL}/admin/users/${id}`,
     DELETE_USERS_MANY: `${API_URL}/admin/users/delete-many`,
