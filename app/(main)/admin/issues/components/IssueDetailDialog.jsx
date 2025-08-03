@@ -7,6 +7,7 @@ import { Tag } from "primereact/tag";
 import { Image } from "primereact/image";
 import { Divider } from "primereact/divider";
 import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 
 const IssueDetailDialog = ({ visible, onHide, issue }) => {
     const [reportedByUser, setReportedByUser] = useState(null);
@@ -54,33 +55,38 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
         switch (status) {
             case "open":
                 return {
-                    severity: "danger",
-                    icon: "pi pi-exclamation-circle",
-                    displayText: "Open"
+                    bgColor: "bg-orange-100",
+                    textColor: "text-orange-800",
+                    icon: "pi pi-clock",
+                    label: "Pending"
                 };
             case "in_progress":
                 return {
-                    severity: "info",
+                    bgColor: "bg-cyan-100",
+                    textColor: "text-cyan-800",
                     icon: "pi pi-spin pi-spinner",
-                    displayText: "In Progress"
+                    label: "In Progress"
                 };
             case "resolved":
                 return {
-                    severity: "success",
+                    bgColor: "bg-green-100",
+                    textColor: "text-green-800",
                     icon: "pi pi-check-circle",
-                    displayText: "Resolved"
+                    label: "Resolved"
                 };
             case "closed":
                 return {
-                    severity: "secondary",
+                    bgColor: "bg-gray-200",
+                    textColor: "text-gray-800",
                     icon: "pi pi-lock",
-                    displayText: "Closed"
+                    label: "Closed"
                 };
             default:
                 return {
-                    severity: "warning",
-                    icon: "pi pi-question-circle",
-                    displayText: "Unknown"
+                    bgColor: "bg-gray-100",
+                    textColor: "text-gray-800",
+                    icon: "pi pi-question",
+                    label: status
                 };
         }
     };
@@ -156,11 +162,15 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
 
                     <div className="field mb-4">
                         <label className="font-semibold text-gray-800 block mb-2">Status</label>
-                        <Tag
-                            value={<span className="flex align-items-center gap-1"><i className={statusDetails.icon}></i> {statusDetails.displayText}</span>}
-                            severity={statusDetails.severity}
-                            className="font-medium text-base"
-                        />
+                        <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
+                            <div
+                                className={`flex items-center gap-2 px-3 py-1 rounded-full ${statusDetails.bgColor} ${statusDetails.textColor}`}
+                                style={{ width: "fit-content", minWidth: "120px" }} // tambahkan ini
+                            >
+                                <i className={`pi ${statusDetails.icon}`}></i>
+                                <span className="font-medium">{statusDetails.label}</span>
+                            </div>
+                        </motion.div>
                     </div>
 
                     {issue.workOrder && (
