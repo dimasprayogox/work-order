@@ -9,6 +9,13 @@ import { useState, useEffect } from "react";
 import { FilterMatchMode } from "primereact/api";
 import { ConfirmDialog } from "primereact/confirmdialog";
 import { motion } from "framer-motion";
+import { Dropdown } from "primereact/dropdown";
+
+const statusOptions = [
+    { label: "All", value: null },
+    { label: "Aktif", value: true },
+    { label: "Nonaktif", value: false }
+];
 
 const ScheduleTable = ({
     schedules,
@@ -25,6 +32,7 @@ const ScheduleTable = ({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS }
     });
     const [globalFilterValue, setGlobalFilterValue] = useState(searchText);
+    const [statusFilter, setStatusFilter] = useState(null);
 
     useEffect(() => {
         setGlobalFilterValue(searchText);
@@ -165,6 +173,14 @@ const ScheduleTable = ({
         );
     };
 
+    const statusBodyTemplate = (rowData) => (
+        <Tag
+            value={rowData.is_active ? "Aktif" : "Nonaktif"}
+            severity={rowData.is_active ? "success" : "danger"}
+            className="font-medium"
+        />
+    );
+
     const actionBodyTemplate = (rowData) => (
         <div className="flex gap-2">
             <Button
@@ -195,11 +211,28 @@ const ScheduleTable = ({
         </div>
     );
 
+    // Filter schedules by status
+    const filteredSchedules = statusFilter === null
+        ? schedules
+        : schedules.filter(s => {
+            // Pastikan is_active boolean
+            const isActive = typeof s.is_active === "boolean"
+                ? s.is_active
+                : Boolean(Number(s.is_active));
+            return isActive === statusFilter;
+        });
+
     const header = (
         <div className="flex flex-wrap align-items-center justify-content-between gap-2">
             <span className="text-xl font-bold">Maintenance Schedules</span>
-
             <div className="flex gap-2">
+                <Dropdown
+                    value={statusFilter}
+                    options={statusOptions}
+                    onChange={e => setStatusFilter(e.value)}
+                    placeholder="Status"
+                    className="w-10rem"
+                />
                 <span className="p-input-icon-left">
                     <i className="pi pi-search" />
                     <InputText
@@ -219,9 +252,8 @@ const ScheduleTable = ({
     return (
         <div>
             <ConfirmDialog />
-
             <DataTable
-                value={schedules}
+                value={filteredSchedules}
                 selection={selectedSchedules}
                 onSelectionChange={handleSelectionChange}
                 dataKey="id"
@@ -244,6 +276,13 @@ const ScheduleTable = ({
                 <Column field="machine" header="Machine" body={machineBodyTemplate} sortable />
                 <Column field="frequency" header="Frequency" body={frequencyBodyTemplate} sortable />
                 <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
+                <Column
+                    field="is_active"
+                    header="Status"
+                    body={statusBodyTemplate}
+                    style={{ width: "100px" }}
+                    sortable
+                />
                 <Column
                     field="next_due_date"
                     header="Next Due Date"
