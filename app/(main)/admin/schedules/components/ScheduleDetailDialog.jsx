@@ -299,6 +299,15 @@ const ScheduleDetailDialog = ({ visible, onHide, schedule }) => {
                             </div>
                         </div>
                     </div>
+
+                    <div>
+                        <strong>Status Jadwal:</strong>{" "}
+                        {schedule.is_active ? (
+                            <span style={{ color: "green" }}>Aktif</span>
+                        ) : (
+                            <span style={{ color: "red" }}>Nonaktif</span>
+                        )}
+                    </div>
                 </div>
             </div>
         </Dialog>
