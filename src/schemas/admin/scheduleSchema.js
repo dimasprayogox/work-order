@@ -7,6 +7,7 @@ export const createScheduleSchema = z.object({
     frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly'], "Frekuensi tidak valid."),
     next_due_date: z.coerce.date("Tanggal jatuh tempo tidak valid."),
     priority: z.enum(['low', 'medium', 'high']).default('medium'),
+    is_active: z.boolean().default(true),
 });
 
 export const updateScheduleSchema = z.object({
@@ -16,4 +17,5 @@ export const updateScheduleSchema = z.object({
     frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly'], "Frekuensi tidak valid.").optional(),
     next_due_date: z.coerce.date("Tanggal jatuh tempo tidak valid.").optional(),
     priority: z.enum(['low', 'medium', 'high']).optional(),
+    is_active: z.boolean().optional(),
 });
