@@ -23,6 +23,7 @@ import adminPartRequestRoutes from './routes/admin/partRequest.route.js';
 import issueAdminRoute from './routes/admin/issue.route.js';
 import workOrderAssignmentRoutes from './routes/admin/workOrderAssignment.routes.js';
 import adminScheduleRoutes from './routes/admin/schedule.routes.js';
+import adminDashboardRoutes from './routes/admin/dashboard.routes.js';
 
 //employee
 import employeeDashboardRoutes from './routes/employee/dashboard.routes.js';
@@ -101,6 +102,7 @@ app.use('/api/admin/part-requests', adminPartRequestRoutes);
 app.use('/api/admin/issues', issueAdminRoute);
 app.use('/api/admin/work-order-assignments', workOrderAssignmentRoutes);
 app.use('/api/admin/schedules', adminScheduleRoutes);
+app.use('/api/admin/dashboard', adminDashboardRoutes);
 
 //employee
 app.use('/api/employee/dashboard', employeeDashboardRoutes);
