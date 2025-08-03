@@ -7,7 +7,6 @@ import { Tag } from "primereact/tag";
 import { Image } from "primereact/image";
 import { Divider } from "primereact/divider";
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
 
 const IssueDetailDialog = ({ visible, onHide, issue }) => {
     const [reportedByUser, setReportedByUser] = useState(null);
@@ -162,15 +161,13 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
 
                     <div className="field mb-4">
                         <label className="font-semibold text-gray-800 block mb-2">Status</label>
-                        <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
-                            <div
-                                className={`flex items-center gap-2 px-3 py-1 rounded-full ${statusDetails.bgColor} ${statusDetails.textColor}`}
-                                style={{ width: "fit-content", minWidth: "120px" }} // tambahkan ini
-                            >
-                                <i className={`pi ${statusDetails.icon}`}></i>
-                                <span className="font-medium">{statusDetails.label}</span>
-                            </div>
-                        </motion.div>
+                        <div
+                            className={`flex items-center gap-2 px-3 py-1 rounded-full ${statusDetails.bgColor} ${statusDetails.textColor}`}
+                            style={{ width: "fit-content", minWidth: "120px" }}
+                        >
+                            <i className={`pi ${statusDetails.icon}`}></i>
+                            <span className="font-medium">{statusDetails.label}</span>
+                        </div>
                     </div>
 
                     {issue.workOrder && (
