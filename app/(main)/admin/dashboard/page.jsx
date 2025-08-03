@@ -30,35 +30,34 @@ const AdminDashboard = () => {
         toast.current?.show({ severity, summary, detail, life: 3000 });
     };
 
-    const fetchDashboardData = async () => {
-        setLoading(true);
-        try {
-            const response = await fetch('/api/admin/dashboard/overview', {
-                method: 'GET',
-                credentials: 'include',
-            });
-
-            if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(`HTTP error! status: ${response.status}. Detail: ${errorResult.message || 'Failed to fetch dashboard data'}`);
-            }
-
-            const result = await response.json();
-
-            if (result.success && result.data) {
-                setDashboardData(result.data);
-            } else {
-                throw new Error('Invalid data format from API');
-            }
-        } catch (error) {
-            console.error('Error fetching dashboard data:', error);
-            showToast('error', 'Error', 'Failed to load dashboard data');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
+        const fetchDashboardData = async () => {
+            setLoading(true);
+            try {
+                const response = await fetch('/api/admin/dashboard/overview', {
+                    method: 'GET',
+                    credentials: 'include',
+                });
+
+                if (!response.ok) {
+                    const errorResult = await response.json();
+                    throw new Error(`HTTP error! status: ${response.status}. Detail: ${errorResult.message || 'Failed to fetch dashboard data'}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    setDashboardData(result.data);
+                } else {
+                    throw new Error('Invalid data format from API');
+                }
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+                showToast('error', 'Error', 'Failed to load dashboard data');
+            } finally {
+                setLoading(false);
+            }
+        };
         fetchDashboardData();
     }, []);
 
