@@ -51,6 +51,11 @@ const AppMenu = () => {
                                     label: "Work Order Assignments",
                                     icon: "pi pi-fw pi-calendar-plus",
                                     to: "/admin/work-order-assignments"
+                                },
+                                {
+                                    label: "Work Schedules",
+                                    icon: "pi pi-fw pi-calendar",
+                                    to: "/admin/schedules"
                                 }
                             ]
                         },
