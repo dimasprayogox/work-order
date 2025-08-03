@@ -48,44 +48,20 @@ const IssueTable = ({
     };
 
     const statusBodyTemplate = (rowData) => {
-        let severity = "info";
-        let icon = "";
-        let displayText = "";
-
-        switch (rowData.status) {
-            case "open":
-                severity = "danger";
-                icon = "pi pi-exclamation-circle";
-                displayText = "Pending";
-                break;
-            case "in_progress":
-                severity = "info";
-                icon = "pi pi-spin pi-spinner";
-                displayText = "In Progress";
-                break;
-            case "resolved":
-                severity = "success";
-                icon = "pi pi-check-circle";
-                displayText = "Resolved";
-                break;
-            case "closed":
-                severity = "secondary";
-                icon = "pi pi-lock";
-                displayText = "Closed";
-                break;
-            default:
-                severity = "warning";
-                icon = "pi pi-question-circle";
-                displayText = "Unknown";
-        }
+        const statusConfig = {
+            open:    { bgColor: 'bg-orange-100', textColor: 'text-orange-800', icon: 'pi-clock', label: 'Pending' },
+            in_progress: { bgColor: 'bg-cyan-100', textColor: 'text-cyan-800', icon: 'pi-spin pi-spinner', label: 'In Progress' },
+            resolved: { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check-circle', label: 'Resolved' },
+            closed:  { bgColor: 'bg-gray-200', textColor: 'text-gray-800', icon: 'pi-lock', label: 'Closed' },
+        };
+        const config = statusConfig[rowData.status] || { bgColor: 'bg-gray-100', textColor: 'text-gray-800', icon: 'pi-question', label: rowData.status };
 
         return (
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
-                <Tag
-                    value={<span className="flex align-items-center gap-1"><i className={icon}></i> {displayText}</span>}
-                    severity={severity}
-                    className="font-medium"
-                />
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                    <i className={`pi ${config.icon}`}></i>
+                    <span className="font-medium">{config.label}</span>
+                </div>
             </motion.div>
         );
     };
