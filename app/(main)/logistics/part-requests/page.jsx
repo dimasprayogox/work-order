@@ -22,7 +22,7 @@ const PartRequestPage = () => {
     }, []);
 
     const fetchRequests = useCallback(async () => {
-        setLoading(true); 
+        setLoading(true);
         try {
             const res = await fetch("/api/logistics/part-request");
             if (!res.ok) {
@@ -30,7 +30,7 @@ const PartRequestPage = () => {
                 throw new Error(errorData.message || "Gagal mengambil data request");
             }
             const result = await res.json();
-            setRequests(result.data || []); 
+            setRequests(result.data || []);
         } catch (err) {
             showToast("error", "Error", err.message);
         } finally {
@@ -64,6 +64,13 @@ const PartRequestPage = () => {
                 <h3 className="mb-4">Manajemen Parts Request</h3>
                 <div className="flex flex-row gap-2 mb-4 justify-content-between">
                     <Button label="Back" icon="pi pi-arrow-left" outlined onClick={() => router.push("/dashboard")} />
+                    <Button label="New" icon="pi pi-plus" outlined severity="success" disabled />
+                    <Divider layout="vertical" />
+                    <Button label="Import" icon="pi pi-file-import" outlined disabled />
+                    <Button label="Export" icon="pi pi-file-excel" outlined disabled />
+                    <Button label="Print" icon="pi pi-print" outlined disabled />
+                    <Divider layout="vertical" />
+                    <Button size="small" label="Delete" icon="pi pi-trash" outlined severity="danger" disabled />
                     <Divider layout="vertical" />
                     <Button label="Refresh" icon="pi pi-refresh" outlined onClick={handleRefresh} />
                 </div>
