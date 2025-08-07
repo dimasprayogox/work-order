@@ -24,6 +24,7 @@ const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false }
 const PartPage = () => {
     const router = useRouter();
     const toast = useRef(null);
+    const fileInputRef = useRef(null);
 
     // State
     const [parts, setParts] = useState([]);
@@ -104,6 +105,56 @@ const PartPage = () => {
         setDeleteOpen(true);
     };
 
+    const handleImport = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const workbook = new ExcelJS.Workbook();
+            const buffer = await file.arrayBuffer();
+            await workbook.xlsx.load(buffer);
+
+            const worksheet = workbook.getWorksheet(1);
+            const data = [];
+
+            worksheet.eachRow((row, rowNumber) => {
+                if (rowNumber === 1) return; // Skip header row
+
+                const rowData = {};
+                row.eachCell((cell, colNumber) => {
+                    const headers = ["name", "part_number", "description", "quantity_in_stock", "min_stock", "location"];
+                    if (headers[colNumber - 1]) {
+                        rowData[headers[colNumber - 1]] = cell.value;
+                    }
+                });
+
+                if (rowData.name) {
+                    data.push(rowData);
+                }
+            });
+
+            for (const item of data) {
+                // Menggunakan API route handler yang baru
+                const res = await fetch("/api/logistics/parts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify(item)
+                });
+                const body = await res.json();
+                if (!res.ok) throw new Error(body.message || "Import gagal");
+            }
+
+            showToast("success", "Import Sukses", `${data.length} data berhasil diimpor`);
+            fetchParts();
+        } catch (err) {
+            showToast("error", "Import Gagal", err.message);
+        }
+
+        // Reset file input
+        e.target.value = "";
+    };
+
     //export excel
     const exportExcel = async () => {
         if (!parts.length) {
@@ -157,7 +208,7 @@ const PartPage = () => {
 
             // Generate Excel file
             const buffer = await workbook.xlsx.writeBuffer();
-            saveAs(new Blob([buffer], { type: "application/octet-stream" }), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
             showToast("success", "Success", "Data berhasil diekspor ke Excel");
         } catch (error) {
             showToast("error", "Error", `Failed to export: ${error.message}`);
@@ -216,6 +267,7 @@ const PartPage = () => {
     return (
         <div className="p-4">
             <Toast ref={toast} position="top-right" />
+            <input type="file" ref={fileInputRef} accept=".xlsx,.xls" onChange={handleImport} style={{ display: "none" }} />
             <ConfirmDialog />
             <div className="card">
                 <h3 className="mb-4">Manajemen Parts</h3>
@@ -223,7 +275,7 @@ const PartPage = () => {
                     <Button label="Back" icon="pi pi-arrow-left" outlined onClick={() => router.push("/dashboard")} />
                     <Button label="New" icon="pi pi-plus" outlined severity="success" onClick={() => setFormOpen(true)} />
                     <Divider layout="vertical" />
-                    <Button label="Import" icon="pi pi-file-import" outlined />
+                    <Button label="Import" icon="pi pi-file-import" outlined onClick={() => fileInputRef.current?.click()} />
                     <Button label="Export" icon="pi pi-file-excel" outlined onClick={exportExcel} />
                     <Button label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
                     <Divider layout="vertical" />
@@ -265,7 +317,15 @@ const PartPage = () => {
                 />
 
                 {/* Print Configuration Dialog */}
-                <AdjustPrintMarginLaporan key={adjustDialog ? "open" : "closed"} adjustDialog={adjustDialog} setAdjustDialog={setAdjustDialog} handleAdjust={handleAdjust} printConfig={printConfig} setPrintConfig={setPrintConfig} />
+                <AdjustPrintMarginLaporan
+                    key={adjustDialog ? "open" : "closed"}
+                    adjustDialog={adjustDialog}
+                    setAdjustDialog={setAdjustDialog}
+                    handleAdjust={handleAdjust}
+                    printConfig={printConfig}
+                    setPrintConfig={setPrintConfig}
+                    excel={exportExcel}
+                />
 
                 {/* PDF Preview Dialog */}
                 <Dialog visible={jsPdfPreviewOpen} onHide={() => setJsPdfPreviewOpen(false)} modal style={{ width: "90vw", height: "90vh" }} header="PDF Preview">
