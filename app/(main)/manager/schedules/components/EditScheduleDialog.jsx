@@ -9,8 +9,6 @@ import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
 import { Message } from "primereact/message";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
-
 export default function EditScheduleDialog({ visible, onHide, schedule, showToast, onScheduleUpdated }) {
     const [formData, setFormData] = useState({
         title: "",
@@ -37,10 +35,9 @@ export default function EditScheduleDialog({ visible, onHide, schedule, showToas
         { label: "Tinggi", value: "high" }
     ];
 
-    // Pindahkan deklarasi fetchMachines ke sini, sebelum useEffect
     const fetchMachines = useCallback(async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/manager/machines`, {
+            const response = await fetch("/api/manager/machines", {
                 credentials: "include"
             });
             const result = await response.json();
@@ -75,7 +72,7 @@ export default function EditScheduleDialog({ visible, onHide, schedule, showToas
         if (!formData.machine_id) errors.machine_id = "Mesin wajib diisi.";
         if (!formData.frequency) errors.frequency = "Frekuensi wajib diisi.";
         if (!formData.next_due_date) errors.next_due_date = "Tanggal jatuh tempo wajib diisi.";
-        if (formData.next_due_date && new Date(formData.next_due_date) < new Date()) {
+        if (formData.next_due_date && new Date(formData.next_due_date).getTime() < new Date().getTime()) {
             errors.next_due_date = "Tanggal jatuh tempo tidak boleh di masa lalu.";
         }
         setFormErrors(errors);
@@ -92,7 +89,7 @@ export default function EditScheduleDialog({ visible, onHide, schedule, showToas
                 next_due_date: formData.next_due_date.toISOString(),
             };
 
-            const response = await fetch(`${API_BASE_URL}/manager/schedules/${schedule.id}`, {
+            const response = await fetch(`/api/manager/schedules/${schedule.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
@@ -104,6 +101,7 @@ export default function EditScheduleDialog({ visible, onHide, schedule, showToas
                 throw new Error(result.message || "Gagal memperbarui jadwal perawatan.");
             }
 
+            showToast("success", "Berhasil", "Jadwal perawatan berhasil diperbarui.");
             onScheduleUpdated();
         } catch (error) {
             showToast("error", "Error", error.message);
