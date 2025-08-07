@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react"; // 1. Import useCallback
+import { useState, useEffect, useCallback } from "react";
 import { Dialog } from "primereact/dialog";
 import { Dropdown } from "primereact/dropdown";
 import { Button } from "primereact/button";
 import { Calendar } from "primereact/calendar";
 import { InputTextarea } from "primereact/inputtextarea";
 import { Message } from "primereact/message";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100/api";
 
 export default function DelegateTechnicianDialog({
     visible,
@@ -26,26 +24,21 @@ export default function DelegateTechnicianDialog({
     });
     const [formErrors, setFormErrors] = useState({});
 
-    // 2. Bungkus fetchTechnicians dengan useCallback
     const fetchTechnicians = useCallback(async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/manager/technicians/available`, {
+            const response = await fetch("/api/manager/technicians/available", {
                 credentials: "include"
             });
             const result = await response.json();
-            if (response.ok) {
-                setTechnicians(result.data);
-            } else {
+            if (!response.ok) {
                 throw new Error(result.message || "Gagal mengambil daftar teknisi yang tersedia");
             }
+            setTechnicians(result.data.map(t => ({ label: t.name, value: t.id })));
         } catch (error) {
-            // Pastikan showToast adalah fungsi yang stabil (dibungkus useCallback di parent)
-            // atau tambahkan ke dependency array jika tidak.
             showToast("error", "Error", error.message);
         }
-    }, [showToast]); // `showToast` adalah dependensi dari fungsi ini
+    }, [showToast]);
 
-    // 3. Tambahkan fetchTechnicians ke dependency array
     useEffect(() => {
         if (visible) {
             fetchTechnicians();
@@ -56,7 +49,7 @@ export default function DelegateTechnicianDialog({
             });
             setFormErrors({});
         }
-    }, [visible, workOrder, fetchTechnicians]); // <-- fetchTechnicians ditambahkan di sini
+    }, [visible, workOrder, fetchTechnicians]);
 
     const validateForm = () => {
         const errors = {};
@@ -77,7 +70,7 @@ export default function DelegateTechnicianDialog({
                 notes: formData.notes
             };
 
-            const response = await fetch(`${API_BASE_URL}/manager/work-orders/${workOrder.id}`, {
+            const response = await fetch(`/api/manager/work-orders/${workOrder.id}/assign-technician`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
@@ -89,10 +82,10 @@ export default function DelegateTechnicianDialog({
                 throw new Error(result.message || "Gagal menugaskan teknisi");
             }
 
+            showToast("success", "Berhasil", "Teknisi berhasil ditugaskan.");
             if (onTechnicianAssigned) {
                 onTechnicianAssigned(result.data);
             }
-
             onHide();
         } catch (error) {
             showToast("error", "Error", error.message);
@@ -151,10 +144,7 @@ export default function DelegateTechnicianDialog({
                     <Dropdown
                         id="technician"
                         value={formData.assigned_to_id}
-                        options={technicians.map(tech => ({
-                            label: tech.name,
-                            value: tech.id
-                        }))}
+                        options={technicians}
                         onChange={(e) => setFormData({ ...formData, assigned_to_id: e.value })}
                         placeholder="Pilih teknisi"
                         className={formErrors.assigned_to_id ? "p-invalid" : ""}
