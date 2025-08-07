@@ -72,6 +72,7 @@ export const API_ENDPOINTS = {
     MANAGER_DASHBOARD_OVERVIEW: `${API_URL}/manager/dashboard/overview`,
     MANAGER_WORK_ORDERS: `${API_URL}/manager/work-orders`,
     MANAGER_WORK_ORDER_BY_ID: (id) => `${API_URL}/manager/work-orders/${id}`,
+    MANAGER_MACHINES: `${API_URL}/manager/machines`,
     MANAGER_MAINTENANCE_SCHEDULES: `${API_URL}/manager/schedules`,
     MANAGER_SCHEDULE_BY_ID: (id) => `${API_URL}/manager/schedules/${id}`,
     MANAGER_PARTS_ANALYSIS: `${API_URL}/manager/dashboard/parts/analysis`,

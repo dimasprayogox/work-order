@@ -15,21 +15,23 @@ import { Chart } from 'primereact/chart';
 import { classNames } from 'primereact/utils';
 import { Toast } from "primereact/toast";
 
+// Configuration for different status types
 const statusConfig = {
-    pending: { label: "Pending", color: "#ef4444", bgColor: "bg-red-500", textColor: "text-white", icon: "pi-exclamation-triangle" },
-    in_progress: { label: "In Progress", color: "#3b82f6", bgColor: "bg-blue-500", textColor: "text-white", icon: "pi-spinner pi-spin" },
-    completed: { label: "Completed", color: "#10b981", bgColor: "bg-green-500", textColor: "text-white", icon: "pi-check" },
-    active: { label: "Aktif", color: "#10b981", bgColor: "bg-green-500", textColor: "text-white", icon: "pi-check-circle" },
-    idle: { label: "Diam", color: "#6b7280", bgColor: "bg-gray-500", textColor: "text-white", icon: "pi-pause" },
-    maintenance: { label: "Perawatan", color: "#f59e0b", bgColor: "bg-orange-500", textColor: "text-white", icon: "pi-wrench" },
-    broken: { label: "Rusak", color: "#ef4444", bgColor: "bg-red-500", textColor: "text-white", icon: "pi-times-circle" }
+    pending: { label: "Pending", color: "#ef4444", bgColor: "bg-red-50", textColor: "text-red-700", icon: "pi-exclamation-triangle" },
+    in_progress: { label: "Dalam Proses", color: "#3b82f6", bgColor: "bg-blue-50", textColor: "text-blue-700", icon: "pi-spinner pi-spin" },
+    completed: { label: "Selesai", color: "#10b981", bgColor: "bg-green-50", textColor: "text-green-700", icon: "pi-check" },
+    active: { label: "Aktif", color: "#10b981", bgColor: "bg-green-50", textColor: "text-green-700", icon: "pi-check-circle" },
+    idle: { label: "Diam", color: "#6b7280", bgColor: "bg-gray-50", textColor: "text-gray-700", icon: "pi-pause" },
+    maintenance: { label: "Perawatan", color: "#f59e0b", bgColor: "bg-orange-50", textColor: "text-orange-700", icon: "pi-wrench" },
+    broken: { label: "Rusak", color: "#ef4444", bgColor: "bg-red-50", textColor: "text-red-700", icon: "pi-times-circle" }
 };
 
+// Helper function to get status styles
 const getStatusStyle = (status) => {
-    return statusConfig[status] || { label: status, color: "gray", bgColor: "bg-gray-500", textColor: "text-white", icon: "pi-question" };
+    return statusConfig[status] || { label: status, color: "gray", bgColor: "bg-gray-50", textColor: "text-gray-700", icon: "pi-question" };
 };
 
-const ManagerDashboardPage = () => {
+const App = () => {
     const toast = useRef(null);
     const [loading, setLoading] = useState(true);
     const [overviewData, setOverviewData] = useState(null);
@@ -39,23 +41,28 @@ const ManagerDashboardPage = () => {
     const [woStatusFilter, setWoStatusFilter] = useState("");
     const [woSearchText, setSearchText] = useState("");
 
+    // Dropdown options for work order status filter
     const woStatusOptions = [
         { label: "Semua Status", value: "" },
         { label: "Pending", value: "pending" },
-        { label: "In Progress", value: "in_progress" },
-        { label: "Completed", value: "completed" }
+        { label: "Dalam Proses", value: "in_progress" },
+        { label: "Selesai", value: "completed" }
     ];
 
+    // Function to show toast notifications
     const showToast = useCallback((severity, summary, detail) => {
         toast.current?.show({ severity, summary, detail, life: 3000 });
     }, []);
 
+    // Function to fetch all dashboard data from API endpoints
     const fetchDashboardData = useCallback(async () => {
         setLoading(true);
         try {
+            // Using Next.js API proxy routes
             const overviewResponse = await fetch(`/api/manager/dashboard/overview`);
             const allWoResponse = await fetch(`/api/manager/dashboard/work-orders/all`);
             const scheduleResponse = await fetch(`/api/manager/schedules`);
+            // Fetch parts analysis from the consolidated proxy route
             const partsResponse = await fetch(`/api/manager/dashboard/parts/analysis`);
 
             const [overviewResult, allWoResult, scheduleResult, partsResult] = await Promise.all([
@@ -89,6 +96,7 @@ const ManagerDashboardPage = () => {
         fetchDashboardData();
     }, [fetchDashboardData]);
 
+    // Memoized list of all scheduled events (work orders and maintenance) for the calendar
     const allScheduledEvents = useMemo(() => {
         const events = [];
 
@@ -124,70 +132,72 @@ const ManagerDashboardPage = () => {
         return events;
     }, [workOrders, maintenanceSchedules]);
 
+    // Custom template for displaying status in DataTable, with motion animations and custom styling
     const statusBodyTemplate = (rowData) => {
         const config = getStatusStyle(rowData.status);
+        
+        const customStyle = {
+            backgroundColor: config.color,
+            color: 'white',
+            borderRadius: '0.5rem',
+            padding: '0.25rem 0.75rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
+        };
+
         return (
-            <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3 }}
-                className={`inline-flex items-center gap-2 px-2 py-1 text-xs rounded-full cursor-pointer ${config.bgColor} ${config.textColor}`}
+            <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                whileHover={{ scale: 1.05 }}
             >
-                <i className={`pi ${config.icon}`}></i>
-                <span className="font-medium whitespace-nowrap">{config.label}</span>
+                <div style={customStyle}>
+                    <i className={`pi ${config.icon}`}></i>
+                    <span className="font-medium">{config.label}</span>
+                </div>
             </motion.div>
         );
     };
 
+    // Template for formatting dates in the DataTable
     const dateBodyTemplate = (rowData, field) => {
         return rowData[field] ? new Date(rowData[field]).toLocaleString("id-ID") : "N/A";
     };
 
+    // Template for machine name tag
     const machineBodyTemplate = (rowData) => {
-        return (
-            <Tag
-                value={rowData.machine?.name || "N/A"}
-                className="bg-gray-100 text-gray-800 font-medium border-round-lg px-2 py-1"
-                style={{ backgroundColor: '#f3f4f6', color: '#1f2937' }}
-            />
-        );
+        return <Tag value={rowData.machine?.name || "N/A"} className="bg-gray-100 text-gray-800 font-medium" />;
     };
-    
-    const technicianBodyTemplate = (rowData) => {
-        return (
-            <Tag
-                value={rowData.assignedTo?.full_name || "Belum Ditugaskan"}
-                className="bg-blue-100 text-blue-800 font-medium border-round-lg px-2 py-1"
-                style={{ backgroundColor: '#e0f2fe', color: '#1d4ed8' }}
-            />
-        );
-    };
-    
-    const titleBodyTemplate = (rowData) => (
-        <motion.div whileHover={{ x: 5 }} transition={{ type: "spring", stiffness: 300 }}>
-            <span className="font-medium text-blue-600 cursor-pointer">
-                {rowData.title}
-            </span>
-        </motion.div>
-    );
 
+    // Template for technician name tag
+    const technicianBodyTemplate = (rowData) => {
+        return <Tag value={rowData.assignedTo?.full_name || "Belum Ditugaskan"} className="bg-blue-100 text-blue-800 font-medium" />;
+    };
+
+    // Filtered work orders based on search text and status filter
     const filteredWorkOrders = workOrders.filter((wo) => {
         const matchesStatus = !woStatusFilter || wo.status === woStatusFilter;
         const matchesSearch = !woSearchText || wo.title.toLowerCase().includes(woSearchText.toLowerCase()) || (wo.description && wo.description.toLowerCase().includes(woSearchText.toLowerCase()));
         return matchesStatus && matchesSearch;
     });
 
+    // Overview data counts
     const totalWorkOrders = overviewData?.totalWorkOrders || 0;
     const pendingWorkOrdersCount = overviewData?.workOrderStatus?.find(s => s.status === 'pending')?.count || 0;
     const inProgressWorkOrdersCount = overviewData?.workOrderStatus?.find(s => s.status === 'in_progress')?.count || 0;
     const completedWorkOrdersCount = overviewData?.workOrderStatus?.find(s => s.status === 'completed')?.count || 0;
 
+    // Data for work order status pie chart
     const woChartData = [
         { name: "Pending", value: pendingWorkOrdersCount, color: "#ef4444" },
-        { name: "Dalam Proses", value: inProgressWorkOrdersCount, color: "#06b6d4" },
+        { name: "Dalam Proses", value: inProgressWorkOrdersCount, color: "#3b82f6" },
         { name: "Selesai", value: completedWorkOrdersCount, color: "#10b981" }
     ].filter(item => item.value > 0);
 
+    // Data for machine status pie chart
     const machineChartData = overviewData?.machineStatus?.map(s => {
         const config = getStatusStyle(s.status);
         return { name: config.label, value: s.count, color: config.color };
@@ -207,7 +217,7 @@ const ManagerDashboardPage = () => {
                 <>
                     <div className="grid">
                         <div className="col-6 md:col-3">
-                            <div className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden" style={{ height: "180px", background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)", borderRadius: "12px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
+                            <motion.div className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden" style={{ height: "180px", background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)", borderRadius: "12px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
                                 <div className="text-center w-full">
                                     <i className="pi pi-briefcase text-white opacity-80" style={{ fontSize: "2rem" }}></i>
                                     <h6 className="font-bold text-white mt-3 mb-1">TOTAL WORK ORDERS</h6>
@@ -216,11 +226,11 @@ const ManagerDashboardPage = () => {
                                 <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
                                     <div className="bg-white h-2 rounded-full" style={{ width: "100%" }}></div>
                                 </div>
-                            </div>
+                            </motion.div>
                         </div>
 
                         <div className="col-6 md:col-3">
-                            <div className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden" style={{ height: "180px", background: "linear-gradient(135deg, #ef4444 0%, #f97316 100%)", borderRadius: "12px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
+                            <motion.div className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden" style={{ height: "180px", background: "linear-gradient(135deg, #ef4444 0%, #f97316 100%)", borderRadius: "12px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
                                 <div className="text-center w-full">
                                     <i className="pi pi-exclamation-triangle text-white opacity-80" style={{ fontSize: "2rem" }}></i>
                                     <h6 className="font-bold text-white mt-3 mb-1">PENDING WORK ORDERS</h6>
@@ -229,11 +239,11 @@ const ManagerDashboardPage = () => {
                                 <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
                                     <div className="bg-white h-2 rounded-full" style={{ width: `${totalWorkOrders > 0 ? (pendingWorkOrdersCount / totalWorkOrders) * 100 : 0}%` }}></div>
                                 </div>
-                            </div>
+                            </motion.div>
                         </div>
 
                         <div className="col-6 md:col-3">
-                            <div className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden" style={{ height: "180px", background: "linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%)", borderRadius: "12px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
+                            <motion.div className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden" style={{ height: "180px", background: "linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%)", borderRadius: "12px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
                                 <div className="text-center w-full">
                                     <i className="pi pi-spinner text-white opacity-80" style={{ fontSize: "2rem" }}></i>
                                     <h6 className="font-bold text-white mt-3 mb-1">IN PROGRESS WORK ORDERS</h6>
@@ -242,11 +252,11 @@ const ManagerDashboardPage = () => {
                                 <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
                                     <div className="bg-white h-2 rounded-full" style={{ width: `${totalWorkOrders > 0 ? (inProgressWorkOrdersCount / totalWorkOrders) * 100 : 0}%` }}></div>
                                 </div>
-                            </div>
+                            </motion.div>
                         </div>
 
                         <div className="col-6 md:col-3">
-                            <div className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden" style={{ height: "180px", background: "linear-gradient(135deg, #10b981 0%, #22c55e 100%)", borderRadius: "12px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
+                            <motion.div className="card flex flex-column align-items-center justify-content-between p-3 overflow-hidden" style={{ height: "180px", background: "linear-gradient(135deg, #10b981 0%, #22c55e 100%)", borderRadius: "12px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
                                 <div className="text-center w-full">
                                     <i className="pi pi-check-circle text-white opacity-80" style={{ fontSize: "2rem" }}></i>
                                     <h6 className="font-bold text-white mt-3 mb-1">COMPLETED WORK ORDERS</h6>
@@ -255,7 +265,7 @@ const ManagerDashboardPage = () => {
                                 <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
                                     <div className="bg-white h-2 rounded-full" style={{ width: `${totalWorkOrders > 0 ? (completedWorkOrdersCount / totalWorkOrders) * 100 : 0}%` }}></div>
                                 </div>
-                            </div>
+                            </motion.div>
                         </div>
                     </div>
 
@@ -319,7 +329,7 @@ const ManagerDashboardPage = () => {
                                 <h5 className="font-bold mb-4">Pemantauan Semua Work Order</h5>
                                 <DataTable
                                     value={filteredWorkOrders}
-                                    className="p-datatable-gridlines p-datatable-striped"
+                                    className="border-round-lg"
                                     rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
                                     paginator
                                     rows={10}
@@ -328,62 +338,141 @@ const ManagerDashboardPage = () => {
                                     currentPageReportTemplate="Menampilkan {first} sampai {last} dari {totalRecords} work order"
                                     emptyMessage="Tidak ada work order ditemukan"
                                     header={
-                                        <div className="flex justify-content-between align-items-center p-4">
-                                            <div className="flex align-items-center gap-2">
-                                                <span className="font-semibold text-lg">Work Orders</span>
-                                                <Dropdown
-                                                    placeholder="Semua Status"
-                                                    value={woStatusFilter}
-                                                    options={woStatusOptions}
-                                                    onChange={(e) => setWoStatusFilter(e.value)}
-                                                    className="w-full md:w-12rem"
-                                                />
+                                        <div className="flex align-items-center justify-content-between gap-2">
+                                            <div>
+                                                <span className="text-xl font-bold mr-3">Work Orders</span>
+                                                <Dropdown placeholder="Filter Status" value={woStatusFilter} options={woStatusOptions} onChange={(e) => setWoStatusFilter(e.value)} className="w-10rem" />
                                             </div>
-                                            <span className="p-input-icon-left">
-                                                <i className="pi pi-search" />
-                                                <InputText
-                                                    placeholder="Cari"
-                                                    value={woSearchText}
-                                                    onChange={(e) => setSearchText(e.target.value)}
-                                                    className="w-full md:w-15rem"
-                                                />
-                                            </span>
+                                            <InputText placeholder="Cari" value={woSearchText} onChange={(e) => setSearchText(e.target.value)} className="w-15rem" />
                                         </div>
                                     }
                                 >
-                                    <Column
-                                        field="title"
-                                        header="Judul"
-                                        sortable
-                                        body={titleBodyTemplate}
-                                    />
-                                    <Column
-                                        field="machine.name"
-                                        header="Mesin"
-                                        body={machineBodyTemplate}
-                                        sortable
-                                        sortField="machine.name"
-                                    />
-                                    <Column
-                                        field="assignedTo.full_name"
-                                        header="Teknisi Ditugaskan"
-                                        body={technicianBodyTemplate}
-                                        sortable
-                                        sortField="assignedTo.full_name"
-                                    />
-                                    <Column
-                                        field="scheduled_date"
-                                        header="Tanggal Terjadwal"
-                                        body={(rowData) => dateBodyTemplate(rowData, 'scheduled_date')}
-                                        sortable
-                                    />
-                                    <Column
-                                        field="status"
-                                        header="Status"
-                                        body={statusBodyTemplate}
-                                        sortable
-                                    />
+                                    <Column field="title" header="Judul" sortable body={(rowData) => (
+                                        <motion.div whileHover={{ x: 5 }} className="font-medium text-blue-600">
+                                            {rowData.title}
+                                        </motion.div>
+                                    )} />
+                                    <Column field="machine.name" header="Mesin" body={machineBodyTemplate} sortable sortField="machine.name" />
+                                    <Column field="assignedTo.full_name" header="Teknisi Ditugaskan" body={technicianBodyTemplate} sortable sortField="assignedTo.full_name" />
+                                    <Column field="scheduled_date" header="Tanggal Terjadwal" body={(rowData) => dateBodyTemplate(rowData, 'scheduled_date')} sortable />
+                                    <Column field="status" header="Status" body={statusBodyTemplate} sortable />
                                 </DataTable>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid mt-4">
+                        <div className="col-12">
+                            <div className="card overflow-hidden">
+                                <h5 className="font-bold mb-4">Jadwal Maintenance</h5>
+                                <div className="w-full overflow-auto">
+                                    <Calendar
+                                        inline
+                                        value={null}
+                                        readOnlyInput
+                                        style={{ width: '100%', minWidth: '300px' }}
+                                        dateTemplate={(date) => {
+                                            const eventsOnThisDay = allScheduledEvents.filter(
+                                                (event) =>
+                                                    event.date.getDate() === date.day &&
+                                                    event.date.getMonth() === date.month &&
+                                                    event.date.getFullYear() === date.year
+                                            );
+                                            const hasEvent = eventsOnThisDay.length > 0;
+                                            const hasWorkOrder = eventsOnThisDay.some(e => e.type === 'workOrder');
+                                            const hasMaintenance = eventsOnThisDay.some(e => e.type === 'maintenanceSchedule');
+
+                                            let icon = null;
+                                            if (hasWorkOrder && hasMaintenance) {
+                                                icon = <i className="pi pi-calendar-times text-white" style={{ fontSize: '0.5rem' }}></i>; // Both
+                                            } else if (hasWorkOrder) {
+                                                icon = <i className="pi pi-briefcase text-white" style={{ fontSize: '0.5rem' }}></i>; // Work Order
+                                            } else if (hasMaintenance) {
+                                                icon = <i className="pi pi-cog text-white" style={{ fontSize: '0.5rem' }}></i>; // Maintenance Schedule
+                                            }
+
+                                            return (
+                                                <div className={classNames('relative p-1 rounded-full w-2rem h-2rem flex align-items-center justify-content-center', {
+                                                    'bg-blue-500 text-white': hasEvent, // Base color if there is an event
+                                                    'text-gray-900': !hasEvent,
+                                                    'font-bold': hasEvent,
+                                                    'border-2 border-primary': date.today
+                                                })}>
+                                                    {date.day}
+                                                    {hasEvent && (
+                                                        <motion.div 
+                                                            className="absolute -bottom-1 -right-1 bg-orange-500 rounded-full w-1rem h-1rem flex align-items-center justify-content-center text-xs"
+                                                            initial={{ scale: 0 }}
+                                                            animate={{ scale: 1 }}
+                                                            transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                                                        >
+                                                            {icon}
+                                                        </motion.div>
+                                                    )}
+                                                </div>
+                                            );
+                                        }}
+                                    />
+                                </div>
+                                <div className="mt-4">
+                                    <h6 className="font-bold mb-2">Detail Jadwal Mendatang:</h6>
+                                    {allScheduledEvents.length > 0 ? (
+                                        <ul className="list-none p-0">
+                                            {allScheduledEvents
+                                                .filter(event => event.date >= new Date()) // Only future events
+                                                .slice(0, 5) // Limit to 5 events
+                                                .map((event, index) => (
+                                                    <motion.li 
+                                                        key={index} 
+                                                        className="mb-2 p-2 bg-gray-50 rounded-md"
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                                                    >
+                                                        <div className="flex justify-content-between align-items-start">
+                                                            <div>
+                                                                <span className="font-medium text-blue-600">
+                                                                    {event.date.toLocaleDateString('id-ID', {
+                                                                        weekday: 'short',
+                                                                        month: 'short',
+                                                                        day: 'numeric',
+                                                                        year: 'numeric'
+                                                                    })}:
+                                                                </span>
+                                                                <div className="mt-1">
+                                                                    <strong>{event.title}</strong> ({event.machineName || 'N/A'})
+                                                                    {event.type === 'workOrder' && (
+                                                                        <span className="ml-2 text-sm text-gray-500">
+                                                                            (WO - {getStatusStyle(event.status).label})
+                                                                        </span>
+                                                                    )}
+                                                                    {event.type === 'maintenanceSchedule' && (
+                                                                        <span className="ml-2 text-sm text-gray-500">
+                                                                            (Jadwal PM)
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {(event.description || event.notes) && (
+                                                                    <div className="text-sm text-gray-600 mt-1">
+                                                                        <i className="pi pi-info-circle mr-1"></i>
+                                                                        {event.description || event.notes}
+                                                                    </div>
+                                                                )}
+                                                                {event.type === 'workOrder' && event.assignedTo && (
+                                                                    <div className="text-sm text-gray-600 mt-1">
+                                                                        <i className="pi pi-user mr-1"></i>
+                                                                        Teknisi: {event.assignedTo}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </motion.li>
+                                                ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-gray-500">Tidak ada jadwal maintenance atau work order mendatang.</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -514,4 +603,4 @@ const ManagerDashboardPage = () => {
     );
 };
 
-export default ManagerDashboardPage;
+export default App;

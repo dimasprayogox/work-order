@@ -29,16 +29,15 @@ export default function CreateWorkOrderDialog({ visible, onHide, showToast, onWo
 
     const fetchMachines = useCallback(async () => {
         try {
-            // Menggunakan route handler proxy yang baru
             const response = await fetch("/api/manager/machines", {
                 credentials: "include"
             });
-            const result = await response.json();
-            if (response.ok) {
-                setMachines(result.data.map(m => ({ label: m.name, value: m.id })));
-            } else {
-                throw new Error(result.message || "Gagal mengambil daftar mesin");
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.message || "Gagal mengambil daftar mesin");
             }
+            const result = await response.json();
+            setMachines(result.data.map(m => ({ label: m.name, value: m.id })));
         } catch (error) {
             showToast("error", "Error", error.message);
         }
@@ -83,7 +82,6 @@ export default function CreateWorkOrderDialog({ visible, onHide, showToast, onWo
                 scheduled_date: formData.scheduled_date.toISOString(),
             };
 
-            // Menggunakan route handler proxy POST yang baru
             const response = await fetch("/api/manager/work-orders", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
