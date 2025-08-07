@@ -50,10 +50,14 @@ const statusFilterOptions = [
 
 export default function WorkOrderPage() {
     const toast = useRef(null);
+    const router = useRouter();
     const [workOrders, setWorkOrders] = useState([]);
     const [selectedWorkOrders, setSelectedWorkOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+
     const [statusFilter, setStatusFilter] = useState("");
+    const [assignmentFilter, setAssignmentFilter] = useState("");
+    const [priorityFilter, setPriorityFilter] = useState("");
     const [searchText, setSearchText] = useState("");
 
     const [assignDialogVisible, setAssignDialogVisible] = useState(false);
@@ -89,7 +93,6 @@ export default function WorkOrderPage() {
         { field: 'completed_at', header: 'Selesai Pada', visible: true },
         { field: 'notes', header: 'Catatan', visible: true },
     ];
-
 
     const showToast = useCallback((severity, summary, detail) => {
         toast.current?.show({ severity, summary, detail, life: 3000 });
@@ -341,94 +344,189 @@ export default function WorkOrderPage() {
         }
     };
 
+    const assignedTechnicians = workOrders.filter(wo => wo.assignedTo).map(wo => wo.assignedTo);
+    const uniqueTechnicians = Array.from(new Set(assignedTechnicians.map(t => t.full_name)))
+        .map(name => assignedTechnicians.find(t => t.full_name === name));
+
+    const getAssignedCount = () => workOrders.filter(wo => wo.assignedTo).length;
+    const getUnassignedCount = () => workOrders.filter(wo => !wo.assignedTo).length;
+    const getActiveTechniciansCount = () => {
+        const activeTechnicians = new Set(workOrders.filter(wo => wo.status === 'in_progress').map(wo => wo.assigned_to_id));
+        return activeTechnicians.size;
+    };
+    const getAvgWorkload = () => {
+        const assignedWorkOrders = getAssignedCount();
+        const activeTechs = getActiveTechniciansCount();
+        return activeTechs > 0 ? (assignedWorkOrders / activeTechs).toFixed(1) : 0;
+    };
+
+    const assignmentFilterOptions = [
+        { label: "All", value: "" },
+        { label: "Unassigned", value: "unassigned" },
+        { label: "Assigned", value: "assigned" }
+    ];
+
+    const priorityFilterOptions = [
+        { label: "All Priority", value: "" },
+        { label: "Low", value: "low" },
+        { label: "Medium", value: "medium" },
+        { label: "High", value: "high" }
+    ];
+
     const filteredData = workOrders.filter((wo) => {
         const matchesStatus = !statusFilter || wo.status === statusFilter;
+        const matchesAssignment = !assignmentFilter ||
+            (assignmentFilter === "unassigned" && !wo.assignedTo) ||
+            (assignmentFilter === "assigned" && !!wo.assignedTo);
+        const matchesPriority = !priorityFilter || wo.priority === priorityFilter;
         const matchesSearch = !searchText ||
             wo.title.toLowerCase().includes(searchText.toLowerCase()) ||
             (wo.description && wo.description.toLowerCase().includes(searchText.toLowerCase())) ||
             (wo.machine?.name && wo.machine.name.toLowerCase().includes(searchText.toLowerCase())) ||
             (wo.assignedTo?.full_name && wo.assignedTo.full_name.toLowerCase().includes(searchText.toLowerCase()));
-        return matchesStatus && matchesSearch;
+
+        return matchesStatus && matchesAssignment && matchesPriority && matchesSearch;
     });
 
-    const header = (
-        <div className="flex flex-column md:flex-row justify-content-between gap-2">
-            <div>
-                <Dropdown
-                    value={statusFilter}
-                    options={statusFilterOptions}
-                    onChange={(e) => setStatusFilter(e.value)}
-                    placeholder="Filter Status"
-                    className="w-full md:w-auto"
-                />
-            </div>
-            <span className="p-input-icon-left">
-                <i className="pi pi-search" />
-                <InputText
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    placeholder="Cari kata kunci"
-                    className="w-full md:w-auto"
-                />
-            </span>
-        </div>
+    const tableHeader = (
+        <span className="p-input-icon-left">
+            <i className="pi pi-search" />
+            <InputText
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Cari kata kunci"
+                className="w-full md:w-auto"
+            />
+        </span>
     );
+
 
     return (
         <div className="p-4">
             <Toast ref={toast} />
             <ConfirmDialog />
             <div className="card">
-                <h3 className="text-2xl font-semibold">Manajemen Work Order</h3>
-                <div className="flex flex-wrap gap-2 mb-4 items-center">
+                <h3 className="text-2xl font-semibold mb-4">Manajemen Work Order</h3>
+
+                <div className="grid mb-4">
+                    <div className="col-12 md:col-6 lg:col-3">
+                        <div className="bg-white p-4 text-center rounded-md shadow-md">
+                            <h5 className="text-xl text-blue-500 font-bold mb-2">{getUnassignedCount()}</h5>
+                            <p className="text-sm text-gray-500">Unassigned</p>
+                        </div>
+                    </div>
+                    <div className="col-12 md:col-6 lg:col-3">
+                        <div className="bg-white p-4 text-center rounded-md shadow-md">
+                            <h5 className="text-xl text-green-500 font-bold mb-2">{getAssignedCount()}</h5>
+                            <p className="text-sm text-gray-500">Assigned</p>
+                        </div>
+                    </div>
+                    <div className="col-12 md:col-6 lg:col-3">
+                        <div className="bg-white p-4 text-center rounded-md shadow-md">
+                            <h5 className="text-xl text-orange-500 font-bold mb-2">{getActiveTechniciansCount()}</h5>
+                            <p className="text-sm text-gray-500">Active Technicians</p>
+                        </div>
+                    </div>
+                    <div className="col-12 md:col-6 lg:col-3">
+                        <div className="bg-white p-4 text-center rounded-md shadow-md">
+                            <h5 className="text-xl text-purple-500 font-bold mb-2">{getAvgWorkload()}</h5>
+                            <p className="text-sm text-gray-500">Avg Workload</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-4 mb-4 bg-gray-100 rounded-md shadow-md">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="flex flex-col">
+                            <label className="text-sm font-semibold mb-1">Status</label>
+                            <Dropdown
+                                value={statusFilter}
+                                options={statusFilterOptions}
+                                onChange={(e) => setStatusFilter(e.value)}
+                                placeholder="All Status"
+                            />
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-sm font-semibold mb-1">Assignment</label>
+                            <Dropdown
+                                value={assignmentFilter}
+                                options={assignmentFilterOptions}
+                                onChange={(e) => setAssignmentFilter(e.value)}
+                                placeholder="All"
+                            />
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-sm font-semibold mb-1">Priority</label>
+                            <Dropdown
+                                value={priorityFilter}
+                                options={priorityFilterOptions}
+                                onChange={(e) => setPriorityFilter(e.value)}
+                                placeholder="All Priority"
+                            />
+                        </div>
+                    </div>
+                    <Button
+                        label="Clear Filters"
+                        icon="pi pi-filter-slash"
+                        className="mt-4 p-button-outlined"
+                        onClick={() => {
+                            setStatusFilter("");
+                            setAssignmentFilter("");
+                            setPriorityFilter("");
+                        }}
+                    />
+                </div>
+
+                <div className="flex flex-row flex-wrap items-center gap-2 mb-4">
                     <Button
                         size="small"
-                        label="Buat Permintaan Baru"
+                        label="Back"
+                        icon="pi pi-arrow-left"
+                        outlined
+                        disabled
+                    />
+                    <Button
+                        size="small"
+                        label="New"
                         icon="pi pi-plus"
                         outlined
                         severity="success"
-                        onClick={() => setCreateWorkOrderDialogVisible(true)}
-                        tooltip="Buat Work Order Baru"
-                        tooltipOptions={{ position: 'bottom' }}
-                    />
-                    <Button
-                        size="small"
-                        label="Impor"
-                        icon="pi pi-file-import"
-                        outlined
-                        onClick={() => fileInputRef.current?.click()}
-                        tooltip="Impor dari Excel"
-                        tooltipOptions={{ position: 'bottom' }}
-                    />
-                    <Button
-                        size="small"
-                        label="Ekspor"
-                        icon="pi pi-file-export"
-                        outlined
-                        onClick={exportExcel}
-                        tooltip="Ekspor ke Excel"
-                        tooltipOptions={{ position: 'bottom' }}
-                    />
-                    <Button
-                        size="small"
-                        label="Cetak"
-                        icon="pi pi-print"
-                        outlined
-                        onClick={handlePrint}
-                        tooltip="Cetak Laporan"
-                        tooltipOptions={{ position: 'bottom' }}
+                        onClick={() => {
+                            setSelectedWorkOrder(null);
+                            setCreateWorkOrderDialogVisible(true);
+                        }}
                     />
                     <Divider layout="vertical" />
                     <Button
                         size="small"
-                        label="Hapus Terpilih"
+                        label="Import"
+                        icon="pi pi-file-import"
+                        outlined
+                        onClick={() => fileInputRef.current?.click()}
+                    />
+                    <Button
+                        size="small"
+                        label="Export"
+                        icon="pi pi-file-export"
+                        outlined
+                        onClick={exportExcel}
+                    />
+                    <Button
+                        size="small"
+                        label="Print"
+                        icon="pi pi-print"
+                        outlined
+                        onClick={() => setAdjustDialog(true)}
+                    />
+                    <Divider layout="vertical" />
+                    <Button
+                        size="small"
+                        label={`Delete${selectedWorkOrders.length > 0 ? ` (${selectedWorkOrders.length})` : ''}`}
                         icon="pi pi-trash"
                         severity="danger"
+                        outlined
                         onClick={handleDeleteSelected}
                         disabled={selectedWorkOrders.length === 0}
-                        className="p-button-outlined"
-                        tooltip="Hapus Work Order yang dipilih"
-                        tooltipOptions={{ position: 'bottom' }}
                     />
                     <Divider layout="vertical" />
                     <Button
@@ -438,10 +536,9 @@ export default function WorkOrderPage() {
                         outlined
                         onClick={fetchWorkOrders}
                         disabled={loading}
-                        tooltip="Refresh Data"
-                        tooltipOptions={{ position: 'bottom' }}
                     />
                 </div>
+
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                     <Panel header="Daftar Work Order" className="shadow-2">
                         {loading ? (
@@ -457,7 +554,7 @@ export default function WorkOrderPage() {
                                 paginator
                                 rows={10}
                                 rowsPerPageOptions={[5, 10, 25, 50]}
-                                header={header}
+                                header={tableHeader}
                                 emptyMessage="Tidak ada Work Order ditemukan."
                                 selectionMode="multiple"
                                 className="p-datatable-gridlines"
