@@ -29,12 +29,12 @@ const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSel
         [onSearch]
     );
 
-     useEffect(() => {
-         setFilters((prevFilters) => ({
-             ...prevFilters,
-             global: { ...prevFilters.global, value: searchText || null }
-         }));
-     }, [searchText]);
+    useEffect(() => {
+        setFilters((prevFilters) => ({
+            ...prevFilters,
+            global: { ...prevFilters.global, value: searchText || null }
+        }));
+    }, [searchText]);
 
     const handleSelectionChange = (e) => {
         onSelectionChange(e.value);
@@ -42,7 +42,18 @@ const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSel
 
     const handleSelectAllChange = (e) => {
         const checked = e.checked;
-        let selected = checked ? parts.slice(currentFirst, currentFirst + currentRows) : [];
+        // Ambil data yang sesuai dengan filter global
+        const filteredData = filters.global.value
+            ? parts.filter((part) => {
+                  const filterValue = filters.global.value.toLowerCase();
+                  return part.name?.toLowerCase().includes(filterValue) || part.part_number?.toLowerCase().includes(filterValue) || part.location?.toLowerCase().includes(filterValue);
+              })
+            : parts;
+
+        // Ambil data yang sedang ditampilkan di halaman saat ini
+        const visibleData = filteredData.slice(currentFirst, currentFirst + currentRows);
+        const selected = checked ? visibleData : [];
+
         setSelectAll(checked);
         onSelectionChange(selected);
     };
