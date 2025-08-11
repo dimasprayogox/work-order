@@ -75,9 +75,9 @@ const WorkRequestFormDialog = ({
 
     const validateForm = () => {
         const requiredFields = {
-            title: "Judul isu wajib diisi.",
-            description: "Deskripsi wajib diisi.",
-            machine_id: "Mesin wajib dipilih."
+            title: "Title is required.",
+            description: "Description is required.",
+            machine_id: "Machine must be selected."
         };
 
         const errors = {};
@@ -97,7 +97,7 @@ const WorkRequestFormDialog = ({
         const { isValid } = validateForm();
 
         if (!isValid) {
-            showToast("error", "Validasi Gagal", "Mohon perbaiki kesalahan pada formulir.");
+            showToast("error", "Validation Failed", "Please correct the errors in the form.");
             return;
         }
 
@@ -126,12 +126,12 @@ const WorkRequestFormDialog = ({
             }
 
             const data = await res.json();
-            showToast("success", "Berhasil", data.message || `Work order berhasil ${workOrder ? "diperbarui" : "ditambahkan"}!`);
+            showToast("success", "Success", data.message || `Work order successfully ${workOrder ? "updated" : "added"}!`);
             fetchWorkOrders();
             onHide();
         } catch (error) {
             console.error("Error saving work order:", error);
-            showToast("error", "Error", error.message || "Terjadi kesalahan saat menyimpan work order. Periksa koneksi atau hubungi administrator.");
+            showToast("error", "Error", error.message || "An error occurred while saving the work order. Please check your connection or contact the administrator.");
         } finally {
             setLoading(false);
         }
@@ -139,7 +139,13 @@ const WorkRequestFormDialog = ({
 
     const formatStatusForDisplay = (statusValue) => {
         if (!statusValue) return "N/A";
-        return statusValue.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+        const statusMap = {
+            open: "Pending",
+            in_progress: "In Progress",
+            resolved: "Resolved",
+            closed: "Closed"
+        };
+        return statusMap[statusValue] || statusValue.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
     };
 
     // Safely handle machines prop
@@ -149,24 +155,24 @@ const WorkRequestFormDialog = ({
     }));
 
     return (
-        <Dialog header={workOrder ? "Edit Work Order" : "Buat Permintaan Work Order Baru"} visible={visible} style={{ width: "60vw" }} breakpoints={{ "960px": "75vw", "641px": "90vw" }} onHide={onHide} modal className="p-fluid">
+        <Dialog header={workOrder ? "Edit Work Order" : "Create New Work Order Request"} visible={visible} style={{ width: "60vw" }} breakpoints={{ "960px": "75vw", "641px": "90vw" }} onHide={onHide} modal className="p-fluid">
             <div className="field grid mb-4">
                 <label htmlFor="title" className="col-12 mb-2 font-medium">
-                    Judul Isu <span className="text-red-500">*</span>
+                    Issue Title <span className="text-red-500">*</span>
                 </label>
                 <div className="col-12">
                     <InputText id="title" value={form.title} onChange={(e) => handleChange("title", e.target.value)} className={classNames({ "p-invalid": submitted && !form.title })} />
-                    {submitted && !form.title && <small className="p-error">Judul isu wajib diisi</small>}
+                    {submitted && !form.title && <small className="p-error">Title is required</small>}
                 </div>
             </div>
 
             <div className="field grid mb-4">
                 <label htmlFor="description" className="col-12 mb-2 font-medium">
-                    Deskripsi <span className="text-red-500">*</span>
+                    Description <span className="text-red-500">*</span>
                 </label>
                 <div className="col-12">
                     <InputTextarea id="description" value={form.description} onChange={(e) => handleChange("description", e.target.value)} rows={5} className={classNames({ "p-invalid": submitted && !form.description })} />
-                    {submitted && !form.description && <small className="p-error">Deskripsi wajib diisi</small>}
+                    {submitted && !form.description && <small className="p-error">Description is required</small>}
                 </div>
             </div>
 
@@ -177,30 +183,30 @@ const WorkRequestFormDialog = ({
                     </label>
                     <div className="col-12">
                         <InputText id="status" value={formatStatusForDisplay(workOrder?.status)} readOnly disabled />
-                        <small className="text-500 block mt-1">Status diperbarui oleh teknisi</small>
+                        <small className="text-500 block mt-1">Status updated by technician</small>
                     </div>
                 </div>
             )}
 
             <div className="field grid mb-4">
                 <label htmlFor="machine_id" className="col-12 mb-2 font-medium">
-                    Mesin <span className="text-red-500">*</span>
+                    Machine <span className="text-red-500">*</span>
                 </label>
                 <div className="col-12">
-                    <Dropdown id="machine_id" value={form.machine_id} options={machineOptions} onChange={(e) => handleChange("machine_id", e.value)} placeholder="Pilih Mesin" className={classNames({ "p-invalid": submitted && !form.machine_id })} />
-                    {submitted && !form.machine_id && <small className="p-error">Mesin wajib dipilih</small>}
+                    <Dropdown id="machine_id" value={form.machine_id} options={machineOptions} onChange={(e) => handleChange("machine_id", e.value)} placeholder="Select Machine" className={classNames({ "p-invalid": submitted && !form.machine_id })} />
+                    {submitted && !form.machine_id && <small className="p-error">Machine must be selected</small>}
                 </div>
             </div>
 
             <div className="field grid mb-4">
                 <label htmlFor="photo" className="col-12 mb-2 font-medium">
-                    Foto
+                    Photo
                 </label>
                 <div className="col-12">
                     {form.current_photo_url && (
                         <div className="mb-3">
-                            <p className="text-sm text-500 mb-1">{workOrder ? "Foto Saat Ini:" : "Pratinjau:"}</p>
-                            <Image src={form.current_photo_url} alt="Foto Isu" width="100" preview />
+                            <p className="text-sm text-500 mb-1">{workOrder ? "Current Photo:" : "Preview:"}</p>
+                            <Image src={form.current_photo_url} alt="Issue Photo" width="100" preview />
                         </div>
                     )}
 
@@ -213,19 +219,19 @@ const WorkRequestFormDialog = ({
                         onSelect={handleFileChange}
                         onClear={() => handleFileChange({ files: [] })}
                         onRemove={() => handleFileChange({ files: [] })}
-                        chooseLabel="Pilih Foto"
-                        uploadLabel="Unggah (Tidak digunakan di sini)"
-                        cancelLabel="Bersihkan"
+                        chooseLabel="Choose Photo"
+                        uploadLabel="Upload (Not used here)"
+                        cancelLabel="Clear"
                         customUpload={true}
-                        emptyTemplate={<p className="m-0">Tarik dan lepas foto di sini atau klik untuk menelusuri</p>}
+                        emptyTemplate={<p className="m-0">Drag and drop photo here or click to browse</p>}
                     />
-                    <small className="text-500 block mt-1">Ukuran file maksimal: 1MB. Format yang diterima: gambar</small>
+                    <small className="text-500 block mt-1">Max file size: 1MB. Accepted format: image</small>
                 </div>
             </div>
 
             <div className="flex justify-end gap-2">
-                <Button label="Batal" icon="pi pi-times" onClick={onHide} className="p-button-text" disabled={loading} />
-                <Button label={workOrder ? "Simpan" : "Kirim"} icon="pi pi-check" onClick={handleSubmit} loading={loading} disabled={loading} />
+                <Button label="Cancel" icon="pi pi-times" onClick={onHide} className="p-button-text" disabled={loading} />
+                <Button label={workOrder ? "Save" : "Submit"} icon="pi pi-check" onClick={handleSubmit} loading={loading} disabled={loading} />
             </div>
         </Dialog>
     );
