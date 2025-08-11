@@ -6,7 +6,7 @@ import { Dropdown } from "primereact/dropdown";
 import { InputText } from "primereact/inputtext";
 import { useState, useEffect } from "react";
 import { FilterMatchMode } from "primereact/api";
-import StatusBadge from "../../dashboard/components/status/StatusBadge"; 
+import StatusBadge from "../../dashboard/components/status/StatusBadge";
 
 const statusOptions = [
     { label: "All Status", value: "" },
@@ -43,7 +43,7 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
         <ul className="list-disc pl-4">
             {rowData.items.map((item) => (
                 <li key={item.id}>
-                    {item.part?.name} ({item.quantity_requested}){item.quantity_approved != null && ` → Disetujui: ${item.quantity_approved}`}
+                    {item.part?.name} ({item.quantity_requested}){item.quantity_approved != null && ` → Approved: ${item.quantity_approved}`}
                 </li>
             ))}
         </ul>
@@ -85,21 +85,21 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
             paginator
             rows={10}
             stripedRows
-            emptyMessage="Tidak ada permintaan parts ditemukan"
+            emptyMessage="No part requests found"
             filters={filters}
             globalFilterFields={["requestedBy.full_name", "note", "status", "items.part.name"]}
             className="border-round-lg"
             rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-            currentPageReportTemplate="Menampilkan {first} sampai {last} dari {totalRecords} permintaan"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} requests"
             rowsPerPageOptions={[5, 10, 25]}
             header={header}
         >
-            <Column header="Teknisi" body={requestedByTemplate} sortable sortField="requestedBy.name" style={{ width: "15%", minWidth: "150px" }} />
-            <Column field="note" header="Catatan" sortable style={{ width: "20%", minWidth: "200px" }} />
+            <Column header="Technician" body={requestedByTemplate} sortable sortField="requestedBy.name" style={{ width: "15%", minWidth: "150px" }} />
+            <Column field="note" header="Notes" sortable style={{ width: "20%", minWidth: "200px" }} />
             <Column header="Items" body={itemsTemplate} style={{ width: "35%", minWidth: "300px" }} />
             <Column header="Status" body={statusTemplate} sortable sortField="status" bodyClassName={(rowData) => (rowData.status === "false" ? "font-bold" : "")} style={{ width: "15%", minWidth: "120px" }} />
-            <Column header="Aksi" body={actionTemplate} style={{ width: "10%", minWidth: "80px" }} />
+            <Column header="Actions" body={actionTemplate} style={{ width: "10%", minWidth: "80px" }} />
         </DataTable>
     );
 };
