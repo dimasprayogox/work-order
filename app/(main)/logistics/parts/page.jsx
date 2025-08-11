@@ -276,7 +276,7 @@ const PartPage = () => {
                     <Button label="New" icon="pi pi-plus" outlined severity="success" onClick={() => setFormOpen(true)} />
                     <Divider layout="vertical" />
                     <Button label="Import" icon="pi pi-file-import" outlined onClick={() => fileInputRef.current?.click()} />
-                    <Button label="Export" icon="pi pi-file-import" outlined onClick={exportExcel} />
+                    <Button label="Export" icon="pi pi-file-export" outlined onClick={exportExcel} />
                     <Button label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
                     <Divider layout="vertical" />
                     <Button size="small" label={`Delete (${selectedParts.length})`} icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedParts.length === 0} />
