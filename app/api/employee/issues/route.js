@@ -30,20 +30,47 @@ export const POST = async (request) => {
     }
 
     try {
-        const body = await request.json();
-        if (body.ids && Array.isArray(body.ids)) {
-            const response = await Axios.post(API_ENDPOINTS.EMPLOYEE_DELETE_ISSUES_MANY, body, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            return NextResponse.json(response.data, { status: 200 });
-        } else {
+        // Cek content-type
+        const contentType = request.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+            // Untuk bulk delete
+            const body = await request.json();
+            if (body.ids && Array.isArray(body.ids)) {
+                const response = await Axios.post(API_ENDPOINTS.EMPLOYEE_DELETE_ISSUES_MANY, body, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                return NextResponse.json(response.data, { status: 200 });
+            } else {
+                // fallback jika tidak ada file, tapi tetap json
+                const response = await Axios.post(API_ENDPOINTS.EMPLOYEE_ISSUES, body, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    }
+                });
+                return NextResponse.json(response.data, { status: response.status });
+            }
+        } else if (contentType.includes("multipart/form-data")) {
+            // Untuk create issue dengan file
+            const form = await request.formData();
+            const body = new FormData();
+            form.forEach((value, key) => body.append(key, value));
             const response = await Axios.post(API_ENDPOINTS.EMPLOYEE_ISSUES, body, {
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    "Content-Type": "multipart/form-data"
+                    'Content-Type': 'multipart/form-data'
                 }
             });
-
+            return NextResponse.json(response.data, { status: response.status });
+        } else {
+            // fallback: coba json
+            const body = await request.json();
+            const response = await Axios.post(API_ENDPOINTS.EMPLOYEE_ISSUES, body, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                }
+            });
             return NextResponse.json(response.data, { status: response.status });
         }
     } catch (err) {
