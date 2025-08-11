@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
-import { Axios } from "../../../../../utils/axios";
-import { API_ENDPOINTS } from "../../../../api";
+import { Axios } from "../../../utils/axios";
+import { API_ENDPOINTS } from "../../api";
 
 /**
  * @name GET
