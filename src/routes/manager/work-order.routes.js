@@ -8,10 +8,12 @@ router.use(authMiddleware);
 router.use(authorizeRole('manager'));
 
 router.get("/", WorkOrderController.index);
+router.get("/overdue/list", WorkOrderController.overdue);
+
 router.get("/:id", WorkOrderController.show);
 router.post("/", WorkOrderController.create);
+router.patch("/:id/assign-technician", WorkOrderController.assignTechnician); // Rute baru
 router.patch("/:id", WorkOrderController.update);
 router.delete("/:id", WorkOrderController.delete);
-router.get("/overdue/list", WorkOrderController.overdue);
 
 export default router;

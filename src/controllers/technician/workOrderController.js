@@ -2,8 +2,10 @@ import { WorkOrder } from "../../models/WorkOrder.js";
 import { Issue } from "../../models/Issue.js";
 import { Machine } from "../../models/Machine.js";
 import { PartRequest } from "../../models/PartRequest.js";
+import { PartRequestItem } from "../../models/PartRequestItem.js";
 import { PartUsage } from "../../models/PartUsage.js";
 import { updateWorkOrderSchema } from "../../schemas/technician/workOrderSchema.js";
+import crypto from "crypto";
 
 export const WorkOrderController = {
     /**
@@ -67,16 +69,22 @@ export const WorkOrderController = {
                 return res.status(403).json({ message: "Forbidden. You are not authorized to update this work order." });
             }
 
-            // Pastikan ada part request dengan status fulfilled
-            const hasFulfilled = await PartRequest.query()
-                .where("work_order_id", id)
-                .where("status", "fulfilled")
-                .resultSize();
+            // Check if there are any part requests for this work order
+            const partRequests = await PartRequest.query()
+                .where("work_order_id", id);
 
-            if (hasFulfilled === 0) {
-                return res.status(400).json({
-                    message: "Cannot update work order. No fulfilled part requests found."
-                });
+            // If there are part requests, ensure at least one is fulfilled
+            if (partRequests.length > 0) {
+                const hasFulfilled = await PartRequest.query()
+                    .where("work_order_id", id)
+                    .where("status", "fulfilled")
+                    .resultSize();
+
+                if (hasFulfilled === 0) {
+                    return res.status(400).json({
+                        message: "Cannot update work order. No fulfilled part requests found."
+                    });
+                }
             }
 
             // Validasi waktu berdasarkan status
@@ -87,25 +95,44 @@ export const WorkOrderController = {
                 return res.status(400).json({ message: "completed_at is required when status is 'completed'." });
             }
 
-            // Cek part usage jika status ingin diubah ke 'completed'
+            // Auto-create part usage entries jika status diubah ke 'completed'
             if (status === "completed") {
                 const requests = await PartRequest.query()
                     .where("work_order_id", id)
                     .whereIn("status", ["approved", "fulfilled"])
                     .withGraphFetched("items");
 
-                for (const request of requests) {
-                    for (const item of request.items) {
-                        const totalUsed = await PartUsage.query()
-                            .where("work_order_id", id)
-                            .andWhere("part_id", item.part_id)
-                            .sum("quantity_used as total")
-                            .first();
+                // Only process part usage if there are part requests
+                if (requests.length > 0) {
+                    for (const request of requests) {
+                        if (request.items && request.items.length > 0) {
+                            for (const item of request.items) {
+                                // Cek apakah sudah ada part usage untuk item ini
+                                const existingUsage = await PartUsage.query()
+                                    .where("work_order_id", id)
+                                    .andWhere("part_id", item.part_id)
+                                    .andWhere("part_request_item_id", item.id)
+                                    .first();
 
-                        if ((totalUsed.total || 0) < (item.quantity_approved || 0)) {
-                            return res.status(400).json({
-                                message: `Cannot complete work order. Approved part (ID: ${item.part_id}) has not been fully used.`
-                            });
+                                // Jika belum ada, buat entry part usage otomatis
+                                const quantityToUse = item.quantity_approved || item.quantity_requested || 0;
+                                if (!existingUsage && quantityToUse > 0) {
+                                    try {
+                                        const partUsageData = {
+                                            id: crypto.randomUUID(),
+                                            work_order_id: id, // id sudah string UUID
+                                            part_id: item.part_id,
+                                            used_by_id: technicianId,
+                                            quantity_used: quantityToUse,
+                                            part_request_item_id: item.id,
+                                            created_at: new Date()
+                                        };
+                                        await PartUsage.query().insert(partUsageData);
+                                    } catch (insertError) {
+                                        // Jangan stop proses, lanjutkan dengan item berikutnya
+                                    }
+                                }
+                            }
                         }
                     }
                 }

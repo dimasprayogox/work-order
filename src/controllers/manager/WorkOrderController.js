@@ -62,6 +62,33 @@ export const WorkOrderController = {
         }
     },
 
+    async assignTechnician(req, res) {
+        try {
+            const { id } = req.params;
+            const { assigned_to_id, scheduled_date, notes } = req.body;
+
+            if (!assigned_to_id || !scheduled_date) {
+                return res.status(400).json({ success: false, message: "Technician ID and scheduled date are required." });
+            }
+
+            const updatedWO = await WorkOrder.query().patchAndFetchById(id, {
+                assigned_to_id,
+                scheduled_date,
+                notes,
+            });
+
+            if (!updatedWO) {
+                return res.status(404).json({ success: false, message: "Work Order not found." });
+            }
+
+            res.json({ success: true, data: updatedWO });
+        } catch (err) {
+            console.error("Error assigning technician:", err);
+            res.status(500).json({ success: false, message: err.message });
+        }
+    },
+
+
     async update(req, res) {
         try {
             const { id } = req.params;
@@ -80,9 +107,8 @@ export const WorkOrderController = {
             if (data.scheduled_date) {
                 const newDate = new Date(data.scheduled_date);
                 const now = new Date();
-                now.setHours(0, 0, 0, 0);
-
-                if (newDate < now) {
+                
+                if (newDate.getTime() < now.getTime()) {
                     return res.status(400).json({
                         success: false,
                         message: "Tanggal penjadwalan tidak boleh di masa lalu."
