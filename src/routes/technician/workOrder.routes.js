@@ -1,6 +1,6 @@
 
 import express from 'express';
-import { WorkOrderController } from '../../controllers/technician/WorkOrderController.js';
+import { WorkOrderController } from '../../controllers/technician/workOrderController.js';
 import { authMiddleware } from '../../middleware/auth-middleware.js';
 import { authorizeRole } from '../../middleware/role-middleware.js';
 
