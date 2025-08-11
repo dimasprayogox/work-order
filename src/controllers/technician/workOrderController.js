@@ -97,25 +97,16 @@ export const WorkOrderController = {
 
             // Auto-create part usage entries jika status diubah ke 'completed'
             if (status === "completed") {
-                console.log(`[DEBUG] Processing completion for work order ID: ${id}`);
-                
                 const requests = await PartRequest.query()
                     .where("work_order_id", id)
                     .whereIn("status", ["approved", "fulfilled"])
                     .withGraphFetched("items");
 
-                console.log(`[DEBUG] Found ${requests.length} part requests with approved/fulfilled status`);
-
                 // Only process part usage if there are part requests
                 if (requests.length > 0) {
                     for (const request of requests) {
-                        console.log(`[DEBUG] Processing part request ID: ${request.id}, status: ${request.status}`);
-                        console.log(`[DEBUG] Part request has ${request.items?.length || 0} items`);
-                        
                         if (request.items && request.items.length > 0) {
                             for (const item of request.items) {
-                                console.log(`[DEBUG] Processing item: part_id=${item.part_id}, quantity_approved=${item.quantity_approved}, item_id=${item.id}`);
-                                
                                 // Cek apakah sudah ada part usage untuk item ini
                                 const existingUsage = await PartUsage.query()
                                     .where("work_order_id", id)
@@ -123,12 +114,8 @@ export const WorkOrderController = {
                                     .andWhere("part_request_item_id", item.id)
                                     .first();
 
-                                console.log(`[DEBUG] Existing usage found: ${existingUsage ? 'Yes' : 'No'}`);
-
                                 // Jika belum ada, buat entry part usage otomatis
                                 const quantityToUse = item.quantity_approved || item.quantity_requested || 0;
-                                console.log(`[DEBUG] Quantity to use: ${quantityToUse} (approved: ${item.quantity_approved}, requested: ${item.quantity_requested})`);
-                                
                                 if (!existingUsage && quantityToUse > 0) {
                                     try {
                                         const partUsageData = {
@@ -140,24 +127,14 @@ export const WorkOrderController = {
                                             part_request_item_id: item.id,
                                             created_at: new Date()
                                         };
-                                        
-                                        console.log(`[DEBUG] Attempting to insert part usage:`, partUsageData);
-                                        
-                                        const newUsage = await PartUsage.query().insert(partUsageData);
-                                        console.log(`[DEBUG] Successfully inserted part usage with ID: ${newUsage.id}`);
+                                        await PartUsage.query().insert(partUsageData);
                                     } catch (insertError) {
-                                        console.error(`[ERROR] Failed to insert part usage:`, insertError);
                                         // Jangan stop proses, lanjutkan dengan item berikutnya
                                     }
-                                } else {
-                                    console.log(`[DEBUG] Skipping insert - existing usage: ${!!existingUsage}, quantity: ${quantityToUse}`);
                                 }
                             }
                         }
                     }
-                    console.log(`[DEBUG] Finished processing all part requests for work order ${id}`);
-                } else {
-                    console.log(`[DEBUG] No part requests found for work order ${id}`);
                 }
             }
 
