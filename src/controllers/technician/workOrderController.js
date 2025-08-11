@@ -2,8 +2,10 @@ import { WorkOrder } from "../../models/WorkOrder.js";
 import { Issue } from "../../models/Issue.js";
 import { Machine } from "../../models/Machine.js";
 import { PartRequest } from "../../models/PartRequest.js";
+import { PartRequestItem } from "../../models/PartRequestItem.js";
 import { PartUsage } from "../../models/PartUsage.js";
 import { updateWorkOrderSchema } from "../../schemas/technician/workOrderSchema.js";
+import crypto from "crypto";
 
 export const WorkOrderController = {
     /**
@@ -93,30 +95,69 @@ export const WorkOrderController = {
                 return res.status(400).json({ message: "completed_at is required when status is 'completed'." });
             }
 
-            // Cek part usage jika status ingin diubah ke 'completed'
+            // Auto-create part usage entries jika status diubah ke 'completed'
             if (status === "completed") {
+                console.log(`[DEBUG] Processing completion for work order ID: ${id}`);
+                
                 const requests = await PartRequest.query()
                     .where("work_order_id", id)
                     .whereIn("status", ["approved", "fulfilled"])
                     .withGraphFetched("items");
 
-                // Only check part usage if there are part requests
+                console.log(`[DEBUG] Found ${requests.length} part requests with approved/fulfilled status`);
+
+                // Only process part usage if there are part requests
                 if (requests.length > 0) {
                     for (const request of requests) {
-                        for (const item of request.items) {
-                            const totalUsed = await PartUsage.query()
-                                .where("work_order_id", id)
-                                .andWhere("part_id", item.part_id)
-                                .sum("quantity_used as total")
-                                .first();
+                        console.log(`[DEBUG] Processing part request ID: ${request.id}, status: ${request.status}`);
+                        console.log(`[DEBUG] Part request has ${request.items?.length || 0} items`);
+                        
+                        if (request.items && request.items.length > 0) {
+                            for (const item of request.items) {
+                                console.log(`[DEBUG] Processing item: part_id=${item.part_id}, quantity_approved=${item.quantity_approved}, item_id=${item.id}`);
+                                
+                                // Cek apakah sudah ada part usage untuk item ini
+                                const existingUsage = await PartUsage.query()
+                                    .where("work_order_id", id)
+                                    .andWhere("part_id", item.part_id)
+                                    .andWhere("part_request_item_id", item.id)
+                                    .first();
 
-                            if ((totalUsed.total || 0) < (item.quantity_approved || 0)) {
-                                return res.status(400).json({
-                                    message: `Cannot complete work order. Approved part (ID: ${item.part_id}) has not been fully used.`
-                                });
+                                console.log(`[DEBUG] Existing usage found: ${existingUsage ? 'Yes' : 'No'}`);
+
+                                // Jika belum ada, buat entry part usage otomatis
+                                const quantityToUse = item.quantity_approved || item.quantity_requested || 0;
+                                console.log(`[DEBUG] Quantity to use: ${quantityToUse} (approved: ${item.quantity_approved}, requested: ${item.quantity_requested})`);
+                                
+                                if (!existingUsage && quantityToUse > 0) {
+                                    try {
+                                        const partUsageData = {
+                                            id: crypto.randomUUID(),
+                                            work_order_id: id, // id sudah string UUID
+                                            part_id: item.part_id,
+                                            used_by_id: technicianId,
+                                            quantity_used: quantityToUse,
+                                            part_request_item_id: item.id,
+                                            created_at: new Date()
+                                        };
+                                        
+                                        console.log(`[DEBUG] Attempting to insert part usage:`, partUsageData);
+                                        
+                                        const newUsage = await PartUsage.query().insert(partUsageData);
+                                        console.log(`[DEBUG] Successfully inserted part usage with ID: ${newUsage.id}`);
+                                    } catch (insertError) {
+                                        console.error(`[ERROR] Failed to insert part usage:`, insertError);
+                                        // Jangan stop proses, lanjutkan dengan item berikutnya
+                                    }
+                                } else {
+                                    console.log(`[DEBUG] Skipping insert - existing usage: ${!!existingUsage}, quantity: ${quantityToUse}`);
+                                }
                             }
                         }
                     }
+                    console.log(`[DEBUG] Finished processing all part requests for work order ${id}`);
+                } else {
+                    console.log(`[DEBUG] No part requests found for work order ${id}`);
                 }
             }
 
