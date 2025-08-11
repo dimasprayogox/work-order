@@ -7,13 +7,13 @@ import { Button } from "primereact/button";
 const PartTable = ({ parts, loading, onEdit, onDelete }) => {
     return (
         <DataTable value={parts} loading={loading} paginator rows={10} stripedRows>
-            <Column field="name" header="Nama" />
+            <Column field="name" header="Name" />
             <Column field="part_number" header="Part Number" />
-            <Column field="quantity_in_stock" header="Stok" />
-            <Column field="min_stock" header="Min Stok" />
-            <Column field="location" header="Lokasi" />
+            <Column field="quantity_in_stock" header="Stock" />
+            <Column field="min_stock" header="Min Stock" />
+            <Column field="location" header="Location" />
             <Column
-                header="Aksi"
+                header="Actions"
                 body={(rowData) => (
                     <div className="flex gap-2">
                         <Button icon="pi pi-pencil" onClick={() => onEdit(rowData)} />

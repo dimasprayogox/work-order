@@ -403,6 +403,14 @@ export default function TechnicianWorkOrderPage() {
         setUpdateDialogVisible(true);
     };
 
+    const handleDialogHide = () => {
+        setUpdateDialogVisible(false);
+        // Reset selected work order after a short delay to avoid the error
+        setTimeout(() => {
+            setSelectedWorkOrder(null);
+        }, 100);
+    };
+
     const actionBodyTemplate = (rowData) => (
         <Button
             icon="pi pi-pencil"
@@ -410,8 +418,6 @@ export default function TechnicianWorkOrderPage() {
             outlined
             className="p-button-sm"
             onClick={() => handleUpdate(rowData)}
-            tooltip="Update"
-            tooltipOptions={{ position: "top" }}
         />
     );
 
@@ -463,12 +469,26 @@ export default function TechnicianWorkOrderPage() {
                     <div className="flex flex-wrap gap-2">
                         <Button
                             size="small"
+                            label="Back"
+                            icon="pi pi-arrow-left"
+                            outlined
+                            onClick={() => router.push("/technician/dashboard")}
+                        />
+                        <Button
+                            size="small"
+                            label="New"
+                            icon="pi pi-plus"
+                            outlined
+                            severity="success"
+                            disabled
+                        />
+                        <Divider layout="vertical" />
+                        <Button
+                            size="small"
                             label="Import"
                             icon="pi pi-file-import"
                             outlined
                             onClick={() => fileInputRef.current?.click()}
-                            tooltip="Import from Excel"
-                            tooltipOptions={{ position: 'bottom' }}
                         />
                         <Button
                             size="small"
@@ -476,8 +496,6 @@ export default function TechnicianWorkOrderPage() {
                             icon="pi pi-file-export"
                             outlined
                             onClick={exportExcel}
-                            tooltip="Export to Excel"
-                            tooltipOptions={{ position: 'bottom' }}
                         />
                         <Button
                             size="small"
@@ -485,12 +503,17 @@ export default function TechnicianWorkOrderPage() {
                             icon="pi pi-print"
                             outlined
                             onClick={() => setAdjustDialog(true)}
-                            tooltip="Print Report"
-                            tooltipOptions={{ position: 'bottom' }}
                         />
                         <Divider layout="vertical" />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            size="small"
+                            label="Delete"
+                            icon="pi pi-trash"
+                            severity="danger"
+                            outlined
+                            disabled
+                        />
+                        <Divider layout="vertical" />
                         <Button
                             size="small"
                             label="Refresh"
@@ -498,8 +521,6 @@ export default function TechnicianWorkOrderPage() {
                             outlined
                             onClick={fetchWorkOrders}
                             disabled={loading}
-                            tooltip="Refresh Data"
-                            tooltipOptions={{ position: 'bottom' }}
                         />
                     </div>
                 </div>
@@ -525,7 +546,7 @@ export default function TechnicianWorkOrderPage() {
 
             <UpdateWorkOrderDialog
                 visible={isUpdateDialogVisible}
-                onHide={() => setUpdateDialogVisible(false)}
+                onHide={handleDialogHide}
                 workOrder={selectedWorkOrder}
                 fetchWorkOrders={fetchWorkOrders}
                 showToast={showToast}

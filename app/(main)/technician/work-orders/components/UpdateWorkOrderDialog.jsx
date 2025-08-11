@@ -23,7 +23,8 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
     const [formErrors, setFormErrors] = useState({});
 
     // Determine if the form is editable based on the work order's current status
-    const isEditable = workOrder?.status === 'pending' || workOrder?.status === 'in_progress';
+    // Add additional null checks
+    const isEditable = workOrder && (workOrder.status === 'pending' || workOrder.status === 'in_progress');
 
     // Options for the status dropdown
     const statusOptions = [
@@ -70,6 +71,12 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
 
     // Function to check if part requests are fulfilled before completing a work order
     const checkPartRequestEligibility = async () => {
+        // Add null check for workOrder
+        if (!workOrder || !workOrder.id) {
+            showToast('error', 'Check Error', 'Work order information is not available.');
+            return false;
+        }
+
         try {
             // FIX: Use a GET request with a query parameter. No body.
             const response = await fetch(`/api/technician/part-request/${workOrder.id}`);
@@ -77,15 +84,29 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
             // FIX: Properly check if the response is not OK (e.g., 404, 500)
             if (!response.ok) {
                 const errorResult = await response.json();
+                // If no part requests found (404), that's actually OK - work order can proceed
+                if (response.status === 404) {
+                    console.log("No part requests found for this work order, proceeding with update.");
+                    return true;
+                }
                 throw new Error(errorResult.message || 'Failed to check part request status.');
             }
 
             const result = await response.json();
+            
+            // Check if there are part requests and if they are fulfilled
+            if (!result.data || result.data.length === 0) {
+                // No part requests is OK, allow the update
+                console.log("No part requests found for this work order, proceeding with update.");
+                return true;
+            }
+
             const allFulfilled = result.data.every(request => request.status === 'fulfilled');
-            console.log("Part request eligibility result:", result.data[0].status);
-            // Assuming the API returns { eligible: boolean, message: string }
+            console.log("Part request eligibility result:", result.data.map(pr => pr.status));
+            
+            // If there are part requests, they must all be fulfilled
             if (!allFulfilled) {
-                showToast('error', 'Update Failed', result.message || 'Not all part requests for this work order have been fulfilled.');
+                showToast('error', 'Update Failed', 'Not all part requests for this work order have been fulfilled. Please ensure all part requests are fulfilled before updating the status.');
                 return false; // Not eligible
             }
             return true; // Eligible
@@ -97,6 +118,12 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
 
 
     const handleSubmit = async () => {
+        // Add null check for workOrder
+        if (!workOrder || !workOrder.id) {
+            showToast("error", "Error", "Work order information is not available.");
+            return;
+        }
+
         if (!validateForm()) {
             showToast("warn", "Validation Failed", "Please check the form for errors.");
             return;
@@ -104,13 +131,18 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
 
         setLoading(true);
 
-        // If moving to 'completed', first check part request status
+        // If moving to 'completed' or 'in_progress', first check part request status
+        // Only check if there are actually part requests for this work order
         if (formData.status === 'completed' || formData.status === 'in_progress') {
-            const isEligible = await checkPartRequestEligibility();
-            if (!isEligible) {
-                setLoading(false);
-                return; // Stop execution if not eligible
+            // Check if the work order has part requests before validating them
+            if (workOrder.partRequests && workOrder.partRequests.length > 0) {
+                const isEligible = await checkPartRequestEligibility();
+                if (!isEligible) {
+                    setLoading(false);
+                    return; // Stop execution if not eligible
+                }
             }
+            // If no part requests, proceed without checking
         }
 
         try {
@@ -118,8 +150,8 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
                 status: formData.status,
                 description: formData.description,
                 // Conditionally add dates to payload only if they exist
-                ...(formData.status === 'in_progress' && { started_at: formData.started_at.toISOString() }),
-                ...(formData.status === 'completed' && { completed_at: formData.completed_at.toISOString() }),
+                ...(formData.status === 'in_progress' && formData.started_at && { started_at: formData.started_at.toISOString() }),
+                ...(formData.status === 'completed' && formData.completed_at && { completed_at: formData.completed_at.toISOString() }),
             };
 
             const response = await fetch(`/api/technician/work-orders/${workOrder.id}`, {
@@ -145,8 +177,9 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
 
     // Determine which status options to show based on the original status
     const getFilteredStatusOptions = () => {
-        if (workOrder?.status === 'pending') return statusOptions.filter(opt => opt.value === 'in_progress');
-        if (workOrder?.status === 'in_progress') return statusOptions.filter(opt => opt.value === 'completed');
+        if (!workOrder) return [];
+        if (workOrder.status === 'pending') return statusOptions.filter(opt => opt.value === 'in_progress');
+        if (workOrder.status === 'in_progress') return statusOptions.filter(opt => opt.value === 'completed');
         return [];
     };
 
@@ -159,14 +192,20 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
 
     return (
         <Dialog
-            header={`Update Work Order: ${workOrder?.title || ""}`}
+            header={`Update Work Order: ${workOrder?.title || "Loading..."}`}
             visible={visible}
             style={{ width: "min(90vw, 600px)" }}
             modal
             onHide={onHide}
             footer={renderFooter}
         >
-            {isEditable ? (
+            {/* Add loading state when workOrder is not available */}
+            {!workOrder ? (
+                <div className="flex justify-content-center align-items-center" style={{ height: '200px' }}>
+                    <i className="pi pi-spinner pi-spin" style={{ fontSize: '2rem' }}></i>
+                    <span className="ml-2">Loading work order details...</span>
+                </div>
+            ) : isEditable ? (
                 <motion.div className="p-fluid" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                     <div className="field mb-4">
                         <label htmlFor="status" className="font-bold mb-2 block">Update Status To</label>
@@ -202,7 +241,7 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
                     </div>
                 </motion.div>
             ) : (
-                <Message severity="info" text={`This work order cannot be updated because its status is '${workOrder?.status}'.`} />
+                <Message severity="info" text={`This work order cannot be updated because its status is '${workOrder?.status || 'unknown'}'.`} />
             )}
         </Dialog>
     );
