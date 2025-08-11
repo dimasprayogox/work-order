@@ -37,15 +37,15 @@ const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false }
 
 const statusMapForExport = {
     pending: "Pending",
-    in_progress: "Dalam Proses",
-    completed: "Selesai",
+    in_progress: "In Progress",
+    completed: "Completed",
 };
 
 const statusFilterOptions = [
     { label: "Semua Status", value: "" },
     { label: "Pending", value: "pending" },
-    { label: "Dalam Proses", value: "in_progress" },
-    { label: "Selesai", value: "completed" },
+    { label: "In Progress", value: "in_progress" },
+    { label: "Completed", value: "completed" },
 ];
 
 export default function WorkOrderPage() {
@@ -175,6 +175,25 @@ export default function WorkOrderPage() {
     const handleViewDetails = (rowData) => {
         setSelectedWorkOrder(rowData);
         setViewDetailsDialogVisible(true);
+    };
+
+    const priorityBodyTemplate = (rowData) => {
+        let severity = '';
+        switch (rowData.priority) {
+            case 'low':
+                severity = 'success';
+                break;
+            case 'medium':
+                severity = 'warning';
+                break;
+            case 'high':
+                severity = 'danger';
+                break;
+            default:
+                severity = 'info';
+                break;
+        }
+        return <Tag value={rowData.priority} severity={severity} />;
     };
 
     const actionBodyTemplate = (rowData) => {
@@ -436,9 +455,9 @@ export default function WorkOrderPage() {
                 </div>
 
                 <div className="p-4 mb-4 bg-gray-100 rounded-md shadow-md">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="flex flex-col">
-                            <label className="text-sm font-semibold mb-1">Status</label>
+                    <div className="grid grid-nogutter gap-2 mb-4 p-3 border-1 border-gray-300 border-round">
+                        <div className="col-12 md:col-3">
+                            <label className="block text-sm font-medium mb-1">Status</label>
                             <Dropdown
                                 value={statusFilter}
                                 options={statusFilterOptions}
@@ -446,8 +465,8 @@ export default function WorkOrderPage() {
                                 placeholder="All Status"
                             />
                         </div>
-                        <div className="flex flex-col">
-                            <label className="text-sm font-semibold mb-1">Assignment</label>
+                        <div className="col-12 md:col-3">
+                            <label className="block text-sm font-medium mb-1">Assignment</label>
                             <Dropdown
                                 value={assignmentFilter}
                                 options={assignmentFilterOptions}
@@ -455,8 +474,8 @@ export default function WorkOrderPage() {
                                 placeholder="All"
                             />
                         </div>
-                        <div className="flex flex-col">
-                            <label className="text-sm font-semibold mb-1">Priority</label>
+                        <div className="col-12 md:col-3">
+                            <label className="block text-sm font-medium mb-1">Priority</label>
                             <Dropdown
                                 value={priorityFilter}
                                 options={priorityFilterOptions}
@@ -465,6 +484,7 @@ export default function WorkOrderPage() {
                             />
                         </div>
                     </div>
+                    <div className="col-12 md:col-3 flex align-items-end">
                     <Button
                         label="Clear Filters"
                         icon="pi pi-filter-slash"
@@ -475,6 +495,7 @@ export default function WorkOrderPage() {
                             setPriorityFilter("");
                         }}
                     />
+                    </div>
                 </div>
 
                 <div className="flex flex-row flex-wrap items-center gap-2 mb-4">
@@ -562,7 +583,7 @@ export default function WorkOrderPage() {
                                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
                                 <Column field="title" header="Judul" sortable />
                                 <Column field="machine.name" header="Mesin" sortable />
-                                <Column field="priority" header="Prioritas" body={(rowData) => <Tag value={rowData.priority} />} sortable />
+                                <Column field="priority" header="Prioritas" body={priorityBodyTemplate} sortable />
                                 <Column field="status" header="Status" body={commonStatusBodyTemplate} sortable />
                                 <Column header="Ditugaskan Kepada" body={technicianBodyTemplate} sortable sortField="assignedTo.full_name" />
                                 <Column header="Tanggal Terjadwal" body={(rowData) => commonDateBodyTemplate(rowData.scheduled_date)} sortable sortField="scheduled_date" />
