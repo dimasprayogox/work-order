@@ -3,8 +3,8 @@ import { API_ENDPOINTS } from "../../../api";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
-export const PUT = async (request, { params }) => {
-    const { id } = params;
+export const PATCH = async (request, { params }) => {
+    const id = params.id;
     const token = request.cookies.get("authToken")?.value;
     if (!token) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -14,7 +14,7 @@ export const PUT = async (request, { params }) => {
     }
     try {
         const body = await request.json();
-        const response = await Axios.put(API_ENDPOINTS.MANAGER_SCHEDULE_BY_ID(id), body, {
+        const response = await Axios.patch(API_ENDPOINTS.MANAGER_SCHEDULE_BY_ID(id), body, {
             headers: { Authorization: `Bearer ${token}` }
         });
         return NextResponse.json(response.data);
@@ -22,13 +22,13 @@ export const PUT = async (request, { params }) => {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error(`[API MANAGER SCHEDULES PUT PROXY - ID: ${id}]`, err);
+        console.error(`[API MANAGER SCHEDULES PATCH PROXY - ID: ${id}]`, err);
         return NextResponse.json({ message: "Gagal memperbarui jadwal perawatan." }, { status: 500 });
     }
 };
 
 export const DELETE = async (request, { params }) => {
-    const { id } = params;
+    const id = params.id;
     const token = request.cookies.get("authToken")?.value;
     if (!token) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

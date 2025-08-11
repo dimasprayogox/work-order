@@ -437,52 +437,67 @@ export default function SchedulePage() {
             <ConfirmDialog />
 
             <div className="card">
-                <h3 className="text-2xl font-bold mb-4">Halaman Work Order Saya</h3>
+                <h3 className="text-2xl font-bold mb-4">Halaman Schedules Maintenance</h3>
 
-                <div className="flex flex-wrap gap-2 mb-4 items-center">
+                <div className="flex flex-row flex-wrap items-center gap-2 mb-4">
                     <Button
-                        label="Buat Permintaan Baru"
+                        size="small"
+                        label="Back"
+                        icon="pi pi-arrow-left"
+                        outlined
+                        disabled
+                    />
+                    <Button
+                        size="small"
+                        label="New"
                         icon="pi pi-plus"
-                        onClick={() => setCreateDialogVisible(true)}
-                        className="p-button-success p-button-outlined"
+                        outlined
+                        severity="success"
+                        onClick={() => {
+                            setSelectedSchedule(null);
+                            setCreateDialogVisible(true);
+                        }}
                     />
+                    <Divider layout="vertical" />
                     <Button
-                        label="Impor"
+                        size="small"
+                        label="Import"
                         icon="pi pi-file-import"
-                        className="p-button-info p-button-outlined"
+                        outlined
                         onClick={() => fileInputRef.current?.click()}
-                        tooltip="Impor dari Excel"
-                        tooltipOptions={{ position: 'bottom' }}
                     />
                     <Button
-                        label="Ekspor"
+                        size="small"
+                        label="Export"
                         icon="pi pi-file-export"
-                        className="p-button-info p-button-outlined"
+                        outlined
                         onClick={exportExcel}
-                        tooltip="Ekspor ke Excel"
-                        tooltipOptions={{ position: 'bottom' }}
                     />
                     <Button
-                        label="Cetak"
+                        size="small"
+                        label="Print"
                         icon="pi pi-print"
-                        className="p-button-info p-button-outlined"
-                        onClick={handlePrint}
-                        tooltip="Cetak Laporan"
-                        tooltipOptions={{ position: 'bottom' }}
+                        outlined
+                        onClick={() => setAdjustDialog(true)}
                     />
+                    <Divider layout="vertical" />
                     <Button
-                        label="Hapus Terpilih"
+                        size="small"
+                        label={`Delete${selectedSchedules.length > 0 ? ` (${selectedSchedules.length})` : ''}`}
                         icon="pi pi-trash"
                         severity="danger"
                         outlined
                         onClick={handleDeleteSelected}
                         disabled={selectedSchedules.length === 0}
                     />
+                    <Divider layout="vertical" />
                     <Button
+                        size="small"
                         label="Refresh"
                         icon="pi pi-refresh"
                         outlined
                         onClick={fetchSchedules}
+                        disabled={loading}
                     />
                 </div>
 
