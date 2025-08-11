@@ -11,6 +11,7 @@ router.get('/', ScheduleController.index);
 router.post('/', ScheduleController.create);
 router.patch('/:id', ScheduleController.update);
 router.delete('/:id', ScheduleController.delete);
+router.post('/delete-many', ScheduleController.deleteMany);
 router.post('/generate', ScheduleController.generateDueWorkOrders); // bisa dipanggil scheduler/cron
 
 export default router;
