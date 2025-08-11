@@ -24,29 +24,33 @@ export const GET = async (request) => {
 };
 
 export const POST = async (request) => {
-  const token = request.cookies.get("authToken")?.value;
-  if (!token) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
-    const form = await request.formData();
-    const body = new FormData();
-    form.forEach((value, key) => body.append(key, value));
-
-    const response = await Axios.post(API_ENDPOINTS.EMPLOYEE_ISSUES, body, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-         'Content-Type': 'multipart/form-data'
-      }
-    });
-
-    return NextResponse.json(response.data, { status: response.status });
-  } catch (err) {
-    if (isAxiosError(err) && err.response) {
-      return NextResponse.json(err.response.data, { status: err.response.status });
+    const token = request.cookies.get("authToken")?.value;
+    if (!token) {
+        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    console.error("[API EMPLOYEE ISSUES POST PROXY]", err);
-    return NextResponse.json({ message: "Gagal membuat isu baru." }, { status: 500 });
-  }
+
+    try {
+        const body = await request.json();
+        if (body.ids && Array.isArray(body.ids)) {
+            const response = await Axios.post(API_ENDPOINTS.EMPLOYEE_DELETE_ISSUES_MANY, body, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return NextResponse.json(response.data, { status: 200 });
+        } else {
+            const response = await Axios.post(API_ENDPOINTS.EMPLOYEE_ISSUES, body, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data"
+                }
+            });
+
+            return NextResponse.json(response.data, { status: response.status });
+        }
+    } catch (err) {
+        if (isAxiosError(err) && err.response) {
+            return NextResponse.json(err.response.data, { status: err.response.status });
+        }
+        console.error("[API EMPLOYEE ISSUES POST PROXY]", err);
+        return NextResponse.json({ message: "Gagal membuat isu baru." }, { status: 500 });
+    }
 };
