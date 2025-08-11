@@ -16,9 +16,9 @@ export default function ConfirmDeleteDialog({ visible, onHide, request, fetchPar
             });
             if (!response.ok) {
                 const result = await response.json();
-                throw new Error(result.message || 'Gagal menghapus permintaan.');
+                throw new Error(result.message || 'Failed to delete request.');
             }
-            showToast('success', 'Success', 'Permintaan part berhasil dihapus.');
+            showToast('success', 'Success', 'Part request deleted successfully.');
             fetchPartRequests();
             onHide();
         } catch (error) {
@@ -30,14 +30,14 @@ export default function ConfirmDeleteDialog({ visible, onHide, request, fetchPar
 
     const footer = (
         <div>
-            <Button label="Tidak" icon="pi pi-times" onClick={onHide} className="p-button-text" />
-            <Button label="Ya" icon="pi pi-check" onClick={handleDelete} loading={loading} className="p-button-danger" autoFocus />
+            <Button label="No" icon="pi pi-times" onClick={onHide} className="p-button-text" />
+            <Button label="Yes" icon="pi pi-check" onClick={handleDelete} loading={loading} className="p-button-danger" autoFocus />
         </div>
     );
 
     return (
         <Dialog
-            header="Konfirmasi Hapus"
+            header="Delete Confirmation"
             visible={visible}
             style={{ width: '350px' }}
             modal
@@ -46,7 +46,7 @@ export default function ConfirmDeleteDialog({ visible, onHide, request, fetchPar
         >
             <div className="flex align-items-center">
                 <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                <span>Anda yakin ingin menghapus permintaan untuk <b>{request?.workOrder?.title}</b>?</span>
+                <span>Are you sure you want to delete the request for <b>{request?.workOrder?.title}</b>?</span>
             </div>
         </Dialog>
     );
