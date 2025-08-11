@@ -75,7 +75,6 @@ export const API_ENDPOINTS = {
     MANAGER_MACHINES: `${API_URL}/manager/machines`,
     MANAGER_MAINTENANCE_SCHEDULES: `${API_URL}/manager/schedules`,
     MANAGER_SCHEDULE_BY_ID: (id) => `${API_URL}/manager/schedules/${id}`,
-    MANAGER_PARTS_ANALYSIS: `${API_URL}/manager/dashboard/parts/analysis`,
     MANAGER_ASSIGN_TECHNICIAN: (id) => `${API_URL}/manager/work-orders/${id}/assign-technician`,
     MANAGER_TECHNICIANS_AVAILABLE: `${API_URL}/manager/technicians/available`,
 
