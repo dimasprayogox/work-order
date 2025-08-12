@@ -14,21 +14,15 @@ export const POST = async (request) => {
         const nextResponse = NextResponse.json(data);
 
         if (data.token) {
-            // Set cookie options
-            const cookieOptions = {
+            nextResponse.cookies.set({
                 name: "authToken",
                 value: data.token,
-                httpOnly: true,
+                httpOnly: false,
                 path: "/",
-                maxAge: 60 * 60 * 24, // 1 day
+                maxAge: 60 * 60 * 24,
                 secure: process.env.NODE_ENV === "production",
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
-            };
-            // Optionally set domain for production (set COOKIE_DOMAIN in .env if needed)
-            if (process.env.COOKIE_DOMAIN) {
-                cookieOptions.domain = process.env.COOKIE_DOMAIN;
-            }
-            nextResponse.cookies.set(cookieOptions);
+                sameSite: "lax"
+            });
         }
 
         return nextResponse;
