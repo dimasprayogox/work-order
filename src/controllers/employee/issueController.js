@@ -93,8 +93,9 @@ export const IssueController = {
                 status: "down",
             });
 
+            const workOrderId = uuidv4();
             const workOrder = await WorkOrder.query().insert({
-                id: uuidv4(),
+                id: workOrderId,
                 machine_id,
                 title: newIssue.title,
                 description: newIssue.description,
@@ -103,16 +104,19 @@ export const IssueController = {
                 issue_id: newIssue.id,
             });
 
+            // Update kolom work_order_id pada issue agar relasi tidak null
+            await Issue.query().patchAndFetchById(newIssue.id, { work_order_id: workOrderId });
+
             await notifyManager({
                 subject: "New Issue Reported",
-                message: `Issue "${title}" created for machine ${machine.name}.`,
+                message: `Issue \"${title}\" created for machine ${machine.name}.",
                 issueId: newIssue.id,
                 machineId: machine_id,
             });
 
             res.status(201).json({
                 message: "Issue created, machine set to maintenance, work order generated, manager notified.",
-                data: { issue: newIssue, workOrder },
+                data: { issue: { ...newIssue, work_order_id: workOrderId }, workOrder },
             });
         } catch (err) {
             console.error("Error creating issue:", err);
