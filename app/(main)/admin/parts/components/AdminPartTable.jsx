@@ -80,7 +80,7 @@ const AdminPartTable = ({
 
   const header = (
     <div className="flex flex-wrap align-items-center justify-content-between gap-2">
-      <span className="text-xl font-bold">Admin - Parts Inventory</span>
+      <span className="text-xl font-bold">Parts Inventory</span>
 
       <div className="flex gap-2">
         <span className="p-input-icon-left">
