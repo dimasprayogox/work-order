@@ -12,8 +12,9 @@ router.get("/overdue/list", WorkOrderController.overdue);
 
 router.get("/:id", WorkOrderController.show);
 router.post("/", WorkOrderController.create);
-router.patch("/:id/assign-technician", WorkOrderController.assignTechnician); // Rute baru
+router.patch("/:id/assign-technician", WorkOrderController.assignTechnician); 
 router.patch("/:id", WorkOrderController.update);
 router.delete("/:id", WorkOrderController.delete);
+router.post("/delete-many", WorkOrderController.deleteMany);
 
 export default router;
