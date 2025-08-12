@@ -29,6 +29,14 @@ export const POST = async (request) => {
     }
     try {
         const body = await request.json();
+
+        // Handle delete many request
+        if (body.ids && Array.isArray(body.ids)) {
+            const response = await Axios.post(API_ENDPOINTS.MANAGER_WORK_ORDERS_DELETE_MANY, body, { headers: { Authorization: `Bearer ${token}` } });
+            return NextResponse.json(response.data, { status: 200 });
+        }
+
+        // Handle regular create request
         const response = await Axios.post(API_ENDPOINTS.MANAGER_WORK_ORDERS, body, {
             headers: { Authorization: `Bearer ${token}` }
         });
