@@ -8,18 +8,11 @@ import { Calendar } from "primereact/calendar";
 import { InputTextarea } from "primereact/inputtextarea";
 import { Message } from "primereact/message";
 
-export default function DelegateTechnicianDialog({
-    visible,
-    onHide,
-    workOrder,
-    showToast,
-    onTechnicianAssigned
-}) {
+export default function DelegateTechnicianDialog({ visible, onHide, workOrder, showToast, onTechnicianAssigned, fetchWorkOrders }) {
     const [technicians, setTechnicians] = useState([]);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         assigned_to_id: "",
-        scheduled_date: null,
         notes: ""
     });
     const [formErrors, setFormErrors] = useState({});
@@ -33,7 +26,7 @@ export default function DelegateTechnicianDialog({
             if (!response.ok) {
                 throw new Error(result.message || "Gagal mengambil daftar teknisi yang tersedia");
             }
-            setTechnicians(result.data.map(t => ({ label: t.name, value: t.id })));
+            setTechnicians(result.data.map((t) => ({ label: t.name, value: t.id })));
         } catch (error) {
             showToast("error", "Error", error.message);
         }
@@ -44,17 +37,25 @@ export default function DelegateTechnicianDialog({
             fetchTechnicians();
             setFormData({
                 assigned_to_id: workOrder?.assigned_to_id || "",
-                scheduled_date: workOrder?.scheduled_date ? new Date(workOrder.scheduled_date) : null,
                 notes: workOrder?.notes || ""
             });
             setFormErrors({});
         }
     }, [visible, workOrder, fetchTechnicians]);
 
+   if (workOrder?.assignedTo) {
+       return (
+           <Dialog header={`Work Order : '${workOrder?.title}'`} visible={visible} style={{ width: "670px" }} onHide={onHide} dismissableMask>
+               <div className="p-fluid">
+                   <Message severity="info" text={`This Work Order cannot be Assigned because its Assigned to teknisi '${workOrder.assignedTo.full_name}'.`} className="mb-4" />
+               </div>
+           </Dialog>
+       );
+   }
+
     const validateForm = () => {
         const errors = {};
         if (!formData.assigned_to_id) errors.assigned_to_id = "Teknisi wajib diisi";
-        if (!formData.scheduled_date) errors.scheduled_date = "Tanggal jadwal wajib diisi";
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -66,7 +67,6 @@ export default function DelegateTechnicianDialog({
         try {
             const payload = {
                 assigned_to_id: formData.assigned_to_id,
-                scheduled_date: formData.scheduled_date.toISOString(),
                 notes: formData.notes
             };
 
@@ -86,6 +86,7 @@ export default function DelegateTechnicianDialog({
             if (onTechnicianAssigned) {
                 onTechnicianAssigned(result.data);
             }
+            fetchWorkOrders();
             onHide();
         } catch (error) {
             showToast("error", "Error", error.message);
@@ -127,12 +128,7 @@ export default function DelegateTechnicianDialog({
             footer={
                 <div className="flex justify-content-end gap-2">
                     <Button label="Batal" icon="pi pi-times" outlined onClick={onHide} />
-                    <Button
-                        label="Tugaskan"
-                        icon="pi pi-check"
-                        onClick={handleSubmit}
-                        loading={loading}
-                    />
+                    <Button label="Tugaskan" icon="pi pi-check" onClick={handleSubmit} loading={loading} />
                 </div>
             }
         >
@@ -151,40 +147,14 @@ export default function DelegateTechnicianDialog({
                         itemTemplate={technicianOptionTemplate}
                         valueTemplate={selectedTechnicianTemplate}
                     />
-                    {formErrors.assigned_to_id && (
-                        <Message severity="error" text={formErrors.assigned_to_id} />
-                    )}
-                </div>
-
-                <div className="field mb-4">
-                    <label htmlFor="scheduled_date" className="font-bold mb-2 block">
-                        Tanggal Terjadwal
-                    </label>
-                    <Calendar
-                        id="scheduled_date"
-                        value={formData.scheduled_date}
-                        onChange={(e) => setFormData({ ...formData, scheduled_date: e.value })}
-                        showTime
-                        hourFormat="24"
-                        minDate={new Date()}
-                        className={formErrors.scheduled_date ? "p-invalid" : ""}
-                    />
-                    {formErrors.scheduled_date && (
-                        <Message severity="error" text={formErrors.scheduled_date} />
-                    )}
+                    {formErrors.assigned_to_id && <Message severity="error" text={formErrors.assigned_to_id} />}
                 </div>
 
                 <div className="field mb-4">
                     <label htmlFor="notes" className="font-bold mb-2 block">
                         Catatan Tambahan
                     </label>
-                    <InputTextarea
-                        id="notes"
-                        rows={3}
-                        value={formData.notes}
-                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                        autoResize
-                    />
+                    <InputTextarea id="notes" rows={3} value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} autoResize />
                 </div>
             </div>
         </Dialog>
