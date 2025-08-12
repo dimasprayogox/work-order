@@ -3,7 +3,7 @@ import { Machine } from "../../models/Machine.js";
 import { WorkOrder } from "../../models/WorkOrder.js";
 import path from "path";
 import { notifyManager } from "../../utils/notifyManager.js";
-import { minioClient, checkAndCreateBucket } from "../../utils/minio.js";
+import { minioClient, checkAndCreateBucket, getMinioPublicUrl, transformMinioUrl } from "../../utils/minio.js";
 import { v4 as uuidv4 } from "uuid";
 import { createIssueSchema, updateIssueSchema } from "../../schemas/employee/issueSchema.js";
 import dotenv from "dotenv";
@@ -25,7 +25,7 @@ const removeMinioObject = async (url) => {
     if (!url) return;
 
     const bucketName = process.env.MINIO_BUCKET_NAME;
-    const publicUrl = process.env.MINIO_PUBLIC_URL || "http://localhost:9000";
+    const publicUrl = getMinioPublicUrl();
     const objectName = url.replace(`${publicUrl}/${bucketName}/`, "");
 
     try {
@@ -72,7 +72,7 @@ export const IssueController = {
                     { "Content-Type": req.file.mimetype }
                 );
 
-                photoUrl = `${process.env.MINIO_PUBLIC_URL || "http://localhost:9000"}/${bucketName}/${objectName}`;
+                photoUrl = `${getMinioPublicUrl()}/${bucketName}/${objectName}`;
             }
 
             if (!req.user || !req.user.userId) {
@@ -125,7 +125,14 @@ export const IssueController = {
             const issues = await Issue.query()
                 .withGraphFetched("[machine, workOrder]")
                 .orderBy("created_at", "desc");
-            res.status(200).json({ message: "Issues fetched successfully", data: issues });
+                
+            // Transform MinIO URLs to use the current public URL
+            const transformedIssues = issues.map(issue => ({
+                ...issue,
+                photo_url: transformMinioUrl(issue.photo_url)
+            }));
+            
+            res.status(200).json({ message: "Issues fetched successfully", data: transformedIssues });
         } catch (err) {
             console.error("Error fetching issues:", err);
             res.status(500).json({ message: "Failed to fetch issues", error: err.message });
@@ -144,7 +151,13 @@ export const IssueController = {
                 .withGraphFetched("[machine, workOrder]")
                 .orderBy("created_at", "desc");
 
-            res.status(200).json({ message: "Your issues fetched successfully", data: issues });
+            // Transform MinIO URLs to use the current public URL
+            const transformedIssues = issues.map(issue => ({
+                ...issue,
+                photo_url: transformMinioUrl(issue.photo_url)
+            }));
+
+            res.status(200).json({ message: "Your issues fetched successfully", data: transformedIssues });
         } catch (err) {
             console.error("Error fetching user's own issues:", err);
             res.status(500).json({ message: "Failed to fetch your issues", error: err.message });
@@ -160,7 +173,14 @@ export const IssueController = {
             if (!issue) {
                 return res.status(404).json({ message: "Issue not found" });
             }
-            res.status(200).json({ message: "Issue fetched successfully", data: issue });
+            
+            // Transform MinIO URL to use the current public URL
+            const transformedIssue = {
+                ...issue,
+                photo_url: transformMinioUrl(issue.photo_url)
+            };
+            
+            res.status(200).json({ message: "Issue fetched successfully", data: transformedIssue });
         } catch (err) {
             console.error("Error fetching issue by ID:", err);
             res.status(500).json({ message: "Failed to fetch issue", error: err.message });
@@ -218,7 +238,7 @@ export const IssueController = {
                     { "Content-Type": req.file.mimetype }
                 );
 
-                updateData.photo_url = `${process.env.MINIO_PUBLIC_URL || "http://localhost:9000"}/${bucketName}/${objectName}`;
+                updateData.photo_url = `${getMinioPublicUrl()}/${bucketName}/${objectName}`;
             } else if (req.body.remove_photo === "true") {
                 if (existingIssue.photo_url) {
                     await removeMinioObject(existingIssue.photo_url);

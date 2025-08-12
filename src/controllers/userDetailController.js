@@ -2,7 +2,7 @@ import {
   getUserDetailByUserId,
   updateUserProfile,
 } from "../models/userDetailModel.js";
-import { minioClient, checkAndCreateBucket } from "../utils/minio.js";
+import { minioClient, checkAndCreateBucket, getMinioPublicUrl } from "../utils/minio.js";
 import path from "path";
 import { updateProfileSchema } from "../schemas/userDetailSchema.js";
 import dotenv from "dotenv"
@@ -98,7 +98,7 @@ export const update = async (req, res) => {
         }
       );
 
-      const photoUrl = `${process.env.MINIO_PUBLIC_URL || "http://localhost:9000"}/${bucketName}/${objectName}`;
+      const photoUrl = `${getMinioPublicUrl()}/${bucketName}/${objectName}`;
       detailsData.profile_photo_url = photoUrl; // simpan di tabel user_details
     }
 

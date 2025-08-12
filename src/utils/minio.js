@@ -10,6 +10,32 @@ export const minioClient = new Client({
   secretKey: process.env.MINIO_SECRET_KEY,
 })
 
+// Helper function to get the public URL
+export const getMinioPublicUrl = () => {
+  return process.env.MINIO_PUBLIC_URL || `http://${process.env.MINIO_ENDPOINT || "localhost"}:${process.env.MINIO_PORT || 9000}`
+}
+
+// Helper function to transform old localhost URLs to new public URLs
+export const transformMinioUrl = (url) => {
+  if (!url) return null;
+  
+  const newPublicUrl = getMinioPublicUrl();
+  
+  // Check if URL contains localhost patterns and replace them
+  const localhostPatterns = [
+    'http://localhost:9000',
+    'http://127.0.0.1:9000'
+  ];
+  
+  for (const pattern of localhostPatterns) {
+    if (url.includes(pattern)) {
+      return url.replace(pattern, newPublicUrl);
+    }
+  }
+  
+  return url;
+}
+
 export const checkAndCreateBucket = async (bucketName) => {
   try {
     const bucketExists = await minioClient.bucketExists(bucketName)
