@@ -282,6 +282,13 @@ const MachineCategoryPage = () => {
                 <div className="flex flex-row flex-wrap items-center gap-2 mb-4">
                     <Button
                         size="small"
+                        label="Back"
+                        icon="pi pi-arrow-left"
+                        outlined
+                        disabled
+                    />
+                    <Button
+                        size="small"
                         label="New"
                         icon="pi pi-plus"
                         outlined
