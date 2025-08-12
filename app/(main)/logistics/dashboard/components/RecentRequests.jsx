@@ -15,7 +15,7 @@ const RecentRequests = () => {
     const fetchRequests = async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/logistics/part-request");
+            const res = await fetch("/api/logistics/part-requests");
             if (!res.ok) {
                 const errorData = await res.json();
                 throw new Error(errorData.message || "Gagal mengambil data request");

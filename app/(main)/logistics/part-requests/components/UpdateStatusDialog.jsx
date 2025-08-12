@@ -61,7 +61,7 @@ const UpdateStatusDialog = ({ visible, onHide, request, fetchRequests, showToast
 
             console.log("Submitting payload:", payload); // Debugging
 
-            const res = await fetch(`/api/logistics/part-request/${request.id}`, {
+            const res = await fetch(`/api/logistics/part-requests/${request.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
