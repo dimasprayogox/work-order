@@ -20,7 +20,10 @@ const ConfirmDeleteDialog = ({ visible, onHide, workOrder, selectedWorkOrders = 
                     credentials: "include",
                     body: JSON.stringify({ ids: selectedWorkOrders.map((p) => p.id) })
                 });
-            }  else {
+            } else {
+                if (!workOrder || !workOrder.id) {
+                    throw new Error("Data work order tidak valid. Tidak dapat menghapus.");
+                }
                 res = await fetch(`/api/employee/issues/${workOrder.id}`, {
                     method: "DELETE",
                     credentials: "include"
