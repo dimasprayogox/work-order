@@ -57,14 +57,6 @@ export const login = async (req, res) => {
       role: existingUser["role"],
     });
 
-    // Set cookie for token
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: false, // Set to true if using HTTPS
-      sameSite: 'strict',
-      maxAge: 1000 * 60 * 60 * 24 // 1 day
-    });
-
     return res.status(200).json({
       status: status.SUKSES,
       message: "Data User berhasil di dapatkan",
