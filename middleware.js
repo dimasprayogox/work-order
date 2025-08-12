@@ -18,34 +18,47 @@ export function middleware(request) {
     };
 
     const allowedRolesForPaths = {
-        "/admin/dashboard": ["admin"],
-        "/employee/dashboard": ["employee"],
-        "/technician/dashboard": ["technician"],
-        "/manager/dashboard": ["manager"],
-        "/logistics/dashboard": ["logistics"],
+        "/admin": ["admin"],
+        "/employee": ["employee"],
+        "/technician": ["technician"],
+        "/manager": ["manager"],
+        "/logistics": ["logistics"],
         "/master": ["admin", "manager"],
         "/monitor": ["admin", "technician", "manager"],
         "/profile": ["admin", "employee", "technician", "manager", "logistics"]
     };
 
+    // Allow public paths
     if (isPublicPath) {
         return NextResponse.next();
     }
 
+    // Check if token exists
     if (!authToken) {
-        return NextResponse.redirect(new URL("/auth/login", request.url));
+        const loginUrl = new URL("/auth/login", request.url);
+        return NextResponse.redirect(loginUrl);
     }
 
     let userRole = null;
     try {
         const decodedToken = jwtDecode(authToken);
+        
+        // Check if token is expired
+        if (decodedToken.exp && decodedToken.exp < Date.now() / 1000) {
+            const response = NextResponse.redirect(new URL("/auth/login", request.url));
+            response.cookies.delete("authToken");
+            return response;
+        }
+        
         userRole = decodedToken.role;
     } catch (error) {
+        console.error("JWT decode error:", error);
         const response = NextResponse.redirect(new URL("/auth/login", request.url));
         response.cookies.delete("authToken");
         return response;
     }
 
+    // Redirect root paths to role-specific dashboard
     if (pathname === "/" || pathname === "/index" || pathname === "/dashboard" || pathname === "/dashboard/") {
         const redirectPath = roleDashboards[userRole];
         if (redirectPath) {
@@ -54,18 +67,20 @@ export function middleware(request) {
         return NextResponse.redirect(new URL("/access-denied", request.url));
     }
 
-    let isRoleSpecificRoute = false;
-    let allowedRoles = [];
-
+    // Check role-based access
+    let isAuthorized = false;
     for (const pathPrefix in allowedRolesForPaths) {
         if (pathname.startsWith(pathPrefix)) {
-            isRoleSpecificRoute = true;
-            allowedRoles = allowedRolesForPaths[pathPrefix];
-            break;
+            const allowedRoles = allowedRolesForPaths[pathPrefix];
+            if (allowedRoles.includes(userRole)) {
+                isAuthorized = true;
+                break;
+            }
         }
     }
 
-    if (isRoleSpecificRoute && !allowedRoles.includes(userRole)) {
+    // If path requires specific role but user doesn't have it
+    if (Object.keys(allowedRolesForPaths).some(path => pathname.startsWith(path)) && !isAuthorized) {
         return NextResponse.redirect(new URL("/access-denied", request.url));
     }
 

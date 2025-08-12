@@ -14,15 +14,23 @@ export const POST = async (request) => {
         const nextResponse = NextResponse.json(data);
 
         if (data.token) {
-            nextResponse.cookies.set({
+            // Cookie settings yang lebih robust untuk production
+            const cookieOptions = {
                 name: "authToken",
                 value: data.token,
-                httpOnly: false,
+                httpOnly: false, // Perlu false agar bisa diakses client-side
                 path: "/",
-                maxAge: 60 * 60 * 24,
-                secure: process.env.NODE_ENV === "production",
+                maxAge: 60 * 60 * 24, // 24 jam
+                secure: false, // Set false untuk HTTP, true untuk HTTPS
                 sameSite: "lax"
-            });
+            };
+
+            // Untuk production dengan HTTPS, aktifkan secure
+            if (process.env.NODE_ENV === "production" && request.url.startsWith('https')) {
+                cookieOptions.secure = true;
+            }
+
+            nextResponse.cookies.set(cookieOptions);
         }
 
         return nextResponse;
