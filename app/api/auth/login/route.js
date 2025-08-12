@@ -1,3 +1,4 @@
+
 import { Axios } from "../../../utils/axios";
 import { API_ENDPOINTS } from "../../api";
 import { NextResponse } from "next/server";
@@ -13,15 +14,21 @@ export const POST = async (request) => {
         const nextResponse = NextResponse.json(data);
 
         if (data.token) {
-            nextResponse.cookies.set({
+            // Set cookie options
+            const cookieOptions = {
                 name: "authToken",
                 value: data.token,
-                httpOnly: false,
+                httpOnly: true,
                 path: "/",
-                maxAge: 60 * 60 * 24,
+                maxAge: 60 * 60 * 24, // 1 day
                 secure: process.env.NODE_ENV === "production",
-                sameSite: "lax"
-            });
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+            };
+            // Optionally set domain for production (set COOKIE_DOMAIN in .env if needed)
+            if (process.env.COOKIE_DOMAIN) {
+                cookieOptions.domain = process.env.COOKIE_DOMAIN;
+            }
+            nextResponse.cookies.set(cookieOptions);
         }
 
         return nextResponse;
