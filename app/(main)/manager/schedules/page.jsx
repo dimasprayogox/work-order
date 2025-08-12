@@ -2,12 +2,9 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "primereact/button";
-import { InputText } from "primereact/inputtext";
 import { Toast } from "primereact/toast";
-import { Panel } from "primereact/panel";
 import { Divider } from "primereact/divider";
-import { ProgressSpinner } from "primereact/progressspinner";
-import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
+import { ConfirmDialog } from "primereact/confirmdialog";
 import { Dialog } from "primereact/dialog";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
@@ -39,7 +36,7 @@ export default function SchedulePage() {
     const [adjustDialog, setAdjustDialog] = useState(false);
     const [jsPdfPreviewOpen, setJsPdfPreviewOpen] = useState(false);
     const [pdfUrl, setPdfUrl] = useState("");
-    const [fileName, setFileName] = useState("MaintenanceSchedules");
+    const [fileName] = useState("MaintenanceSchedules");
     const [printConfig, setPrintConfig] = useState({
         orientation: "portrait",
         unit: "mm",
