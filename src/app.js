@@ -56,7 +56,9 @@ const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:3020", 
     "http://208.76.40.194:3020", // VPS frontend URL
-    "https://208.76.40.194:3020" // Jika menggunakan HTTPS
+    "https://208.76.40.194:3020", // Jika menggunakan HTTPS
+    "http://208.76.40.194:3080", // VPS frontend URL
+    "https://208.76.40.194:3080" // Jika menggunakan HTTPS
 ];
 
 app.use(
