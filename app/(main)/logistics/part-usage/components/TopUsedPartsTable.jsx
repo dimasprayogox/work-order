@@ -12,7 +12,7 @@ const TopUsedPartsTable = ({ data, loading, error }) => {
         return (
             <div className="flex justify-center p-4">
                 <ProgressSpinner />
-                <span className="ml-2">Memuat data part...</span>
+                <span className="ml-2">Loading part data...</span>
             </div>
         );
     }
@@ -27,12 +27,12 @@ const TopUsedPartsTable = ({ data, loading, error }) => {
     }
 
     return (
-        <DataTable value={data} paginator rows={5} stripedRows className="p-datatable-sm" paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink" emptyMessage="Tidak ada data penggunaan part" scrollable scrollHeight="flex">
+        <DataTable value={data} paginator rows={5} stripedRows className="p-datatable-sm" paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink" emptyMessage="No part usage data found" scrollable scrollHeight="flex">
             <Column header="No" body={rowNumberTemplate} style={{ width: "5%", textAlign: "center" }} />
-            <Column field="part.part_number" header="Kode Part" sortable style={{ width: "20%" }} body={(rowData) => rowData.part?.part_number || "-"} />
-            <Column field="part.name" header="Nama Part" sortable style={{ width: "25%" }} body={(rowData) => rowData.part?.name || "Part Tidak Dikenal"} />
-            <Column field="part.location" header="Lokasi" sortable style={{ width: "10%" }} body={(rowData) => rowData.part?.location || "-"} />
-            <Column field="total_used" header="Digunakan" sortable body={(rowData) => rowData.total_used?.toLocaleString("id-ID") || 0} style={{ width: "15%" }} />
+            <Column field="part.part_number" header="Part Code" sortable style={{ width: "20%" }} body={(rowData) => rowData.part?.part_number || "-"} />
+            <Column field="part.name" header="Part Name" sortable style={{ width: "25%" }} body={(rowData) => rowData.part?.name || "Unknown Part"} />
+            <Column field="part.location" header="Location" sortable style={{ width: "10%" }} body={(rowData) => rowData.part?.location || "-"} />
+            <Column field="total_used" header="Used" sortable body={(rowData) => rowData.total_used?.toLocaleString("en-US") || 0} style={{ width: "15%" }} />
         </DataTable>
     );
 };

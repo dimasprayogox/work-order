@@ -98,7 +98,7 @@ const PartPage = () => {
 
     const handleDeleteSelected = () => {
         if (selectedParts.length === 0) {
-            showToast("warn", "Peringatan", "Tidak ada part yang dipilih");
+            showToast("warn", "Warning", "No parts selected");
             return;
         }
         setSelectedPart(null);
@@ -134,7 +134,7 @@ const PartPage = () => {
             });
 
             for (const item of data) {
-                // Menggunakan API route handler yang baru
+                // Using the new API route handler
                 const res = await fetch("/api/logistics/parts", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -142,13 +142,13 @@ const PartPage = () => {
                     body: JSON.stringify(item)
                 });
                 const body = await res.json();
-                if (!res.ok) throw new Error(body.message || "Import gagal");
+                if (!res.ok) throw new Error(body.message || "Import failed");
             }
 
-            showToast("success", "Import Sukses", `${data.length} data berhasil diimpor`);
+            showToast("success", "Import Success", `${data.length} parts imported successfully`);
             fetchParts();
         } catch (err) {
-            showToast("error", "Import Gagal", err.message);
+            showToast("error", "Import Failed", err.message);
         }
 
         // Reset file input
@@ -209,7 +209,7 @@ const PartPage = () => {
             // Generate Excel file
             const buffer = await workbook.xlsx.writeBuffer();
             saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-            showToast("success", "Success", "Data berhasil diekspor ke Excel");
+            showToast("success", "Success", "Data exported to Excel successfully");
         } catch (error) {
             showToast("error", "Error", `Failed to export: ${error.message}`);
         }
@@ -266,13 +266,13 @@ const PartPage = () => {
             <input type="file" ref={fileInputRef} accept=".xlsx,.xls" onChange={handleImport} style={{ display: "none" }} />
             <ConfirmDialog />
             <div className="card">
-                <h3 className="mb-4">Manajemen Parts</h3>
+                <h3 className="mb-4">Parts Management</h3>
                 <div className="flex flex-row gap-2 mb-4">
                     <Button label="Back" icon="pi pi-arrow-left" outlined onClick={() => router.push("/dashboard")} />
                     <Button label="New" icon="pi pi-plus" outlined severity="success" onClick={() => setFormOpen(true)} />
                     <Divider layout="vertical" />
                     <Button label="Import" icon="pi pi-file-import" outlined onClick={() => fileInputRef.current?.click()} />
-                    <Button label="Export" icon="pi pi-file-excel" outlined onClick={exportExcel} />
+                    <Button label="Export" icon="pi pi-file-export" outlined onClick={exportExcel} />
                     <Button label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
                     <Divider layout="vertical" />
                     <Button size="small" label={`Delete ${selectedParts.length > 0 ? ` (${selectedParts.length})` : ""}`} icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedParts.length === 0} />

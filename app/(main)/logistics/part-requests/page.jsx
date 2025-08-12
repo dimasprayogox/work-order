@@ -212,7 +212,7 @@ const PartRequestPage = () => {
                     <Button label="New" icon="pi pi-plus" outlined severity="success" disabled />
                     <Divider layout="vertical" />
                     <Button label="Import" icon="pi pi-file-import" outlined disabled />
-                    <Button label="Export" icon="pi pi-file-excel" outlined onClick={exportExcel} />
+                    <Button label="Export" icon="pi pi-file-export" outlined onClick={exportExcel} />
                     <Button label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
                     <Divider layout="vertical" />
                     <Button size="small" label="Delete" icon="pi pi-trash" outlined severity="danger" disabled />

@@ -28,11 +28,11 @@ const ConfirmDeleteDialog = ({ visible, onHide, part, fetchParts, showToast }) =
     };
 
     return (
-        <Dialog header="Konfirmasi Hapus" visible={visible} onHide={onHide} modal style={{ width: "400px" }}>
-            <p>Yakin ingin menghapus part <strong>{part?.name}</strong>?</p>
+        <Dialog header="Delete Confirmation" visible={visible} onHide={onHide} modal style={{ width: "400px" }}>
+            <p>Are you sure you want to delete part <strong>{part?.name}</strong>?</p>
             <div className="flex justify-end gap-2 mt-4">
-                <Button label="Batal" onClick={onHide} outlined />
-                <Button label="Hapus" severity="danger" onClick={handleDelete} loading={loading} />
+                <Button label="Cancel" onClick={onHide} outlined />
+                <Button label="Delete" severity="danger" onClick={handleDelete} loading={loading} />
             </div>
         </Dialog>
     );

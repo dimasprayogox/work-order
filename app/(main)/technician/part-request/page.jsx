@@ -375,60 +375,67 @@ export default function PartRequestPage() {
                     </div>
                 </div>
 
-                <div className="flex flex-wrap justify-content-between gap-2 mb-4">
-                    <div className="flex flex-wrap gap-2">
-                        <Button
-                            size="small"
-                            label="New"
-                            icon="pi pi-plus"
-                            severity="success"
-                            outlined
-                            onClick={handleCreate}
-                            loading={isFormLoading}
-                        />
-                        <Divider layout="vertical" />
-                        <Button
-                            size="small"
-                            label="Import"
-                            icon="pi pi-file-import"
-                            outlined
-                            onClick={() => fileInputRef.current?.click()}
-                        />
-                        <Button
-                            size="small"
-                            label="Export"
-                            icon="pi pi-file-export"
-                            outlined
-                            onClick={exportExcel}
-                        />
-                        <Button
-                            size="small"
-                            label="Print"
-                            icon="pi pi-print"
-                            outlined
-                            onClick={() => setAdjustDialog(true)}
-                        />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        <Button
-                            size="small"
-                            label="Delete"
-                            icon="pi pi-trash"
-                            severity="danger"
-                            outlined
-                            onClick={confirmDeleteSelected}
-                            disabled={isDeleteDisabled}
-                        />
-                        <Divider layout="vertical" />
-                        <Button
-                            size="small"
-                            label="Refresh"
-                            icon="pi pi-refresh"
-                            outlined
-                            onClick={fetchPartRequests}
-                            disabled={loading}
-                        />
-                    </div>
+                <div className="flex flex-row flex-wrap items-center gap-2 mb-4">
+                    <Button
+                        size="small"
+                        label="Back"
+                        icon="pi pi-arrow-left"
+                        outlined
+                        onClick={() => window.location.href = '/main/technician/dashboard'}
+                    />
+                    <Button
+                        size="small"
+                        label="New"
+                        icon="pi pi-plus"
+                        outlined
+                        severity="success"
+                        onClick={handleCreate}
+                        loading={isFormLoading}
+                    />
+                    <Divider layout="vertical" />
+                    <Button
+                        size="small"
+                        label="Import"
+                        icon="pi pi-file-import"
+                        outlined
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled
+                    />
+                    <Button
+                        size="small"
+                        label="Export"
+                        icon="pi pi-file-export"
+                        outlined
+                        onClick={exportExcel}
+                        disabled={partRequests.length === 0}
+                    />
+                    <Button
+                        size="small"
+                        label="Print"
+                        icon="pi pi-print"
+                        outlined
+                        onClick={() => setAdjustDialog(true)}
+                        disabled={partRequests.length === 0}
+                    />
+                    <Divider layout="vertical" />
+                    <Button
+                        size="small"
+                        label={`Delete${selectedRequests.length > 0 ? ` (${selectedRequests.length})` : ''}`}
+                        icon="pi pi-trash"
+                        severity="danger"
+                        outlined
+                        onClick={confirmDeleteSelected}
+                        disabled={isDeleteDisabled}
+                    />
+                    <Divider layout="vertical" />
+                    <Button
+                        size="small"
+                        label="Refresh"
+                        icon="pi pi-refresh"
+                        outlined
+                        onClick={fetchPartRequests}
+                        disabled={loading}
+                    />
                 </div>
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>

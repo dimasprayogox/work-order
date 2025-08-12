@@ -6,6 +6,7 @@ import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { Tag } from "primereact/tag";
 import { ProgressSpinner } from "primereact/progressspinner";
+import { Image } from "primereact/image";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { FilterMatchMode } from "primereact/api";
@@ -49,60 +50,23 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
     };
 
     const photoBodyTemplate = (rowData) => {
-        const handleImageClick = (e, url) => {
-            e.stopPropagation();
-            setPreviewImageUrl(url);
-            setImagePreviewVisible(true);
-        };
-
-        const handleMouseEnter = (id) => {
-            setHoveredImageId(id);
-        };
-
-        const handleMouseLeave = () => {
-            setHoveredImageId(null);
-        };
-
-        const overlayStyle = {
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            borderRadius: "6px",
-            cursor: "pointer"
-        };
-
         if (rowData.photo_url) {
             return (
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onMouseEnter={() => handleMouseEnter(rowData.id)} onMouseLeave={handleMouseLeave} className="relative">
-                    <img
-                        src={rowData.photo_url}
-                        alt="Issue Preview"
-                        style={{ width: "50px", height: "50px", objectFit: "cover", cursor: "pointer" }}
-                        className="shadow-lg border-round"
-                        onClick={(e) => handleImageClick(e, rowData.photo_url)}
-                        onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "https://placehold.co/50x50/cccccc/000000?text=No+Image";
-                        }}
-                    />
-                    {isImageHovered && hoveredImageId === rowData.id && (
-                        <div
-                            style={overlayStyle}
-                            onClick={(e) => handleImageClick(e, rowData.photo_url)} // Kirim event (e)
-                        >
-                            <i className="pi pi-eye text-white text-xl"></i>
-                        </div>
-                    )}
-                </motion.div>
+                <Image
+                    src={rowData.photo_url}
+                    alt="Work Order Photo"
+                    width="50"
+                    height="50"
+                    preview
+                    className="border-round"
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://placehold.co/50x50/cccccc/000000?text=No+Image";
+                    }}
+                />
             );
         }
-        return <img src="https://placehold.co/50x50/cccccc/000000?text=No+Image" alt="No photo" style={{ width: "50px", height: "50px", objectFit: "cover" }} className="shadow-lg border-round" />;
+        return <span className="text-gray-400">No photo</span>;
     };
 
     const dateBodyTemplate = (rowData) => {
@@ -239,19 +203,7 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
                         <Column header="Actions" body={actionBodyTemplate} style={{ width: "120px" }} />
                     </DataTable>
 
-                    <Dialog visible={imagePreviewVisible} onHide={() => setImagePreviewVisible(false)} modal header="Pratinjau Gambar" style={{ width: "50vw" }} contentStyle={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                        {previewImageUrl && (
-                            <img
-                                src={previewImageUrl}
-                                alt="Pratinjau Isu"
-                                style={{ maxWidth: "100%", maxHeight: "80vh", objectFit: "contain" }}
-                                onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = "https://placehold.co/600x400/cccccc/000000?text=Image+Not+Found";
-                                }}
-                            />
-                        )}
-                    </Dialog>
+                    {/* Remove custom preview dialog, since <Image preview /> handles it */}
                 </>
             )}
         </>

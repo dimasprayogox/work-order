@@ -62,15 +62,15 @@ const PartFormDialog = ({ visible, onHide, part, fetchParts, showToast }) => {
     };
 
     return (
-        <Dialog header={part ? "Edit Part" : "Tambah Part"} visible={visible} style={{ width: "500px" }} onHide={onHide} modal>
+        <Dialog header={part ? "Edit Part" : "Add Part"} visible={visible} style={{ width: "500px" }} onHide={onHide} modal>
             <div className="p-fluid space-y-4">
-                <InputText value={form.name} onChange={(e) => handleChange("name", e.target.value)} placeholder="Nama" />
+                <InputText value={form.name} onChange={(e) => handleChange("name", e.target.value)} placeholder="Name" />
                 <InputText value={form.part_number} onChange={(e) => handleChange("part_number", e.target.value)} placeholder="Part Number" />
-                <InputText value={form.description} onChange={(e) => handleChange("description", e.target.value)} placeholder="Deskripsi" />
-                <InputNumber value={form.quantity_in_stock} onValueChange={(e) => handleChange("quantity_in_stock", e.value)} placeholder="Stok" />
-                <InputNumber value={form.min_stock} onValueChange={(e) => handleChange("min_stock", e.value)} placeholder="Min Stok" />
-                <InputText value={form.location} onChange={(e) => handleChange("location", e.target.value)} placeholder="Lokasi" />
-                <Button label="Simpan" onClick={handleSubmit} loading={loading} />
+                <InputText value={form.description} onChange={(e) => handleChange("description", e.target.value)} placeholder="Description" />
+                <InputNumber value={form.quantity_in_stock} onValueChange={(e) => handleChange("quantity_in_stock", e.value)} placeholder="Stock" />
+                <InputNumber value={form.min_stock} onValueChange={(e) => handleChange("min_stock", e.value)} placeholder="Min Stock" />
+                <InputText value={form.location} onChange={(e) => handleChange("location", e.target.value)} placeholder="Location" />
+                <Button label="Save" onClick={handleSubmit} loading={loading} />
             </div>
         </Dialog>
     );

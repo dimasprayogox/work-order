@@ -301,7 +301,7 @@ const exportPdf = (config = null) => {
                     />
                     <Divider layout="vertical" />
                     <Button label="Import" icon="pi pi-file-import" outlined onClick={() => fileInputRef.current?.click()} />
-                    <Button label="Export" icon="pi pi-file-excel" outlined onClick={exportExcel} />
+                    <Button label="Export" icon="pi pi-file-export" outlined onClick={exportExcel} />
                     <Button label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
                     <Divider layout="vertical" />
                     <Button label={`Delete (${selectedWorkOrders.length})`} icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedWorkOrders.length === 0} />

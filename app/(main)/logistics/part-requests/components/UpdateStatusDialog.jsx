@@ -55,7 +55,7 @@ const UpdateStatusDialog = ({ visible, onHide, request, fetchRequests, showToast
                 note: note || undefined, // Menggunakan undefined jika note kosong
                 items: items.map((item) => ({
                     item_id: item.id,
-                    quantity_approved: statusToSubmit === "rejected" ? 0 : item.approved
+                    approved_quantity: statusToSubmit === "rejected" ? 0 : item.approved
                 }))
             };
 

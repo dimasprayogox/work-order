@@ -6,7 +6,7 @@ import { Divider } from "primereact/divider";
 export default function ItemDetailDialog({ visible, onHide, items }) {
     return (
         <Dialog
-            header="Detail Items Requested"
+            header="Requested Items Detail"
             visible={visible}
             style={{ width: "min(90vw, 500px)" }}
             modal
@@ -32,7 +32,7 @@ export default function ItemDetailDialog({ visible, onHide, items }) {
                         </div>
                     ))
                 ) : (
-                    <p>Tidak ada item dalam permintaan ini.</p>
+                    <p>No items in this request.</p>
                 )}
             </div>
         </Dialog>
