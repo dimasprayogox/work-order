@@ -72,16 +72,33 @@ export const WorkOrderController = {
   async assignTechnician(req, res) {
     try {
       const { id } = req.params;
-      const { assigned_to_id, notes } = req.body;
+      const { assigned_to_id, scheduled_date, notes } = req.body;
 
-      if (!assigned_to_id) {
+      if (!assigned_to_id || !scheduled_date) {
         return res
           .status(400)
-          .json({ success: false, message: "Technician ID are required." });
+          .json({ success: false, message: "Technician ID and Scheduled Date are required." });
       }
+
+      const newDate = new Date(scheduled_date);
+      const now = new Date();
+
+      if (newDate.getTime() < now.getTime()) {
+        return res.status(400).json({
+          success: false,
+          message: "Tanggal penjadwalan tidak boleh di masa lalu.",
+        });
+      }
+
+      const formattedDate = newDate
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ");
+
 
       const updatedWO = await WorkOrder.query().patchAndFetchById(id, {
         assigned_to_id,
+        scheduled_date: formattedDate,
         notes,
       });
 
