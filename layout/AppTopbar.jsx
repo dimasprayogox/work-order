@@ -3,6 +3,7 @@
 import Link from "next/link";
 import React, { forwardRef, useContext, useImperativeHandle, useRef, useState, useEffect, useCallback } from "react";
 import { LayoutContext } from "./context/layoutcontext";
+import { useProfile } from "./context/ProfileContext";
 
 const AppTopbar = forwardRef((props, ref) => {
     const { layoutConfig, layoutState, onMenuToggle } = useContext(LayoutContext);
@@ -10,64 +11,38 @@ const AppTopbar = forwardRef((props, ref) => {
     const topbarmenuRef = useRef(null);
     const topbarmenubuttonRef = useRef(null);
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-    const [username, setUsername] = useState(null);
-    const [role, setRole] = useState(null);
-    const [profilePhoto, setProfilePhoto] = useState(null);
-
+    const { profile, fetchProfile } = useProfile();
     useImperativeHandle(ref, () => ({
         menubutton: menubuttonRef.current,
         topbarmenu: topbarmenuRef.current,
         topbarmenubutton: topbarmenubuttonRef.current
     }));
 
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const res = await fetch("/api/profile", {
-                    credentials: "include"
-                });
-
-                if (res.ok) {
-                    const result = await res.json();
-                    setUsername(result.data?.username || null);
-                    setRole(result.data?.role || null);
-                    setProfilePhoto(result.data?.profile_photo_url || null);
-                } else {
-                    setUsername(null);
-                    setRole(null);
-                    setProfilePhoto(null);
-                }
-            } catch (err) {
-                console.error("Failed to fetch profile:", err);
-                setUsername(null);
-                setRole(null);
-            }
-        };
-
-        fetchProfile();
-    }, []);
+   useEffect(() => {
+       fetchProfile();
+   }, []);
 
     const handleLogout = async () => {
-  try {
-    const response = await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "include", 
-    });
+        try {
+            const response = await fetch("/api/auth/logout", {
+                method: "POST",
+                credentials: "include"
+            });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || "Logout failed");
-    }
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Logout failed");
+            }
 
-    localStorage.removeItem("token");
-    sessionStorage.removeItem("token");
+            localStorage.removeItem("token");
+            sessionStorage.removeItem("token");
 
-    window.location.href = "/auth/login";
-  } catch (error) {
-    console.error("Logout error:", error);
-    alert(error.message || "Gagal logout. Silakan coba lagi.");
-  }
-};
+            window.location.href = "/auth/login";
+        } catch (error) {
+            console.error("Logout error:", error);
+            alert(error.message || "Gagal logout. Silakan coba lagi.");
+        }
+    };
 
     const toggleProfileDropdown = () => {
         setIsProfileDropdownOpen((prev) => !prev);
@@ -99,7 +74,7 @@ const AppTopbar = forwardRef((props, ref) => {
 
             <div className="layout-topbar-actions">
                 <span>
-                    {username} | {role}
+                    {profile?.full_name || "-"} | {profile?.role || "-"}
                 </span>
                 {/* <button type="button" className="p-link layout-topbar-button">
                     <i className="pi pi-calendar"></i>
@@ -108,9 +83,10 @@ const AppTopbar = forwardRef((props, ref) => {
 
                 <div className="profile-dropdown-container">
                     <button ref={topbarmenubuttonRef} type="button" className="p-link layout-topbar-button profile-button" onClick={toggleProfileDropdown} aria-expanded={isProfileDropdownOpen}>
-                        {profilePhoto ? (
+                        {profile?.profile_photo_url ? (
                             <img
-                                src={profilePhoto}
+                                src={profile.profile_photo_url}
+                                key={profile.profile_photo_url}
                                 alt="Profile"
                                 className="profile-photo"
                                 style={{

@@ -5,17 +5,25 @@ import { isAxiosError } from "axios";
 
 export const GET = async (request) => {
     try {
-        const token = request.cookies.get("authToken")?.value;
+       const authToken = request.cookies.get("authToken")?.value;
 
-        if (!token) {
-            return NextResponse.json({ success: false, message: "Unauthorized", data: null }, { status: 401 });
-        }
 
-        const response = await Axios.get(API_ENDPOINTS.GET_DETAIL_PROFILE, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
+   
 
-        return NextResponse.json(response.data);
+       // 2. Validasi token
+       if (!authToken) {
+           return NextResponse.json({ success: false, message: "Unauthorized: No auth token found" }, { status: 401 });
+       }
+
+       // 3. Kirim ke backend API
+       const response = await Axios.get(API_ENDPOINTS.GET_DETAIL_PROFILE, {
+           withCredentials: true,
+           headers: {
+               Authorization: `Bearer ${authToken}`
+           }
+       });
+
+       return NextResponse.json(response.data);
     } catch (err) {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
