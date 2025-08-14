@@ -13,6 +13,7 @@ export default function DelegateTechnicianDialog({ visible, onHide, workOrder, s
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         assigned_to_id: "",
+        scheduled_date: null,
         notes: ""
     });
     const [formErrors, setFormErrors] = useState({});
@@ -37,25 +38,27 @@ export default function DelegateTechnicianDialog({ visible, onHide, workOrder, s
             fetchTechnicians();
             setFormData({
                 assigned_to_id: workOrder?.assigned_to_id || "",
+                scheduled_date: workOrder?.scheduled_date ? new Date(workOrder.scheduled_date) : null,
                 notes: workOrder?.notes || ""
             });
             setFormErrors({});
         }
     }, [visible, workOrder, fetchTechnicians]);
 
-   if (workOrder?.assignedTo) {
-       return (
-           <Dialog header={`Work Order : '${workOrder?.title}'`} visible={visible} style={{ width: "670px" }} onHide={onHide} dismissableMask>
-               <div className="p-fluid">
-                   <Message severity="info" text={`This Work Order cannot be Assigned because its Assigned to teknisi '${workOrder.assignedTo.full_name}'.`} className="mb-4" />
-               </div>
-           </Dialog>
-       );
-   }
+    if (workOrder?.assignedTo) {
+        return (
+            <Dialog header={`Work Order : '${workOrder?.title}'`} visible={visible} style={{ width: "670px" }} onHide={onHide} dismissableMask>
+                <div className="p-fluid">
+                    <Message severity="info" text={`This Work Order cannot be Assigned because its Assigned to teknisi '${workOrder.assignedTo.full_name}'.`} className="mb-4" />
+                </div>
+            </Dialog>
+        );
+    }
 
     const validateForm = () => {
         const errors = {};
         if (!formData.assigned_to_id) errors.assigned_to_id = "Teknisi wajib diisi";
+        if (!formData.scheduled_date) errors.scheduled_date = "Tanggal jadwal wajib diisi";
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -67,6 +70,7 @@ export default function DelegateTechnicianDialog({ visible, onHide, workOrder, s
         try {
             const payload = {
                 assigned_to_id: formData.assigned_to_id,
+                scheduled_date: formData.scheduled_date.toISOString(),
                 notes: formData.notes
             };
 
@@ -148,6 +152,22 @@ export default function DelegateTechnicianDialog({ visible, onHide, workOrder, s
                         valueTemplate={selectedTechnicianTemplate}
                     />
                     {formErrors.assigned_to_id && <Message severity="error" text={formErrors.assigned_to_id} />}
+                </div>
+
+                <div className="field mb-4">
+                    <label htmlFor="scheduled_date" className="font-bold mb-2 block">
+                        Tanggal Terjadwal
+                    </label>
+                    <Calendar
+                        id="scheduled_date"
+                        value={formData.scheduled_date}
+                        onChange={(e) => setFormData({ ...formData, scheduled_date: e.value })}
+                        showTime
+                        hourFormat="24"
+                        minDate={new Date()}
+                        className={formErrors.scheduled_date ? "p-invalid" : ""}
+                    />
+                    {formErrors.scheduled_date && <Message severity="error" text={formErrors.scheduled_date} />}
                 </div>
 
                 <div className="field mb-4">
