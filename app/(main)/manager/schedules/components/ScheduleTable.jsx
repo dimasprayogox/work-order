@@ -10,6 +10,7 @@ import { Button } from "primereact/button";
 import { ConfirmDialog } from "primereact/confirmdialog";
 import { FilterMatchMode } from "primereact/api";
 import { useState, useEffect } from "react";
+import { Tooltip } from "primereact/tooltip";
 
 const frequencyOptions = [
     { label: "All Frequency", value: "" },
@@ -78,17 +79,11 @@ const ScheduleTable = ({ schedules, loading, selectedSchedules, setSelectedSched
         setCurrentRows(e.rows);
     };
 
-    const titleBodyTemplate = (rowData) => (
-        <motion.span whileHover={{ x: 5 }} transition={{ type: "spring", stiffness: 300 }} className="font-medium text-blue-600 cursor-pointer">
-            {rowData.title}
-        </motion.span>
-    );
-
-    const machineBodyTemplate = (rowData) => (
-        <motion.span whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300 }} className="text-gray-800">
-            {rowData.machine?.name || "N/A"}
-        </motion.span>
-    );
+      const titleBodyTemplate = (rowData) => (
+            <motion.span whileHover={{ x: 5 }} transition={{ type: "spring", stiffness: 300 }} className="font-medium text-blue-600 cursor-pointer">
+                {rowData.title}
+            </motion.span>
+        );
 
     const createdByBodyTemplate = (rowData) => (
         <motion.span whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300 }} className="text-gray-800">
@@ -107,9 +102,47 @@ const ScheduleTable = ({ schedules, loading, selectedSchedules, setSelectedSched
         return <Tag value={frequency.label} className={frequency.color} style={{ minWidth: "60px", display: "inline-flex", justifyContent: "center" }} />;
     };
 
-    const nextDueDateBodyTemplate = (rowData) => {
-        return rowData.next_due_date ? new Date(rowData.next_due_date).toLocaleDateString("id-ID") : "N/A";
-    };
+ const dueDateBodyTemplate = (rowData) => {
+     if (!rowData.next_due_date) return "N/A";
+
+     const dueDate = new Date(rowData.next_due_date);
+     const now = new Date();
+     const diffTime = dueDate - now;
+     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+     let severity = "info";
+     let icon = "pi pi-calendar";
+
+     if (diffDays < 0) {
+         severity = "danger";
+         icon = "pi pi-exclamation-triangle";
+     } else if (diffDays <= 7) {
+         severity = "warning";
+         icon = "pi pi-clock";
+     } else if (diffDays <= 30) {
+         severity = "info";
+         icon = "pi pi-calendar";
+     }
+
+     const formattedDate = dueDate.toLocaleDateString("en-US", {
+         day: "2-digit",
+         month: "short",
+         year: "numeric",
+     });
+
+     return (
+         <div className="flex flex-column">
+             <span className={`flex align-items-center gap-1 ${severity === "danger" ? "text-red-600" : severity === "warning" ? "text-yellow-600" : "text-gray-700"}`}>
+                 <i className={icon}></i>
+                 {formattedDate}
+             </span>
+             <small className={`${severity === "danger" ? "text-red-500" : severity === "warning" ? "text-yellow-500" : "text-gray-500"}`}>
+                 {diffDays < 0 ? `Overdue by ${Math.abs(diffDays)} days` : diffDays === 0 ? "Due today" : diffDays === 1 ? "Due tomorrow" : `Due in ${diffDays} days`}
+             </small>
+         </div>
+     );
+ };
+
 
     const priorityBodyTemplate = (rowData) => {
         let severity;
@@ -133,6 +166,8 @@ const ScheduleTable = ({ schedules, loading, selectedSchedules, setSelectedSched
             </motion.div>
         );
     };
+
+     const statusBodyTemplate = (rowData) => <Tag value={rowData.is_active ? "Aktif" : "Nonaktif"} severity={rowData.is_active ? "success" : "danger"} className="font-medium" />;
 
     const actionBodyTemplate = (rowData) => (
         <div className="flex gap-2">
@@ -183,11 +218,35 @@ const ScheduleTable = ({ schedules, loading, selectedSchedules, setSelectedSched
                 first={currentFirst}
             >
                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
-                <Column field="title" header="Title" sortable body={titleBodyTemplate} />
-                <Column field="machine.name" header="Machine" body={machineBodyTemplate} sortable />
+                <Column field="title" header="Title" sortable body={titleBodyTemplate} style={{ minWidth: "10rem" }} />
+                <Column field="machine.name" header="Machine" sortable body={(rowData) => <Tag value={rowData.machine?.name} className="bg-gray-100 text-gray-800 font-medium" />} />
                 <Column field="frequency" header="Frequency" body={frequencyBodyTemplate} sortable filterField="frequency" />
-                <Column field="next_due_date" header="Due_Date" body={nextDueDateBodyTemplate} sortable />
+                <Column field="is_active" header="Status" body={statusBodyTemplate} style={{ width: "100px" }} sortable />
+                <Column field="next_due_date" header="Due_Date" body={dueDateBodyTemplate} sortable style={{ minWidth: "10rem" }} />
                 <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
+                <Column
+                    field="description"
+                    header="Description"
+                    sortable
+                    body={(rowData) => (
+                        <>
+                            <Tooltip target={`.description-tooltip-${rowData.id}`} position="bottom" />
+                            <span
+                                className={`description-tooltip-${rowData.id}`}
+                                data-pr-tooltip={rowData.description}
+                                style={{
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    display: "block",
+                                    maxWidth: "200px"
+                                }}
+                            >
+                                {rowData.description}
+                            </span>
+                        </>
+                    )}
+                />
                 <Column header="Created" body={createdByBodyTemplate} sortable sortField="created_by.full_name" />
                 <Column header="Actions" body={actionBodyTemplate} style={{ minWidth: "8rem" }} />
             </DataTable>

@@ -7,37 +7,12 @@ import { Divider } from "primereact/divider";
 import { Chip } from "primereact/chip";
 import { useRouter } from "next/navigation";
 import { ProgressSpinner } from "primereact/progressspinner";
+import { useProfile } from "../../../layout/context/ProfileContext";
 
 const ProfilePage = () => {
-    const [user, setUser] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const router = useRouter();
-
-    const fetchProfile = useCallback(async () => {
-        setIsLoading(true); 
-        try {
-            const res = await fetch("/api/profile", { 
-                credentials: "include"
-            });
-
-            if (res.ok) {
-                const result = await res.json();
-                setUser(result.data);
-            } else {
-                router.push("/auth/login");
-            }
-        } catch (err) {
-            console.error("Gagal mengambil data profil:", err);
-            setUser(null);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [router]);
-
-    useEffect(() => {
-        fetchProfile();
-    }, [fetchProfile]); 
+    const { profile: user, isLoading } = useProfile();
 
     const formatDate = (dateString) => {
         if (!dateString) return "-";
@@ -56,16 +31,17 @@ const ProfilePage = () => {
        );
    }
 
-   if (error || !user) {
-       return (
-           <div className="flex flex-column justify-content-center align-items-center" style={{ minHeight: "80vh" }}>
-               <i className="pi pi-exclamation-circle text-6xl text-red-500 mb-3"></i>
-               <h3 className="text-2xl font-medium">Gagal Memuat Profil</h3>
-               <p className="text-600 mb-3">{error || "Tidak dapat mengambil data pengguna."}</p>
-               <Button label="Coba Lagi" icon="pi pi-refresh" className="p-button-text" onClick={fetchProfile} />
-           </div>
-       );
-   }
+ if (!user) {
+     return (
+         <div className="flex justify-content-center p-3 md:p-5">
+             <Card className="w-full max-w-4xl shadow-3 border-round-xl text-center">
+                 <h2 className="text-xl font-bold text-red-500">Gagal Memuat Profil</h2>
+                 <p className="text-700 my-3">Sesi Anda mungkin telah berakhir. Silakan coba untuk keluar dan masuk kembali.</p>
+                 <Button label="Ke Halaman Login" icon="pi pi-sign-in" onClick={() => router.push("/auth/login")} />
+             </Card>
+         </div>
+     );
+ }
 
     return (
         <div className="flex justify-content-center p-3 md:p-5">

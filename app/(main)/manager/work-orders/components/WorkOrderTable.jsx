@@ -5,11 +5,13 @@ import { DataTable } from "primereact/datatable";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
 import { Tag } from "primereact/tag";
+import { confirmDialog } from "primereact/confirmdialog";
 import { ConfirmDialog } from "primereact/confirmdialog";
 import { Button } from "primereact/button";
 import { FilterMatchMode } from "primereact/api";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
+import { Image } from "primereact/image";
 import { Tooltip } from "primereact/tooltip";
 
 const statusFilterOptions = [
@@ -19,14 +21,14 @@ const statusFilterOptions = [
     { label: "Completed", value: "completed" }
 ];
 
-const WorkOrderTable = ({ workOrders, selectedWorkOrders, setSelectedWorkOrders, loading, onDelete, onEdit, searchText, setSearchText, statusFilter, setStatusFilter, handleViewDetails, handleAssignTechnician }) => {
+const WorkOrderTable = ({ workOrders, selectedWorkOrders, setSelectedWorkOrders, loading, onDelete, searchText, setSearchText, statusFilter, setStatusFilter, handleViewDetails, handleAssignTechnician, onAssign, onReassign, onUnassign }) => {
     const [filters, setFilters] = useState({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS },
         status: { value: null, matchMode: FilterMatchMode.EQUALS }
     });
-     const [selectAll, setSelectAll] = useState(false);
-     const [currentFirst, setCurrentFirst] = useState(0);
-     const [currentRows, setCurrentRows] = useState(10);
+    const [selectAll, setSelectAll] = useState(false);
+    const [currentFirst, setCurrentFirst] = useState(0);
+    const [currentRows, setCurrentRows] = useState(10);
 
     const onGlobalFilterChange = (e) => {
         const value = e.target.value;
@@ -95,6 +97,27 @@ const WorkOrderTable = ({ workOrders, selectedWorkOrders, setSelectedWorkOrders,
         </motion.span>
     );
 
+    const photoBodyTemplate = (rowData) => {
+        const photoUrl = rowData.issue?.photo_url;
+        if (photoUrl) {
+            return (
+                <Image
+                    src={photoUrl}
+                    alt="Work Order Photo"
+                    width="50"
+                    height="50"
+                    preview
+                    className="border-round"
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://placehold.co/50x50/cccccc/000000?text=No+Image";
+                    }}
+                />
+            );
+        }
+        return <span className="text-gray-400">No photo</span>;
+    };
+
     const priorityBodyTemplate = (rowData) => {
         let severity = "";
         switch (rowData.priority) {
@@ -125,19 +148,81 @@ const WorkOrderTable = ({ workOrders, selectedWorkOrders, setSelectedWorkOrders,
     };
 
     const technicianBodyTemplate = (rowData) => {
-        return rowData.assignedTo ? <Tag value={rowData.assignedTo.full_name} className="bg-green-100 text-green-800" /> : <Tag value="Not Assigned" className="bg-red-100 text-red-800" />;
+        if (!rowData.assignedTo) {
+            return <Tag value="Not Assigned" className="bg-red-100 text-red-800" />;
+        }
+
+        return (
+            <div className="flex flex-col gap-1">
+                <Tag value={rowData.assignedTo.full_name} className="bg-green-100 text-green-800" style={{ minWidth: "75px", display: "inline-flex", justifyContent: "center" }} />
+                {rowData.assignedTo.current_workload !== undefined && (
+                    <Tag
+                        value={`${rowData.assignedTo.current_workload} tasks`}
+                        className={`
+                text-xs py-0.5
+                ${rowData.assignedTo.current_workload >= 5 ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}
+            `}
+                        style={{ minWidth: "50px", display: "inline-flex", justifyContent: "center" }}
+                    />
+                )}
+            </div>
+        );
     };
 
-    const dateBodyTemplate = (rowData) => {
-        return rowData ? new Date(rowData).toLocaleString("id-ID") : "N/A";
+    const dateBodyTemplate = (field) => (rowData) => {
+        if (!rowData[field]) return "N/A";
+        return new Date(rowData[field]).toLocaleDateString("en-US", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+        });
+    };
+
+    const scheduledDateBodyTemplate = (rowData) => {
+        if (!rowData.scheduled_date) return "N/A";
+
+        const scheduleDate = new Date(rowData.scheduled_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const isOverdue = scheduleDate < today && rowData.status !== "completed";
+        const isToday = scheduleDate.toDateString() === today.toDateString();
+
+        return (
+            <div className={`flex align-items-center gap-1 ${isOverdue ? "text-red-500" : isToday ? "text-blue-500" : ""}`}>
+                <i className={`pi ${isOverdue ? "pi-exclamation-triangle" : isToday ? "pi-clock" : "pi-calendar"}`}></i>
+                <span className={isOverdue ? "font-semibold" : ""}>
+                    {scheduleDate.toLocaleDateString("en-US", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric"
+                    })}
+                </span>
+            </div>
+        );
     };
 
     const actionBodyTemplate = (rowData) => {
+        const canAssign = !rowData.assigned_to_id && rowData.status !== "completed";
+        const canReassign = rowData.assigned_to_id && rowData.status !== "completed" && rowData.status !== "in_progress";
+        const canUnassign = rowData.assigned_to_id && rowData.status !== "completed" && rowData.status !== "in_progress";
+
+        const handleUnassignClick = () => {
+            confirmDialog({
+                message: `Apakah Anda yakin ingin membatalkan assignment work order "${rowData.title}"?`,
+                header: "Konfirmasi Unassign",
+                icon: "pi pi-exclamation-triangle",
+                acceptClassName: "p-button-danger",
+                accept: () => onUnassign(rowData, ""),
+                reject: () => {}
+            });
+        };
+
         return (
             <div className="flex gap-2">
-                <Button icon="pi pi-eye" rounded outlined className="p-button-sm" onClick={() => handleViewDetails(rowData)} tooltip="Show Details" />
-                <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onEdit(rowData)} tooltip="Edit" />
-                <Button icon="pi pi-user-plus" rounded outlined className="p-button-sm" onClick={() => handleAssignTechnician(rowData)} tooltip="Assigned Technician" />
+                {canAssign && <Button icon="pi pi-user-plus" rounded outlined className="p-button-sm" onClick={() => onAssign(rowData)} tooltip="Assign to Technician" tooltipOptions={{ position: "top" }} />}
+                {canReassign && <Button icon="pi pi-user-edit" rounded outlined className="p-button-sm" onClick={() => onReassign(rowData)} tooltip="Reassign" tooltipOptions={{ position: "top" }} />}
+                {canUnassign && <Button icon="pi pi-user-minus" rounded outlined severity="danger" className="p-button-sm" onClick={handleUnassignClick} tooltip="Unassign Technician" />}
                 <Button icon="pi pi-trash" rounded outlined severity="danger" className="p-button-sm" onClick={() => onDelete(rowData)} tooltip="Delete" />
             </div>
         );
@@ -170,14 +255,15 @@ const WorkOrderTable = ({ workOrders, selectedWorkOrders, setSelectedWorkOrders,
                 loading={loading}
             >
                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
-                <Column field="title" header="Title" sortable body={titleBodyTemplate} />
+                <Column field="title" header="Title" sortable body={titleBodyTemplate} style={{ minWidth: "10rem" }} />
                 <Column field="machine.name" header="Machine" sortable body={(rowData) => <Tag value={rowData.machine?.name} className="bg-gray-100 text-gray-800 font-medium" />} />
+                <Column field="image" header="Image" body={photoBodyTemplate} />
                 <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                 <Column field="status" header="Status" body={statusBodyTemplate} sortable />
                 <Column header="Assigned" body={technicianBodyTemplate} sortable sortField="assignedTo.full_name" />
-                <Column header="Schedule" body={(rowData) => dateBodyTemplate(rowData.scheduled_date)} sortable sortField="scheduled_date" />
-                <Column field="started_at" header="Started" body={(rowData) => dateBodyTemplate(rowData.started_at)} sortable />
-                <Column field="completed_at" header="Completed" body={(rowData) => dateBodyTemplate(rowData.completed_at)} sortable />
+                <Column header="Schedule" body={scheduledDateBodyTemplate} style={{ minWidth: "145px" }} sortable sortField="scheduled_date" />
+                <Column field="started_at" header="Started" body={dateBodyTemplate("started_at")} style={{ minWidth: "120px" }} sortable />
+                <Column field="completed_at" header="Completed" body={dateBodyTemplate("completed_at")} style={{ minWidth: "120px" }} sortable />
                 <Column
                     field="description"
                     header="Description"

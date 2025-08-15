@@ -6,212 +6,161 @@ import { InputTextarea } from "primereact/inputtextarea";
 import { Dropdown } from "primereact/dropdown";
 import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
-import { Message } from "primereact/message";
 import { classNames } from "primereact/utils";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { Checkbox } from "primereact/checkbox";
 
-const ScheduleFormDialog = ({ 
-    visible, 
-    onHide, 
-    schedule, 
-    fetchSchedules, 
-    showToast 
-}) => {
+const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedules, showToast }) => {
     const [form, setForm] = useState({
         title: "",
         description: "",
         machine_id: "",
         frequency: "",
+        priority: "medium",
         next_due_date: null,
-        priority: "medium"
+        is_active: true
     });
-    const [formErrors, setFormErrors] = useState({});
     const [loading, setLoading] = useState(false);
-    const [machines, setMachines] = useState([]);
-    const [submitted] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
 
+    // Options for dropdowns
     const frequencyOptions = [
-        { label: "Harian", value: "daily" },
-        { label: "Mingguan", value: "weekly" },
-        { label: "Bulanan", value: "monthly" },
-        { label: "Tahunan", value: "yearly" }
+        { label: "Daily", value: "daily" },
+        { label: "Weekly", value: "weekly" },
+        { label: "Monthly", value: "monthly" },
+        { label: "Yearly", value: "yearly" }
     ];
 
     const priorityOptions = [
-        { label: "Rendah", value: "low" },
-        { label: "Sedang", value: "medium" },
-        { label: "Tinggi", value: "high" }
+        { label: "Low", value: "low" },
+        { label: "Medium", value: "medium" },
+        { label: "High", value: "high" }
     ];
 
-    const fetchMachines = useCallback(async () => {
-        try {
-            const response = await fetch("/api/manager/machines", {
-                credentials: "include"
-            });
-            const result = await response.json();
-            if (response.ok) {
-                setMachines(result.data.map(m => ({ label: m.name, value: m.id })));
-            } else {
-                throw new Error(result.message || "Gagal mengambil daftar mesin");
-            }
-        } catch (error) {
-            showToast("error", "Error", error.message);
-        }
-    }, [showToast]);
-
+    // Mengisi dan mereset form
     useEffect(() => {
-        if (visible) {
-            if (schedule) {
-                setForm({
-                    title: schedule.title || "",
-                    description: schedule.description || "",
-                    machine_id: schedule.machine_id || "",
-                    frequency: schedule.frequency || "",
-                    next_due_date: schedule.next_due_date ? new Date(schedule.next_due_date) : null,
-                    priority: schedule.priority || "medium"
-                });
-            } else {
-                setForm({
-                    title: "",
-                    description: "",
-                    machine_id: "",
-                    frequency: "",
-                    next_due_date: null,
-                    priority: "medium"
-                });
-            }
-            setFormErrors({});
-            fetchMachines();
+        if (schedule) {
+            setForm({
+                title: schedule.title || "",
+                description: schedule.description || "",
+                machine_id: schedule.machine_id || "",
+                frequency: schedule.frequency || "",
+                priority: schedule.priority || "medium",
+                next_due_date: schedule.next_due_date ? new Date(schedule.next_due_date) : null,
+                is_active: typeof schedule.is_active === "boolean" ? schedule.is_active : Boolean(Number(schedule.is_active))
+            });
+        } else {
+            setForm({
+                title: "",
+                description: "",
+                machine_id: "",
+                frequency: "",
+                priority: "medium",
+                next_due_date: null,
+                is_active: true
+            });
         }
-    }, [visible, schedule, fetchMachines]);
+        setSubmitted(false);
+    }, [schedule, visible]);
 
     const handleChange = (field, value) => {
-        setForm(prev => ({ ...prev, [field]: value }));
-        if (formErrors[field]) {
-            setFormErrors(prev => ({ ...prev, [field]: undefined }));
-        }
+        setForm((prev) => ({ ...prev, [field]: value }));
     };
 
     const validateForm = () => {
-        const errors = {};
-        if (!form.title.trim()) errors.title = "Judul wajib diisi.";
-        if (!form.machine_id) errors.machine_id = "Mesin wajib diisi.";
-        if (!form.frequency) errors.frequency = "Frekuensi wajib diisi.";
-        if (!form.next_due_date) errors.next_due_date = "Tanggal jatuh tempo wajib diisi.";
-        if (form.next_due_date && new Date(form.next_due_date).getTime() < new Date().getTime()) {
-            errors.next_due_date = "Tanggal jatuh tempo tidak boleh di masa lalu.";
-        }
-        setFormErrors(errors);
-        return Object.keys(errors).length === 0;
+        const { title, machine_id, frequency, next_due_date } = form;
+        return title.trim() && machine_id && frequency && next_due_date;
     };
 
+    // Handler untuk submit form
     const handleSubmit = async () => {
-        if (!validateForm()) return;
+        setSubmitted(true);
+        if (!validateForm()) {
+            showToast("error", "Error", "Harap lengkapi semua field yang wajib diisi");
+            return;
+        }
 
         setLoading(true);
         try {
-            const payload = {
-                ...form,
+            const formData = {
+                title: form.title,
+                description: form.description,
+                machine_id: form.machine_id,
+                frequency: form.frequency,
+                priority: form.priority,
                 next_due_date: form.next_due_date.toISOString(),
+                is_active: form.is_active // <-- tambahkan ini
             };
 
-            const endpoint = schedule 
-                ? `/api/manager/schedules/${schedule.id}`
-                : "/api/manager/schedules";
-            const method = schedule ? "PATCH" : "POST";
-
-            const response = await fetch(endpoint, {
-                method,
+            const res = await fetch(schedule ? `/api/maager/schedules/${schedule.id}` : "/api/manager/schedules", {
+                method: schedule ? "PATCH" : "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-                credentials: "include"
+                credentials: "include",
+                body: JSON.stringify(formData)
             });
 
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.message || `Gagal ${schedule ? "memperbarui" : "membuat"} jadwal perawatan`);
-            }
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Gagal menyimpan");
 
-            showToast("success", "Berhasil", `Jadwal perawatan berhasil ${schedule ? "diperbarui" : "dibuat"}.`);
+            showToast("success", "Sukses", data.message || "Data berhasil disimpan");
             fetchSchedules();
             onHide();
         } catch (error) {
+            console.error("Submit error:", error);
             showToast("error", "Error", error.message);
         } finally {
             setLoading(false);
         }
     };
 
+    const machineOptions = machines.map((machine) => ({
+        label: `${machine.name} (${machine.machine_code || machine.id})`,
+        value: machine.id
+    }));
+
+    
+
     return (
-        <Dialog
-            header={schedule ? `Edit Jadwal: ${schedule.title || ""}` : "Buat Jadwal Perawatan Baru"}
-            visible={visible}
-            style={{ width: "min(95vw, 600px)" }}
-            breakpoints={{ "960px": "75vw", "641px": "90vw" }}
-            modal
-            onHide={onHide}
-            className="p-fluid p-shadow-24 surface-card border-round"
-        >
+        <Dialog header={schedule ? "Edit Schedule" : "Add New Schedule"} visible={visible} style={{ width: "40rem" }} breakpoints={{ "960px": "75vw", "641px": "90vw" }} onHide={onHide} modal className="p-fluid">
             <div className="formgrid grid">
+                {/* Title Field */}
                 <div className="field col-12">
-                    <label htmlFor="title" className="font-bold mb-2 block">
-                        Judul <span className="text-red-500">*</span>
+                    <label htmlFor="title" className="font-medium">
+                        Title <span className="text-red-500">*</span>
                     </label>
-                    <InputText
-                        id="title"
-                        value={form.title}
-                        onChange={(e) => handleChange("title", e.target.value)}
-                        className={classNames({ "p-invalid": (submitted || formErrors.title) })}
-                    />
-                    {(submitted || formErrors.title) && <small className="p-error">{formErrors.title}</small>}
+                    <InputText id="title" value={form.title} onChange={(e) => handleChange("title", e.target.value)} className={classNames({ "p-invalid": submitted && !form.title.trim() })} />
+                    {submitted && !form.title.trim() && <small className="p-error">Title is required</small>}
                 </div>
 
+                {/* Machine Field */}
                 <div className="field col-12">
-                    <label htmlFor="description" className="font-bold mb-2 block">
-                        Deskripsi
+                    <label htmlFor="machine_id" className="font-medium">
+                        Machine <span className="text-red-500">*</span>
                     </label>
-                    <InputTextarea
-                        id="description"
-                        rows={3}
-                        value={form.description}
-                        onChange={(e) => handleChange("description", e.target.value)}
-                        autoResize
-                    />
+                    <Dropdown id="machine_id" value={form.machine_id} options={machineOptions} onChange={(e) => handleChange("machine_id", e.value)} filter showClear className={classNames({ "p-invalid": submitted && !form.machine_id })} />
+                    {submitted && !form.machine_id && <small className="p-error">Machine is required</small>}
+                </div>
+
+                {/* Frequency and Priority Row */}
+                <div className="field col-12 md:col-6">
+                    <label htmlFor="frequency" className="font-medium">
+                        Frequency <span className="text-red-500">*</span>
+                    </label>
+                    <Dropdown id="frequency" value={form.frequency} options={frequencyOptions} onChange={(e) => handleChange("frequency", e.value)} className={classNames({ "p-invalid": submitted && !form.frequency })} />
+                    {submitted && !form.frequency && <small className="p-error">Frequency is required</small>}
                 </div>
 
                 <div className="field col-12 md:col-6">
-                    <label htmlFor="machine_id" className="font-bold mb-2 block">
-                        Mesin <span className="text-red-500">*</span>
+                    <label htmlFor="priority" className="font-medium">
+                        Priority
                     </label>
-                    <Dropdown
-                        id="machine_id"
-                        value={form.machine_id}
-                        options={machines}
-                        onChange={(e) => handleChange("machine_id", e.value)}
-                        placeholder="Pilih Mesin"
-                        className={classNames({ "p-invalid": (submitted || formErrors.machine_id) })}
-                    />
-                    {(submitted || formErrors.machine_id) && <small className="p-error">{formErrors.machine_id}</small>}
+                    <Dropdown id="priority" value={form.priority} options={priorityOptions} onChange={(e) => handleChange("priority", e.value)} />
                 </div>
 
-                <div className="field col-12 md:col-6">
-                    <label htmlFor="frequency" className="font-bold mb-2 block">
-                        Frekuensi <span className="text-red-500">*</span>
-                    </label>
-                    <Dropdown
-                        id="frequency"
-                        value={form.frequency}
-                        options={frequencyOptions}
-                        onChange={(e) => handleChange("frequency", e.value)}
-                        placeholder="Pilih Frekuensi"
-                        className={classNames({ "p-invalid": (submitted || formErrors.frequency) })}
-                    />
-                    {(submitted || formErrors.frequency) && <small className="p-error">{formErrors.frequency}</small>}
-                </div>
-
-                <div className="field col-12 md:col-6">
-                    <label htmlFor="next_due_date" className="font-bold mb-2 block">
-                        Jatuh Tempo <span className="text-red-500">*</span>
+                {/* Next Due Date Field */}
+                <div className="field col-12">
+                    <label htmlFor="next_due_date" className="font-medium">
+                        Next Due Date <span className="text-red-500">*</span>
                     </label>
                     <Calendar
                         id="next_due_date"
@@ -219,41 +168,33 @@ const ScheduleFormDialog = ({
                         onChange={(e) => handleChange("next_due_date", e.value)}
                         showTime
                         hourFormat="24"
-                        minDate={new Date()}
-                        className={classNames({ "p-invalid": (submitted || formErrors.next_due_date) })}
+                        placeholder="Select due date"
+                        dateFormat="dd/mm/yy"
+                        className={classNames({ "p-invalid": submitted && !form.next_due_date })}
                     />
-                    {(submitted || formErrors.next_due_date) && <small className="p-error">{formErrors.next_due_date}</small>}
+                    {submitted && !form.next_due_date && <small className="p-error">Next due date is required</small>}
                 </div>
 
-                <div className="field col-12 md:col-6">
-                    <label htmlFor="priority" className="font-bold mb-2 block">
-                        Prioritas
+                {/* Description Field */}
+                <div className="field col-12">
+                    <label htmlFor="description" className="font-medium">
+                        Description
                     </label>
-                    <Dropdown
-                        id="priority"
-                        value={form.priority}
-                        options={priorityOptions}
-                        onChange={(e) => handleChange("priority", e.value)}
-                        placeholder="Pilih Prioritas"
-                    />
+                    <InputTextarea id="description" value={form.description} onChange={(e) => handleChange("description", e.target.value)} rows={3} />
+                </div>
+
+                {/* Active Status Field */}
+                <div className="field mb-4">
+                    <label htmlFor="is_active" className="font-semibold text-gray-800 block mb-2">
+                        Aktifkan Jadwal
+                    </label>
+                    <Checkbox inputId="is_active" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.checked })} />
+                    <span className="ml-2">{form.is_active ? "Aktif" : "Nonaktif"}</span>
                 </div>
             </div>
-
-            <div className="flex justify-end gap-2 mt-4">
-                <Button 
-                    label="Batal" 
-                    icon="pi pi-times" 
-                    onClick={onHide} 
-                    className="p-button-text" 
-                    disabled={loading} 
-                />
-                <Button 
-                    label={schedule ? "Simpan Perubahan" : "Simpan"} 
-                    icon="pi pi-check" 
-                    onClick={handleSubmit} 
-                    loading={loading} 
-                    disabled={loading} 
-                />
+            <div className="flex justify-end gap-2">
+                <Button label="Cancel" icon="pi pi-times" onClick={onHide} className="p-button-text" disabled={loading} />
+                <Button label={schedule ? "Update" : "Save"} icon="pi pi-check" onClick={handleSubmit} loading={loading} disabled={loading} />
             </div>
         </Dialog>
     );

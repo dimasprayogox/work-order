@@ -11,6 +11,7 @@ import { Calendar } from "primereact/calendar";
 import { Avatar } from "primereact/avatar";
 import { Divider } from "primereact/divider";
 import { useRouter } from "next/navigation";
+import { useProfile } from "../../../../layout/context/ProfileContext";
 
 function EditProfilePage() {
     // State management
@@ -30,77 +31,21 @@ function EditProfilePage() {
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [errors, setErrors] = useState({});
+    const {profile: contextProfile, fetchProfile } = useProfile();
 
     // Refs and Hooks
     const toast = useRef(null);
     const fileInputRef = useRef(null);
     const router = useRouter();
 
-    const fetchProfile = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const res = await fetch("/api/profile", {
-                credentials: "include"
-            });
-
-            if (!res.ok) {
-                if (res.status === 401) {
-                    throw new Error("Unauthorized");
-                }
-                throw new Error("Failed to fetch profile");
-            }
-
-            const result = await res.json();
-            const profileData = result.data || result;
-
-            setProfile({
-                full_name: profileData.full_name || "",
-                username: profileData.username || "",
-                email: profileData.email || "",
-                phone_number: profileData.phone_number || "",
-                city: profileData.city || "",
-                date_of_birth: profileData.date_of_birth ? new Date(profileData.date_of_birth) : null,
-                address: profileData.address || "",
-                bio: profileData.bio || "",
-                profile_photo_url: profileData.profile_photo_url || null
-            });
-            setPreviewUrl(profileData.profile_photo_url || null);
-        } catch (err) {
-            console.error("Failed to fetch profile:", err);
-
-            if (err.message === "Unauthorized") {
-                toast.current?.show({
-                    severity: "warn",
-                    summary: "Session Expired",
-                    detail: "Please login again.",
-                    life: 3000
-                });
-                router.push("/auth/login");
-                return;
-            }
-
-            toast.current?.show({
-                severity: "error",
-                summary: "Error",
-                detail: "Failed to load profile data",
-                life: 3000
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    }, [router]);
-
+    
     useEffect(() => {
-        fetchProfile();
-    }, [fetchProfile]);
-
-    useEffect(() => {
-        return () => {
-            if (previewUrl && previewUrl.startsWith("blob:")) {
-                URL.revokeObjectURL(previewUrl);
-            }
-        };
-    }, [previewUrl]);
+    if (contextProfile) {
+        setProfile(contextProfile);
+        setIsLoading(false);
+        setPreviewUrl(contextProfile.profile_photo_url || null);
+    }
+}, [contextProfile]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -192,6 +137,7 @@ function EditProfilePage() {
             }
 
             const responseData = await res.json();
+            await fetchProfile();
             console.log("Profile update success:", responseData);
 
             // Tampilkan toast sukses

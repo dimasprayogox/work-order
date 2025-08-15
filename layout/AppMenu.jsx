@@ -250,7 +250,7 @@ const AppMenu = () => {
         <MenuProvider>
             <div className="layout-menu">
                 {menuGroups.map((group, groupIndex) => (
-                    <div key={`group-${groupIndex}`} className="menu-group mb-4">
+                    <div key={`group-${groupIndex}`} className="menu-group mb-2">
                         {/* Group Header */}
                         <div className="menu-group-header px-2 mb-2">
                             <span className="text-xs font-semibold text-color-secondary uppercase tracking-wider opacity-60">{group.label}</span>
@@ -259,7 +259,7 @@ const AppMenu = () => {
                         {/* Group Items */}
                         <ul className="menu-group-items" style={{ listStyle: "none", margin: 0, padding: 0 }}>
                             {group.items.map((item, itemIndex) => (
-                                <li key={`${groupIndex}-${itemIndex}`} className="mb-1">
+                                <li key={`${groupIndex}-${itemIndex}`} className="">
                                     <a
                                         href={item.to}
                                         onClick={(e) => handleNavigation(e, item.to)}
@@ -270,13 +270,13 @@ const AppMenu = () => {
                                     >
                                         {item.icon && (
                                             <i
-                                                className={classNames("mr-3 text-lg transition-colors duration-200", item.icon, {
+                                                className={classNames("mr-2 min-h-[32px] text-xs transition-colors duration-200", item.icon, {
                                                     "text-primary": pathname === item.to,
                                                     "group-hover:text-primary": pathname !== item.to
                                                 })}
                                             ></i>
                                         )}
-                                        <span className="font-medium text-sm">{item.label}</span>
+                                        <span className="font-medium text-xs">{item.label}</span>
                                     </a>
                                 </li>
                             ))}

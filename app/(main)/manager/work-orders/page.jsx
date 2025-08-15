@@ -4,19 +4,20 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
 import { Divider } from "primereact/divider";
-import { ConfirmDialog } from "primereact/confirmdialog";
 import { Dialog } from "primereact/dialog";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { Message } from "primereact/message";
 import dynamic from "next/dynamic";
 
 import WorkOrderTable from "./components/WorkOrderTable";
 import DelegateTechnicianDialog from "./components/DelegateTechnicianDialog";
-import WorkOrderDetailsDialog from "./components/WorkOrderDetailsDialog";
-import WorkOrderFormDialog from "./components/WorkOrderFormDialog";
 import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog";
+import AssignmentDialog from "./components/AssignmentDialog";
+
+import BulkAssignmentDialog from "./components/BulkAssignmentDialog";
 
 const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
 const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false });
@@ -34,13 +35,16 @@ export default function WorkOrderPage() {
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState("");
     const [statusFilter, setStatusFilter] = useState(null);
+    const [technicians, setTechnicians] = useState([]);
+    const [stats, setStats] = useState(null);
 
     const [assignDialogVisible, setAssignDialogVisible] = useState(false);
     const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
     const [viewDetailsDialogVisible, setViewDetailsDialogVisible] = useState(false);
-    const [isFormOpen, setFormOpen] = useState(false);
     const [setEditDialogVisible] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
+    const [isAssignDialogOpen, setAssignDialogOpen] = useState(false);
+    const [isBulkAssignDialogOpen, setBulkAssignDialogOpen] = useState(false);
 
     const fileInputRef = useRef(null);
     const [adjustDialog, setAdjustDialog] = useState(false);
@@ -55,6 +59,11 @@ export default function WorkOrderPage() {
         marginRight: 10,
         marginTop: 10,
         marginBottom: 10
+    });
+    const [confirmReassignDialog, setConfirmReassignDialog] = useState({
+        visible: false,
+        assignedCount: 0,
+        unassignedCount: 0
     });
 
     const showToast = useCallback((severity, summary, detail) => {
@@ -77,6 +86,100 @@ export default function WorkOrderPage() {
             setLoading(false);
         }
     }, [showToast]);
+
+    const fetchTechnicians = useCallback(async () => {
+        try {
+            const res = await fetch("/api/manager/work-orders/technicians", {
+                credentials: "include"
+            });
+            const body = await res.json();
+
+            if (res.ok) {
+                setTechnicians(body.data || []);
+            }
+        } catch (err) {
+            showToast("error", "Error", "Gagal mengambil data teknisi");
+        }
+    }, [showToast]);
+
+    // Fetch assignment statistics
+    const fetchStats = useCallback(async () => {
+        try {
+            const res = await fetch("/api/manager/work-orders/stats", {
+                credentials: "include"
+            });
+            const body = await res.json();
+
+            if (res.ok) {
+                setStats(body.data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch stats:", err);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchWorkOrders();
+        fetchTechnicians();
+        fetchStats();
+    }, [fetchWorkOrders, fetchTechnicians, fetchStats]);
+
+    // Handle single assignment
+    const handleAssign = (workOrder) => {
+        setSelectedWorkOrder(workOrder);
+        setAssignDialogOpen(true);
+    };
+
+    // Handle reassignment
+    const handleReassign = (workOrder) => {
+        setSelectedWorkOrder(workOrder);
+        setAssignDialogOpen(true);
+    };
+
+    // Handle unassign
+    const handleUnassign = async (workOrder, reason = "") => {
+        try {
+            const res = await fetch(`/api/manager/work-orders/${workOrder.id}/unassign`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ reason })
+            });
+
+            const body = await res.json();
+            if (!res.ok) throw new Error(body.message);
+
+            showToast("success", "Berhasil", body.message);
+            fetchWorkOrders();
+            fetchStats();
+        } catch (err) {
+            showToast("error", "Error", err.message);
+        }
+    };
+
+    // Handle bulk assignment
+    const handleBulkAssign = () => {
+        if (selectedWorkOrders.length === 0) {
+            showToast("warn", "Warning", "Pilih work order terlebih dahulu");
+            return;
+        }
+
+        // Hitung jumlah yang sudah dan belum di-assign
+        const assignedCount = selectedWorkOrders.filter((wo) => wo.assigned_to_id).length;
+        const unassignedCount = selectedWorkOrders.length - assignedCount;
+
+        if (assignedCount > 0) {
+            // Tampilkan dialog konfirmasi jika ada yang sudah di-assign
+            setConfirmReassignDialog({
+                visible: true,
+                assignedCount,
+                unassignedCount
+            });
+        } else {
+            // Langsung buka bulk assignment jika semua belum di-assign
+            setBulkAssignDialogOpen(true);
+        }
+    };
 
     useEffect(() => {
         fetchWorkOrders();
@@ -187,112 +290,17 @@ export default function WorkOrderPage() {
         exportPdf();
     };
 
-    const handleImport = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setLoading(true);
-        try {
-            const workbook = new ExcelJS.Workbook();
-            const buffer = await file.arrayBuffer();
-            await workbook.xlsx.load(buffer);
-
-            const worksheet = workbook.getWorksheet(1);
-            const data = [];
-
-            const parseCustomDate = (dateString) => {
-                if (!dateString) return null;
-
-                // Coba parse format Excel serial number
-                if (typeof dateString === "number") {
-                    return new Date(Math.round((dateString - 25569) * 86400 * 1000));
-                }
-
-                // Format: "13/08/2025, 10.02.15" atau "1/8/2025, 1.02.15"
-                const match = dateString.toString().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2})\.(\d{2})\.(\d{2})$/);
-                if (match) {
-                    const [_, day, month, year, hours, minutes, seconds] = match;
-                    return new Date(year, month - 1, day, hours, minutes, seconds);
-                }
-
-                // Fallback ke parsing default
-                const date = new Date(dateString);
-                return isNaN(date.getTime()) ? null : date;
-            };
-
-            worksheet.eachRow((row, rowNumber) => {
-                if (rowNumber === 1) return; // Skip header row
-
-                const rowData = {};
-                row.eachCell((cell, colNumber) => {
-                    const headers = ["title", "machine_id", "priority", "scheduled_date", "description"];
-                    if (headers[colNumber - 1]) {
-                        if (headers[colNumber - 1] === "scheduled_date") {
-                            const dateValue = parseCustomDate(cell.value);
-                            rowData[headers[colNumber - 1]] = dateValue ? dateValue.toISOString() : null;
-                        } else {
-                            rowData[headers[colNumber - 1]] = cell.value;
-                        }
-                    }
-                });
-
-                if (rowData.title) {
-                    if (!rowData.priority) rowData.priority = "medium";
-                    data.push(rowData);
-                }
-            });
-
-            // Proses import ke API
-            const importResults = await Promise.allSettled(
-                data.map((item) =>
-                    fetch(`/api/manager/work-orders`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        credentials: "include",
-                        body: JSON.stringify(item)
-                    })
-                )
-            );
-
-            // Cek hasil import
-            const failedImports = importResults.filter((r) => r.status === "rejected" || !r.value.ok);
-            if (failedImports.length > 0) {
-                const errorMessages = failedImports.map((r, i) => `Baris ${i + 2}: ${r.reason?.message || r.value?.statusText || "Error tidak diketahui"}`);
-                throw new Error(`Beberapa data gagal diimpor:\n${errorMessages.join("\n")}`);
-            }
-
-            showToast("success", "Import Sukses", `${data.length} work order berhasil diimpor`);
-            fetchWorkOrders();
-        } catch (err) {
-            showToast("error", "Import Gagal", err.message);
-        } finally {
-            setLoading(false);
-            e.target.value = "";
-        }
-    };
-
     return (
         <div className="p-4">
             <Toast ref={toast} position="top-right" />
-            <input type="file" ref={fileInputRef} accept=".xlsx,.xls" onChange={handleImport} style={{ display: "none" }} />
-            <ConfirmDialog />
+
             <div className="card">
                 <h3 className="mb-4">Work Orders</h3>
                 <div className="flex flex-row gap-2 mb-4">
                     <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
-                    <Button
-                        size="small"
-                        label="New"
-                        icon="pi pi-plus"
-                        outlined
-                        severity="success"
-                        onClick={() => {
-                            setSelectedWorkOrder(null);
-                            setFormOpen(true);
-                        }}
-                    />
+                    <Button size="small" label="New" icon="pi pi-plus" outlined severity="success" disabled />
                     <Divider layout="vertical" />
-                    <Button size="small" label="Import" icon="pi pi-file-import" outlined onClick={() => fileInputRef.current?.click()} />
+                    <Button size="small" label="Assign Selected" icon="pi pi-users" outlined onClick={handleBulkAssign} disabled={selectedWorkOrders.length === 0} />
                     <Button size="small" label="Export" icon="pi pi-file-export" outlined onClick={exportExcel} />
                     <Button size="small" label="Print" icon="pi pi-print" outlined onClick={handlePrint} />
                     <Divider layout="vertical" />
@@ -315,29 +323,23 @@ export default function WorkOrderPage() {
                     selectedWorkOrders={selectedWorkOrders}
                     setSelectedWorkOrders={setSelectedWorkOrders}
                     searchText={searchText}
+                    loading={loading}
                     setSearchText={setSearchText}
                     statusFilter={statusFilter}
                     setStatusFilter={setStatusFilter}
-                    handleViewDetails={handleViewDetails}
                     handleAssignTechnician={(rowData) => {
                         setSelectedWorkOrder(rowData);
                         setAssignDialogVisible(true);
                     }}
-                    handleEditWorkOrder={handleEditWorkOrder}
-                    onEdit={(p) => {
-                        setSelectedWorkOrder(p);
-                        setFormOpen(true);
-                    }}
                     onDelete={handleDelete}
+                    onAssign={handleAssign}
+                    onReassign={handleReassign}
+                    onUnassign={handleUnassign}
                 />
             </div>
 
             {/* Dialogs */}
             <DelegateTechnicianDialog visible={assignDialogVisible} onHide={() => setAssignDialogVisible(false)} workOrder={selectedWorkOrder} showToast={showToast} fetchWorkOrders={fetchWorkOrders} />
-
-            <WorkOrderDetailsDialog visible={viewDetailsDialogVisible} onHide={() => setViewDetailsDialogVisible(false)} workOrder={selectedWorkOrder} />
-
-            <WorkOrderFormDialog visible={isFormOpen} onHide={() => setFormOpen(false)} workOrder={selectedWorkOrder} fetchWorkOrders={fetchWorkOrders} showToast={showToast} />
 
             <ConfirmDeleteDialog
                 visible={isDeleteOpen}
@@ -354,15 +356,70 @@ export default function WorkOrderPage() {
                 showToast={showToast}
             />
 
-            {/* Hidden file input for import */}
-            <input type="file" ref={fileInputRef} style={{ display: "none" }} onChange={handleImport} accept=".xlsx,.xls" />
-
             {/* Print configuration dialog */}
             <AdjustPrintMarginLaporan adjustDialog={adjustDialog} setAdjustDialog={setAdjustDialog} handleAdjust={handleAdjust} printConfig={printConfig} setPrintConfig={setPrintConfig} excel={exportExcel} />
 
+            <AssignmentDialog
+                visible={isAssignDialogOpen}
+                onHide={() => {
+                    setAssignDialogOpen(false);
+                    setSelectedWorkOrder(null);
+                }}
+                workOrder={selectedWorkOrder}
+                technicians={technicians}
+                onSuccess={() => {
+                    fetchWorkOrders();
+                    fetchStats();
+                }}
+                showToast={showToast}
+            />
+
+            {/* Bulk Assignment Dialog */}
+            <BulkAssignmentDialog
+                visible={isBulkAssignDialogOpen}
+                onHide={() => {
+                    setBulkAssignDialogOpen(false);
+                    setSelectedWorkOrders([]);
+                }}
+                workOrders={selectedWorkOrders}
+                technicians={technicians}
+                onSuccess={() => {
+                    fetchWorkOrders();
+                    fetchStats();
+                    setSelectedWorkOrders([]);
+                    showToast("success", "Success", "Work orders berhasil di-assign ulang");
+                }}
+                showToast={showToast}
+            />
             {/* PDF preview dialog */}
             <Dialog visible={jsPdfPreviewOpen} onHide={() => setJsPdfPreviewOpen(false)} modal style={{ width: "90vw", height: "90vh" }} header="Pratinjau PDF">
                 <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
+            </Dialog>
+
+            {/* Confirm Reassign Dialog */}
+            <Dialog
+                visible={confirmReassignDialog.visible}
+                onHide={() => setConfirmReassignDialog({ ...confirmReassignDialog, visible: false })}
+                header="Warning!"
+                style={{ width: "500px" }}
+                modal
+                footer={
+                    <div>
+                        <Button
+                            label="Continue"
+                            icon="pi pi-check"
+                            onClick={() => {
+                                setConfirmReassignDialog({ ...confirmReassignDialog, visible: false });
+                                setBulkAssignDialogOpen(true);
+                            }}
+                            autoFocus
+                        />
+                    </div>
+                }
+            >
+                <div className="p-fluid">
+                    <Message severity="info" text={`${confirmReassignDialog.assignedCount} out of ${selectedWorkOrders.length} selected work orders have already been assigned`} className="mb-4" />
+                </div>
             </Dialog>
         </div>
     );
