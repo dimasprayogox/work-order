@@ -150,7 +150,7 @@ export const ScheduleController = {
       });
     }
   },
-  
+
   async deleteMany(req, res) {
     try {
       const { ids } = req.body;
@@ -198,6 +198,7 @@ export const ScheduleController = {
 
       const dueSchedules = await Schedule.query()
         .where("next_due_date", "<=", now)
+        .where("is_active", 1)
         .withGraphFetched("machine");
 
       const createdWOs = [];
@@ -234,7 +235,7 @@ export const ScheduleController = {
         }
 
         await Schedule.query().patchAndFetchById(schedule.id, {
-          next_due_date: nextDate.toISOString(),
+          next_due_date: formatDateTime(nextDate),
         });
 
         createdWOs.push(newWO);
@@ -249,8 +250,7 @@ export const ScheduleController = {
       console.error("Error generating due work orders:", err);
       res.status(500).json({
         success: false,
-        message:
-          "Terjadi kesalahan server internal saat membuat work order jatuh tempo.",
+        message: "Internal server error while generating due work orders.",
       });
     }
   },
