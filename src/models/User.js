@@ -2,6 +2,7 @@ import { BaseModel } from './BaseModel.js';
 import { WorkOrder } from './WorkOrder.js';
 import { Issue } from './Issue.js';
 import { MaintenanceSchedule } from './MaintenanceSchedule.js';
+import { Division } from './Division.js';
 
 export class User extends BaseModel {
     static get tableName() {
@@ -47,6 +48,14 @@ export class User extends BaseModel {
                 join: {
                     from: 'users.id',
                     to: 'maintenance_schedules.created_by_id',
+                },
+            },
+            division: {
+                relation: BaseModel.BelongsToOneRelation,
+                modelClass: Division,
+                join: {
+                    from: 'users.division_id',
+                    to: 'divisions.id',
                 },
             },
         };
