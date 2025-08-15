@@ -23,12 +23,14 @@ const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false }
 export default function SchedulePage() {
     const toast = useRef(null);
     const [schedules, setSchedules] = useState([]);
+    const [machines, setMachines] = useState([]);
     const [selectedSchedules, setSelectedSchedules] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState("");
     const [frequencyFilter, setFrequencyFilter] = useState("");
     const [isFormOpen, setFormOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
+    const [isGeneratingWO, setGeneratingWO] = useState(false);
     const [detailsDialogVisible, setDetailsDialogVisible] = useState(false);
     const [selectedSchedule, setSelectedSchedule] = useState(null);
 
@@ -70,13 +72,27 @@ export default function SchedulePage() {
         }
     }, [showToast]);
 
+    const fetchMachines = useCallback(async () => {
+        try {
+            const res = await fetch("/api/manager/machines", {
+                credentials: "include"
+            });
+            const body = await res.json();
+            setMachines(body.data || []);
+        } catch (err) {
+            showToast("error", "Error", "Gagal mengambil data mesin");
+        }
+    }, [showToast]);
+
     useEffect(() => {
         fetchSchedules();
-    }, [fetchSchedules]);
+        fetchMachines();
+    }, [fetchSchedules, fetchMachines]);
+
+
 
     const handleEditSchedule = (rowData) => {
         setSelectedSchedule(rowData);
-        
     };
 
     const handleViewDetails = (rowData) => {
@@ -96,6 +112,27 @@ export default function SchedulePage() {
         }
         setSelectedSchedule(null);
         setDeleteOpen(true);
+    };
+
+    const handleGenerateWorkOrders = async () => {
+        setGeneratingWO(true);
+        try {
+            const res = await fetch("/api/manager/schedules/generate", {
+                method: "POST",
+                credentials: "include"
+            });
+            const body = await res.json();
+
+            if (!res.ok) throw new Error(body.message);
+
+            const createdCount = body.data?.length || 0;
+            showToast("success", "Success", `${createdCount} Work Order berhasil dibuat dari jadwal yang jatuh tempo`);
+            fetchSchedules(); // Refresh schedules to update next due dates
+        } catch (err) {
+            showToast("error", "Error", err.message || "Gagal membuat Work Order");
+        } finally {
+            setGeneratingWO(false);
+        }
     };
 
     const exportExcel = async () => {
@@ -178,103 +215,103 @@ export default function SchedulePage() {
         exportPdf();
     };
 
-   const handleImport = async (e) => {
-       const file = e.target.files?.[0];
-       if (!file) return;
+    const handleImport = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-       setLoading(true);
-       try {
-           const reader = new FileReader();
-           reader.readAsArrayBuffer(file);
-           reader.onload = async () => {
-               const buffer = reader.result;
-               const workbook = new ExcelJS.Workbook();
-               await workbook.xlsx.load(buffer);
-               const worksheet = workbook.getWorksheet(1);
-               const jsonData = [];
-               const headerRow = worksheet.getRow(1);
+        setLoading(true);
+        try {
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = async () => {
+                const buffer = reader.result;
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(buffer);
+                const worksheet = workbook.getWorksheet(1);
+                const jsonData = [];
+                const headerRow = worksheet.getRow(1);
 
-               // Fungsi untuk parse berbagai format tanggal
-               const parseDate = (dateValue) => {
-                   if (!dateValue) return null;
+                // Fungsi untuk parse berbagai format tanggal
+                const parseDate = (dateValue) => {
+                    if (!dateValue) return null;
 
-                   // Jika sudah berupa Date object atau timestamp
-                   if (dateValue instanceof Date) return dateValue;
-                   if (typeof dateValue === "number") return new Date((dateValue - 25569) * 86400 * 1000);
+                    // Jika sudah berupa Date object atau timestamp
+                    if (dateValue instanceof Date) return dateValue;
+                    if (typeof dateValue === "number") return new Date((dateValue - 25569) * 86400 * 1000);
 
-                   const dateStr = dateValue.toString().trim();
+                    const dateStr = dateValue.toString().trim();
 
-                   // Format: "13/08/2025, 10.02.15" atau "1/8/2025, 1.02.15"
-                   const idFormat = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4}),?\s*(\d{1,2})[.:](\d{2})(?:[.:](\d{2}))?$/);
-                   if (idFormat) {
-                       const [_, day, month, year, hours, minutes, seconds] = idFormat;
-                       return new Date(year, month - 1, day, hours, minutes, seconds || 0);
-                   }
+                    // Format: "13/08/2025, 10.02.15" atau "1/8/2025, 1.02.15"
+                    const idFormat = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4}),?\s*(\d{1,2})[.:](\d{2})(?:[.:](\d{2}))?$/);
+                    if (idFormat) {
+                        const [_, day, month, year, hours, minutes, seconds] = idFormat;
+                        return new Date(year, month - 1, day, hours, minutes, seconds || 0);
+                    }
 
-                   // Format ISO atau lainnya
-                   const date = new Date(dateStr);
-                   return isNaN(date.getTime()) ? null : date;
-               };
+                    // Format ISO atau lainnya
+                    const date = new Date(dateStr);
+                    return isNaN(date.getTime()) ? null : date;
+                };
 
-               worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-                   if (rowNumber > 1) {
-                       let rowObject = {};
-                       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                           const headerCell = headerRow.getCell(colNumber);
-                           if (headerCell && headerCell.value) {
-                               const fieldName = headerCell.value.toString().toLowerCase().replace(/ /g, "_");
-                               // Khusus kolom tanggal
-                               if (["next_due_date", "scheduled_date", "created_at", "updated_at"].includes(fieldName)) {
-                                   rowObject[fieldName] = parseDate(cell.value)?.toISOString();
-                               } else {
-                                   rowObject[fieldName] = cell.value;
-                               }
-                           }
-                       });
-                       jsonData.push(rowObject);
-                   }
-               });
+                worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+                    if (rowNumber > 1) {
+                        let rowObject = {};
+                        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                            const headerCell = headerRow.getCell(colNumber);
+                            if (headerCell && headerCell.value) {
+                                const fieldName = headerCell.value.toString().toLowerCase().replace(/ /g, "_");
+                                // Khusus kolom tanggal
+                                if (["next_due_date", "scheduled_date", "created_at", "updated_at"].includes(fieldName)) {
+                                    rowObject[fieldName] = parseDate(cell.value)?.toISOString();
+                                } else {
+                                    rowObject[fieldName] = cell.value;
+                                }
+                            }
+                        });
+                        jsonData.push(rowObject);
+                    }
+                });
 
-               // Proses import dengan error handling lebih baik
-               const results = await Promise.allSettled(
-                   jsonData.map((item) => {
-                       const payload = {
-                           title: item.judul || item.title,
-                           description: item.deskripsi || item.description,
-                           machine_id: item.machine_id || item.mesin_id,
-                           frequency: item.frekuensi || item.frequency,
-                           next_due_date: item.next_due_date || undefined,
-                           priority: item.priority || "medium",
-                           is_active: item.is_active !== undefined ? Boolean(item.is_active) : true
-                       };
+                // Proses import dengan error handling lebih baik
+                const results = await Promise.allSettled(
+                    jsonData.map((item) => {
+                        const payload = {
+                            title: item.judul || item.title,
+                            description: item.deskripsi || item.description,
+                            machine_id: item.machine_id || item.mesin_id,
+                            frequency: item.frekuensi || item.frequency,
+                            next_due_date: item.next_due_date || undefined,
+                            priority: item.priority || "medium",
+                            is_active: item.is_active !== undefined ? Boolean(item.is_active) : true
+                        };
 
-                       return fetch(`/api/manager/schedules`, {
-                           method: "POST",
-                           headers: { "Content-Type": "application/json" },
-                           body: JSON.stringify(payload)
-                       });
-                   })
-               );
+                        return fetch(`/api/manager/schedules`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(payload)
+                        });
+                    })
+                );
 
-               // Cek hasil import
-               const failedImports = results.filter((r) => r.status === "rejected" || !r.value.ok);
-               if (failedImports.length > 0) {
-                   const errorDetails = failedImports.map((r, i) => `Baris ${i + 2}: ${r.reason?.message || r.value?.statusText || "Error tidak diketahui"}`).join("\n");
-                   throw new Error(`Beberapa data gagal diimpor:\n${errorDetails}`);
-               }
+                // Cek hasil import
+                const failedImports = results.filter((r) => r.status === "rejected" || !r.value.ok);
+                if (failedImports.length > 0) {
+                    const errorDetails = failedImports.map((r, i) => `Baris ${i + 2}: ${r.reason?.message || r.value?.statusText || "Error tidak diketahui"}`).join("\n");
+                    throw new Error(`Beberapa data gagal diimpor:\n${errorDetails}`);
+                }
 
-               showToast("success", "Impor Berhasil", `${jsonData.length} jadwal berhasil diimpor`);
-               await fetchSchedules();
-           };
-       } catch (err) {
-           showToast("error", "Impor Gagal", err.message.includes("\n") ? err.message : `Gagal mengimpor: ${err.message}`);
-       } finally {
-           setLoading(false);
-           if (fileInputRef.current) {
-               fileInputRef.current.value = "";
-           }
-       }
-   };
+                showToast("success", "Impor Berhasil", `${jsonData.length} jadwal berhasil diimpor`);
+                await fetchSchedules();
+            };
+        } catch (err) {
+            showToast("error", "Impor Gagal", err.message.includes("\n") ? err.message : `Gagal mengimpor: ${err.message}`);
+        } finally {
+            setLoading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }
+    };
 
     return (
         <div className="p-4">
@@ -284,7 +321,7 @@ export default function SchedulePage() {
             <div className="card">
                 <h3 className="mb-4">Schedules Maintenance</h3>
                 <div className="flex flex-row gap-2 mb-4">
-                    <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
+                    {/* <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled /> */}
                     <Button
                         size="small"
                         label="New"
@@ -297,6 +334,7 @@ export default function SchedulePage() {
                         }}
                     />
                     <Divider layout="vertical" />
+                    <Button size="small" label="Generate WO" icon="pi pi-cog" outlined severity="info" onClick={handleGenerateWorkOrders} loading={isGeneratingWO} disabled={isGeneratingWO} />
                     <Button size="small" label="Import" icon="pi pi-file-import" outlined onClick={() => fileInputRef.current?.click()} />
                     <Button size="small" label="Export" icon="pi pi-file-export" outlined onClick={exportExcel} />
                     <Button size="small" label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
@@ -333,8 +371,17 @@ export default function SchedulePage() {
                 />
             </div>
 
-            <ScheduleFormDialog visible={isFormOpen} onHide={() => setFormOpen(false)} schedule={selectedSchedule} fetchSchedules={fetchSchedules} showToast={showToast} />
-
+            <ScheduleFormDialog
+                visible={isFormOpen}
+                onHide={() => {
+                    setFormOpen(false);
+                    setSelectedSchedule(null);
+                }}
+                schedule={selectedSchedule}
+                machines={machines}
+                fetchSchedules={fetchSchedules}
+                showToast={showToast}
+            />
             <ScheduleDetailsDialog visible={detailsDialogVisible} onHide={() => setDetailsDialogVisible(false)} schedule={selectedSchedule} />
 
             <ConfirmDeleteDialog
