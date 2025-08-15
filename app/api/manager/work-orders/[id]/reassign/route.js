@@ -1,22 +1,22 @@
-// api/MANAGER/work-order-assignments/assign/route.js
-import { Axios } from "../../../../utils/axios";
-import { API_ENDPOINTS } from "../../../api";
+import { Axios } from "../../../../../utils/axios";
+import { API_ENDPOINTS } from "../../../../api";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
 /**
- * Assign work order to technician
+ * Reassign work order to different technician
  */
-export const POST = async (request) => {
+export const PATCH = async (request, { params }) => {
     const token = request.cookies.get("authToken")?.value;
     if (!token) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     try {
+        const { id } = params;
         const body = await request.json();
 
-        const response = await Axios.post(API_ENDPOINTS.MANAGER_WORK_ORDER_ASSIGN, body, {
+        const response = await Axios.patch(API_ENDPOINTS.MANAGER_WORK_ORDER_REASSIGN(id), body, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -28,7 +28,7 @@ export const POST = async (request) => {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API WORK ORDER ASSIGN POST]", err);
-        return NextResponse.json({ message: "Gagal menugaskan work order." }, { status: 500 });
+        console.error("[API WORK ORDER REASSIGN PATCH]", err);
+        return NextResponse.json({ message: "Gagal melakukan reassign work order." }, { status: 500 });
     }
 };

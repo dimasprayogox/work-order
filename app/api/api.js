@@ -77,8 +77,16 @@ export const API_ENDPOINTS = {
     MANAGER_MAINTENANCE_SCHEDULES: `${API_URL}/manager/schedules`,
     MANAGER_MAINTENANCE_SCHEDULES_DELETE_MANY: `${API_URL}/manager/schedules/delete-many`,
     MANAGER_SCHEDULE_BY_ID: (id) => `${API_URL}/manager/schedules/${id}`,
+    MANAGER_SCHEDULES_GENERATE: `${API_URL}/manager/schedules/generate`,
     MANAGER_ASSIGN_TECHNICIAN: (id) => `${API_URL}/manager/work-orders/${id}/assign-technician`,
     MANAGER_TECHNICIANS_AVAILABLE: `${API_URL}/manager/technicians/available`,
+
+    MANAGER_WORK_ORDER_ASSIGN: `${API_URL}/manager/work-orders/assign`,
+    MANAGER_WORK_ORDER_BULK_ASSIGN: `${API_URL}/manager/work-orders/bulk-assign`,
+    MANAGER_WORK_ORDER_REASSIGN: (id) => `${API_URL}/manager/work-orders/${id}/reassign`,
+    MANAGER_WORK_ORDER_UNASSIGN: (id) => `${API_URL}/manager/work-orders/${id}/unassign`,
+    MANAGER_WORK_ORDER_ASSIGNMENT_TECHNICIANS: `${API_URL}/manager/work-orders/technicians`,
+    MANAGER_WORK_ORDER_ASSIGNMENT_STATS: `${API_URL}/manager/work-orders/stats`,
 
     // --- Employee Endpoints ---
     EMPLOYEE_MY_ISSUES: `${API_URL}/employee/issues/my-issues`,

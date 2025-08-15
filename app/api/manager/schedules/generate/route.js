@@ -1,11 +1,12 @@
-// api/MANAGER/work-order-assignments/assign/route.js
+// api/admin/schedules/generate/route.js
 import { Axios } from "../../../../utils/axios";
 import { API_ENDPOINTS } from "../../../api";
 import { NextResponse } from "next/server";
 import { isAxiosError } from "axios";
 
 /**
- * Assign work order to technician
+ * Handler untuk generate work orders dari schedules yang jatuh tempo.
+ * @param {Request} request
  */
 export const POST = async (request) => {
     const token = request.cookies.get("authToken")?.value;
@@ -14,9 +15,7 @@ export const POST = async (request) => {
     }
 
     try {
-        const body = await request.json();
-
-        const response = await Axios.post(API_ENDPOINTS.MANAGER_WORK_ORDER_ASSIGN, body, {
+        const response = await Axios.post(API_ENDPOINTS.MANAGER_SCHEDULES_GENERATE, {}, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -28,7 +27,7 @@ export const POST = async (request) => {
         if (isAxiosError(err) && err.response) {
             return NextResponse.json(err.response.data, { status: err.response.status });
         }
-        console.error("[API WORK ORDER ASSIGN POST]", err);
-        return NextResponse.json({ message: "Gagal menugaskan work order." }, { status: 500 });
+        console.error("[API SCHEDULES GENERATE]", err);
+        return NextResponse.json({ message: "Gagal generate work orders." }, { status: 500 });
     }
 };
