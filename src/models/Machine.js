@@ -3,6 +3,7 @@ import { MachineCategory } from './MachineCategory.js';
 import { WorkOrder } from './WorkOrder.js';
 import { Issue } from './Issue.js';
 import { MaintenanceSchedule } from './MaintenanceSchedule.js';
+import { Division } from './Division.js';
 
 export class Machine extends BaseModel {
     static get tableName() {
@@ -17,6 +18,14 @@ export class Machine extends BaseModel {
                 join: {
                     from: 'machines.category_id',
                     to: 'machine_categories.id',
+                },
+            },
+            division: {
+                relation: BaseModel.BelongsToOneRelation,
+                modelClass: Division,
+                join: {
+                    from: 'machines.division_id',
+                    to: 'divisions.id',
                 },
             },
 
