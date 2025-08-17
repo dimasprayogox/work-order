@@ -25,6 +25,7 @@ import issueAdminRoute from './routes/admin/issue.route.js';
 import workOrderAssignmentRoutes from './routes/admin/workOrderAssignment.routes.js';
 import adminScheduleRoutes from './routes/admin/schedule.routes.js';
 import adminDashboardRoutes from './routes/admin/dashboard.routes.js';
+import adminAssetCategoryRoutes from './routes/admin/asset-category.routes.js';
 
 //employee
 import employeeDashboardRoutes from './routes/employee/dashboard.routes.js';
@@ -112,6 +113,7 @@ app.use('/api/admin/issues', issueAdminRoute);
 app.use('/api/admin/work-order-assignments', workOrderAssignmentRoutes);
 app.use('/api/admin/schedules', adminScheduleRoutes);
 app.use('/api/admin/dashboard', adminDashboardRoutes);
+app.use('/api/admin/asset-categories', adminAssetCategoryRoutes);
 
 //employee
 app.use('/api/employee/dashboard', employeeDashboardRoutes);
