@@ -97,6 +97,21 @@ const AppMenu = () => {
                             ]
                         },
                         {
+                            label: "ASSETS",
+                            items: [
+                                {
+                                    label: "Asset Categories",
+                                    icon: "pi pi-fw pi-tags",
+                                    to: "/admin/asset-categories"
+                                },
+                                {
+                                    label: "Assets",
+                                    icon: "pi pi-fw pi-box",
+                                    to: "/admin/assets"
+                                }
+                            ]
+                        },
+                        {
                             label: "USER MANAGEMENT",
                             items: [
                                 {
