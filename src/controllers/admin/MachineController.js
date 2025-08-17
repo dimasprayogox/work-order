@@ -9,10 +9,10 @@ export const MachineController = {
     // GET /machines (untuk admin, dengan relasi category)
     async index(req, res) {
         try {
-            const machines = await Machine.query().withGraphFetched('[category]');
+            const machines = await Machine.query().withGraphFetched('[category, division]');
             res.json({ success: true, message: 'Fetched machines', data: machines });
         } catch (err) {
-            console.error("Error in MachineController.index:", err);
+            // Error logged in response for debugging
             res.status(500).json({
                 success: false,
                 message: 'Failed to fetch machines',
@@ -26,7 +26,7 @@ export const MachineController = {
         try {
             const machine = await Machine.query()
                 .findById(req.params.id)
-                .withGraphFetched('[category, workOrders, issues, schedules]');
+                .withGraphFetched('[category, division, workOrders, issues, schedules]');
 
             if (!machine) {
                 return res.status(404).json({ success: false, message: 'Machine not found' });
@@ -34,7 +34,6 @@ export const MachineController = {
 
             res.status(200).json({ success: true, data: machine });
         } catch (err) {
-            console.error("Error in MachineController.show:", err);
             res.status(500).json({
                 success: false,
                 message: 'Failed to fetch machine',
@@ -55,10 +54,12 @@ export const MachineController = {
                 });
             }
 
-            const newMachine = await Machine.query().insert({
+            const created = await Machine.query().insert({
                 id: uuidv4(),
                 ...parsed.data,
             });
+
+            const newMachine = await Machine.query().findById(created.id).withGraphFetched('[category, division]');
 
             res.status(201).json({
                 success: true,
@@ -66,7 +67,6 @@ export const MachineController = {
                 data: newMachine,
             });
         } catch (err) {
-            console.error("Error in MachineController.store:", err);
             res.status(500).json({
                 success: false,
                 message: 'Failed to create machine',
@@ -87,10 +87,12 @@ export const MachineController = {
                 });
             }
 
-            const updated = await Machine.query().patchAndFetchById(req.params.id, {
+            await Machine.query().patchAndFetchById(req.params.id, {
                 ...parsed.data,
                 updated_at: new Date(),
             });
+
+            const updated = await Machine.query().findById(req.params.id).withGraphFetched('[category, division]');
 
             if (!updated) {
                 return res.status(404).json({ success: false, message: 'Machine not found' });
@@ -102,7 +104,6 @@ export const MachineController = {
                 data: updated,
             });
         } catch (err) {
-            console.error("Error in MachineController.update:", err);
             res.status(500).json({
                 success: false,
                 message: 'Failed to update machine',
@@ -125,7 +126,6 @@ export const MachineController = {
                 data: { id: req.params.id } // Mengembalikan ID yang dihapus
             });
         } catch (err) {
-            console.error("Error in MachineController.destroy:", err);
             res.status(500).json({
                 success: false,
                 message: 'Failed to delete machine',
@@ -166,7 +166,6 @@ export const MachineController = {
             });
 
         } catch (err) {
-            console.error("Error in MachineController.destroyMany:", err);
             return res.status(500).json({
                 success: false,
                 message: 'Failed to delete machines',
@@ -181,7 +180,6 @@ export const MachineController = {
             const machines = await Machine.query().select('id', 'name', 'status');
             res.json({ success: true, message: 'Fetched available machines', data: machines });
         } catch (err) {
-            console.error("Error in MachineController.getAvailableMachines:", err);
             res.status(500).json({
                 success: false,
                 message: 'Failed to fetch available machines',
