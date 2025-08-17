@@ -121,6 +121,11 @@ const WorkRequestFormDialog = ({
             isValid = false;
         }
 
+        if (!form.priority) {
+            errors.priority = "Priority must be selected.";
+            isValid = false;
+        }
+
         return { isValid, errors };
     };
 
@@ -134,10 +139,14 @@ const WorkRequestFormDialog = ({
 
         setLoading(true);
         try {
+            console.log("Form state before submit:", form); // Debug log
+            
             const formPayload = new FormData();
             formPayload.append("title", form.title);
             formPayload.append("description", form.description);
             formPayload.append("priority", form.priority);
+            
+            console.log("Priority being sent:", form.priority); // Debug log
             
             if (form.entity_type === "machine") {
                 formPayload.append("machine_id", form.machine_id);
