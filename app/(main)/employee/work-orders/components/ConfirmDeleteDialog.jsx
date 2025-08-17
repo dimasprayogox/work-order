@@ -33,7 +33,7 @@ const ConfirmDeleteDialog = ({ visible, onHide, workOrder, selectedWorkOrders = 
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
 
-            const successMessage = isBulkDelete ? `${selectedWorkOrders.length} work order berhasil dihapus` : "Part berhasil dihapus";
+            const successMessage = isBulkDelete ? `${selectedWorkOrders.length} work order berhasil dihapus` : "Work order berhasil dihapus";
 
             showToast("success", "Berhasil", successMessage);
             fetchWorkOrders();
