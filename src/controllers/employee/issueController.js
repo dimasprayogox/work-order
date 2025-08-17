@@ -1,5 +1,6 @@
 import { Issue } from "../../models/Issue.js";
 import { Machine } from "../../models/Machine.js";
+import { Asset } from "../../models/Asset.js";
 import { WorkOrder } from "../../models/WorkOrder.js";
 import path from "path";
 import { notifyManager } from "../../utils/notifyManager.js";
@@ -46,11 +47,25 @@ export const IssueController = {
                 });
             }
 
-            const { machine_id, title, description } = parsed.data;
+            const { machine_id, asset_id, title, description, priority } = parsed.data;
 
-            const machine = await Machine.query().findById(machine_id);
-            if (!machine) {
-                return res.status(404).json({ message: "Machine not found" });
+            // Validate that either machine or asset exists
+            let machine = null;
+            let asset = null;
+            let entityName = "";
+
+            if (machine_id) {
+                machine = await Machine.query().findById(machine_id);
+                if (!machine) {
+                    return res.status(404).json({ message: "Machine not found" });
+                }
+                entityName = machine.name;
+            } else if (asset_id) {
+                asset = await Asset.query().findById(asset_id);
+                if (!asset) {
+                    return res.status(404).json({ message: "Asset not found" });
+                }
+                entityName = asset.name;
             }
 
             const issueId = uuidv4();
@@ -81,7 +96,8 @@ export const IssueController = {
 
             const newIssue = await Issue.query().insert({
                 id: issueId,
-                machine_id,
+                machine_id: machine_id || null,
+                asset_id: asset_id || null,
                 title,
                 description,
                 photo_url: photoUrl,
@@ -89,29 +105,39 @@ export const IssueController = {
                 reported_by_id: req.user.userId,
             });
 
-            await Machine.query().patchAndFetchById(machine_id, {
-                status: "down",
-            });
+            // Update machine or asset status to down/maintenance
+            if (machine_id) {
+                await Machine.query().patchAndFetchById(machine_id, {
+                    status: "down",
+                });
+            } else if (asset_id) {
+                await Asset.query().patchAndFetchById(asset_id, {
+                    status: "maintenance",
+                });
+            }
 
             const workOrder = await WorkOrder.query().insert({
                 id: uuidv4(),
-                machine_id,
+                machine_id: machine_id || null,
+                asset_id: asset_id || null,
                 title: newIssue.title,
                 description: newIssue.description,
+                priority: priority || "medium",
                 status: "pending",
-                created_by_id: newIssue.reported_by_id, // Link to the user who reported the issue
+                created_by_id: newIssue.reported_by_id,
                 issue_id: newIssue.id,
             });
 
             await notifyManager({
                 subject: "New Issue Reported",
-                message: `Issue "${title}" created for machine ${machine.name}.`,
+                message: `Issue "${title}" created for ${machine_id ? 'machine' : 'asset'} ${entityName}.`,
                 issueId: newIssue.id,
-                machineId: machine_id,
+                machineId: machine_id || null,
+                assetId: asset_id || null,
             });
 
             res.status(201).json({
-                message: "Issue created, machine set to maintenance, work order generated, manager notified.",
+                message: `Issue created, ${machine_id ? 'machine' : 'asset'} set to maintenance, work order generated, manager notified.`,
                 data: { issue: newIssue, workOrder },
             });
         } catch (err) {
@@ -123,13 +149,14 @@ export const IssueController = {
     async getAll(req, res) {
         try {
             const issues = await Issue.query()
-                .withGraphFetched("[machine, workOrder]")
+                .withGraphFetched("[machine, asset, workOrder]")
                 .orderBy("created_at", "desc");
                 
             // Transform MinIO URLs to use the current public URL
             const transformedIssues = issues.map(issue => ({
                 ...issue,
-                photo_url: transformMinioUrl(issue.photo_url)
+                photo_url: transformMinioUrl(issue.photo_url),
+                priority: issue.workOrder?.priority || "medium" // Get priority from work order
             }));
             
             res.status(200).json({ message: "Issues fetched successfully", data: transformedIssues });
@@ -148,13 +175,14 @@ export const IssueController = {
             const userId = req.user.userId;
             const issues = await Issue.query()
                 .where("reported_by_id", userId)
-                .withGraphFetched("[machine, workOrder]")
+                .withGraphFetched("[machine, asset, workOrder]")
                 .orderBy("created_at", "desc");
 
             // Transform MinIO URLs to use the current public URL
             const transformedIssues = issues.map(issue => ({
                 ...issue,
-                photo_url: transformMinioUrl(issue.photo_url)
+                photo_url: transformMinioUrl(issue.photo_url),
+                priority: issue.workOrder?.priority || "medium" // Get priority from work order
             }));
 
             res.status(200).json({ message: "Your issues fetched successfully", data: transformedIssues });
@@ -169,7 +197,7 @@ export const IssueController = {
             const id = req.params.id;
             const issue = await Issue.query()
                 .findById(id)
-                .withGraphFetched("[machine, workOrder]");
+                .withGraphFetched("[machine, asset, workOrder]");
             if (!issue) {
                 return res.status(404).json({ message: "Issue not found" });
             }

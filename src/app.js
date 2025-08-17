@@ -32,6 +32,7 @@ import adminAssetRoutes from './routes/admin/asset.routes.js';
 import employeeDashboardRoutes from './routes/employee/dashboard.routes.js';
 import issueRoutes from './routes/employee/issue.route.js';
 import employeeMachineRoutes from './routes/employee/machine.routes.js';
+import employeeAssetRoutes from './routes/employee/asset.routes.js';
 import employeeWorkOrderRoutes from './routes/employee/workOrderRoute.js';
 
 //technician
@@ -121,6 +122,7 @@ app.use('/api/admin/assets', adminAssetRoutes);
 app.use('/api/employee/dashboard', employeeDashboardRoutes);
 app.use('/api/employee/issues', issueRoutes);
 app.use('/api/employee/machines', employeeMachineRoutes);
+app.use('/api/employee/assets', employeeAssetRoutes);
 app.use('/api/employee/work-orders', employeeWorkOrderRoutes);
 
 //technician
