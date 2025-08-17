@@ -25,6 +25,7 @@ const MachinePage = () => {
 
     const [machines, setMachines] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [divisions, setDivisions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedMachine, setSelectedMachine] = useState(null);
     const [selectedMachines, setSelectedMachines] = useState([]);
@@ -88,10 +89,23 @@ const MachinePage = () => {
         }
     }, [showToast]);
 
+    const fetchDivisions = useCallback(async () => {
+        try {
+            const res = await fetch("/api/admin/divisions", {
+                credentials: "include"
+            });
+            const body = await res.json();
+            setDivisions(body.data || []);
+        } catch (err) {
+            showToast("error", "Error", "Gagal mengambil data divisi");
+        }
+    }, [showToast]);
+
     useEffect(() => {
         fetchMachines();
         fetchCategories();
-    }, [fetchMachines, fetchCategories]);
+        fetchDivisions();
+    }, [fetchMachines, fetchCategories, fetchDivisions]);
 
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
@@ -384,6 +398,7 @@ const MachinePage = () => {
                     }}
                     machine={selectedMachine}
                     categories={categories}
+                    divisions={divisions}
                     fetchMachines={fetchMachines}
                     showToast={showToast}
                 />

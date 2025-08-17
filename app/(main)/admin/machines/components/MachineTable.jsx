@@ -81,6 +81,10 @@ const MachineTable = ({
         return rowData.category?.name || '-';
     };
 
+    const divisionBodyTemplate = (rowData) => {
+        return rowData.division?.name || '-';
+    };
+
     const actionBodyTemplate = (rowData) => (
         <div className="flex gap-2">
             <Button
@@ -138,7 +142,7 @@ const MachineTable = ({
                 loading={loading}
                 emptyMessage="No machines found."
                 filters={filters}
-                globalFilterFields={["machine_code", "name", "location", "category.name"]}
+                globalFilterFields={["machine_code", "name", "location", "category.name", "division.name"]}
                 className="border-round-lg"
                 rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
@@ -151,6 +155,7 @@ const MachineTable = ({
                 <Column field="machine_code" header="Machine Code" style={{ width: "150px" }} sortable />
                 <Column field="name" header="Machine Name" style={{ width: "200px" }} sortable />
                 <Column field="location" header="Location" sortable />
+                <Column field="division" header="Division" body={divisionBodyTemplate} sortable />
                 <Column field="status" header="Status" body={statusBodyTemplate} sortable />
                 <Column field="category" header="Category" body={categoryBodyTemplate} sortable />
                 <Column header="Actions" body={actionBodyTemplate} style={{ minWidth: "8rem" }} />

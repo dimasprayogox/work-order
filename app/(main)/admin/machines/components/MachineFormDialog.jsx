@@ -7,13 +7,14 @@ import { Button } from "primereact/button";
 import { classNames } from "primereact/utils";
 import { useState, useEffect } from "react";
 
-const MachineFormDialog = ({ visible, onHide, machine, categories, fetchMachines, showToast }) => {
+const MachineFormDialog = ({ visible, onHide, machine, categories, divisions = [], fetchMachines, showToast }) => {
     const [form, setForm] = useState({
         machine_code: "",
         name: "",
         location: "",
         status: "operational",
-        category_id: ""
+    category_id: "",
+    division_id: null
     });
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -31,7 +32,8 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, fetchMachines
                 name: machine.name || "",
                 location: machine.location || "",
                 status: machine.status || "operational",
-                category_id: machine.category_id || ""
+                category_id: machine.category_id || "",
+                division_id: machine.division_id || null
             });
         } else {
             setForm({
@@ -39,7 +41,8 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, fetchMachines
                 name: "",
                 location: "",
                 status: "operational",
-                category_id: ""
+                category_id: "",
+                division_id: null
             });
         }
         setSubmitted(false);
@@ -89,6 +92,8 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, fetchMachines
         label: cat.name,
         value: cat.id
     }));
+
+    const divisionOptions = divisions.map(d => ({ label: d.name, value: d.id }));
 
     return (
         <Dialog
@@ -163,7 +168,7 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, fetchMachines
                 </div>
             </div>
 
-            <div className="field grid mb-6">
+            <div className="field grid mb-4">
                 <label htmlFor="category_id" className="col-12 mb-2 font-medium">
                     Category
                 </label>
@@ -174,6 +179,22 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, fetchMachines
                         options={categoryOptions}
                         onChange={(e) => handleChange("category_id", e.value)}
                         placeholder="Select category"
+                        showClear
+                    />
+                </div>
+            </div>
+
+            <div className="field grid mb-6">
+                <label htmlFor="division_id" className="col-12 mb-2 font-medium">
+                    Division
+                </label>
+                <div className="col-12">
+                    <Dropdown
+                        id="division_id"
+                        value={form.division_id}
+                        options={divisionOptions}
+                        onChange={(e) => handleChange("division_id", e.value)}
+                        placeholder="Select division"
                         showClear
                     />
                 </div>
