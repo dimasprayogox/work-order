@@ -2,17 +2,16 @@
 import { Part } from "../../models/Part.js";
 import { v4 as uuidv4 } from "uuid";
 import {
-    createPartSchema,
+    createPartSchemaWithXor,
     updatePartSchema,
 } from "../../schemas/admin/partSchema.js";
 
 export const PartController = {
     async index(req, res) {
         try {
-            const parts = await Part.query();
+            const parts = await Part.query().withGraphFetched('[asset, machine]');
             res.json({ success: true, data: parts });
         } catch (err) {
-            console.error("Error in index:", err);
             res.status(500).json({
                 success: false,
                 message: "Failed to fetch parts",
@@ -24,7 +23,7 @@ export const PartController = {
 
     async store(req, res) {
         try {
-            const parsed = createPartSchema.safeParse(req.body);
+            const parsed = createPartSchemaWithXor.safeParse(req.body);
             if (!parsed.success) {
                 return res.status(400).json({
                     success: false,
@@ -32,10 +31,17 @@ export const PartController = {
                 });
             }
 
-            const newPart = await Part.query().insert({
+            // Normalize: ensure only one of asset_id or machine_id is set
+            const payload = { ...parsed.data };
+            if (payload.asset_id) payload.machine_id = null;
+            if (payload.machine_id) payload.asset_id = null;
+
+            const created = await Part.query().insert({
                 id: uuidv4(),
-                ...parsed.data,
+                ...payload,
             });
+
+            const newPart = await Part.query().findById(created.id).withGraphFetched('[asset, machine]');
 
             res.status(201).json({
                 success: true,
@@ -43,7 +49,6 @@ export const PartController = {
                 data: newPart,
             });
         } catch (err) {
-            console.error("Error in store:", err);
             res.status(500).json({
                 success: false,
                 message: "Failed to create part",
@@ -63,8 +68,13 @@ export const PartController = {
                 });
             }
 
+            // Normalize payload for update
+            const payload = { ...parsed.data };
+            if (Object.prototype.hasOwnProperty.call(payload, 'asset_id') && payload.asset_id) payload.machine_id = null;
+            if (Object.prototype.hasOwnProperty.call(payload, 'machine_id') && payload.machine_id) payload.asset_id = null;
+
             const updatedPart = await Part.query().patchAndFetchById(req.params.id, {
-                ...parsed.data,
+                ...payload,
                 updated_at: new Date(),
             });
 
@@ -80,7 +90,6 @@ export const PartController = {
                 data: updatedPart,
             });
         } catch (err) {
-            console.error("Error in update:", err);
             res.status(500).json({
                 success: false,
                 message: "Failed to update part",
@@ -92,7 +101,7 @@ export const PartController = {
 
     async show(req, res) {
         try {
-            const part = await Part.query().findById(req.params.id);
+            const part = await Part.query().findById(req.params.id).withGraphFetched('[asset, machine]');
             if (!part) {
                 return res
                     .status(404)
@@ -100,7 +109,6 @@ export const PartController = {
             }
             res.json({ success: true, data: part });
         } catch (err) {
-            console.error("Error in show:", err);
             res.status(500).json({
                 success: false,
                 message: "Failed to fetch part",
@@ -124,7 +132,6 @@ export const PartController = {
                 data: { id: req.params.id },
             });
         } catch (err) {
-            console.error("Error in destroy:", err);
             res.status(500).json({
                 success: false,
                 message: "Failed to delete part",
@@ -164,7 +171,6 @@ export const PartController = {
                 },
             });
         } catch (err) {
-            console.error("Error in deleteMany:", err);
             res.status(500).json({
                 success: false,
                 message: "Failed to delete parts",
