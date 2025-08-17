@@ -16,6 +16,25 @@ export const createPartSchema = z.object({
         .int()
         .min(0, "Minimum stock must be a non-negative integer"),
     location: z.string().min(3, "Location must be at least 3 characters long"),
+    asset_id: z.string().uuid().optional().nullable(),
+    machine_id: z.string().uuid().optional().nullable(),
 });
 
-export const updatePartSchema = createPartSchema.partial();
+export const createPartSchemaWithXor = createPartSchema.refine((data) => {
+    const hasAsset = !!data.asset_id;
+    const hasMachine = !!data.machine_id;
+    return (hasAsset || hasMachine) && !(hasAsset && hasMachine);
+}, {
+    message: 'Provide exactly one of asset_id or machine_id',
+    path: ['asset_id', 'machine_id'],
+});
+
+export const updatePartSchema = createPartSchema.partial().refine((data) => {
+    // Ensure XOR: exactly one of asset_id or machine_id is provided (non-empty)
+    const hasAsset = !!data.asset_id;
+    const hasMachine = !!data.machine_id;
+    return (hasAsset || hasMachine) && !(hasAsset && hasMachine);
+}, {
+    message: 'Provide exactly one of asset_id or machine_id',
+    path: ['asset_id', 'machine_id'],
+});
