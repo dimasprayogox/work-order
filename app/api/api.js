@@ -70,6 +70,9 @@ export const API_ENDPOINTS = {
     DIVISIONS: `${API_URL}/admin/divisions`,
     DIVISION_BY_ID: (id) => `${API_URL}/admin/divisions/${id}`,
     DELETE_MANY_DIVISIONS: `${API_URL}/admin/divisions/delete-many`,
+    ASSET_CATEGORIES: `${API_URL}/admin/asset-categories`,
+    ASSET_CATEGORY_BY_ID: (id) => `${API_URL}/admin/asset-categories/${id}`,
+    DELETE_MANY_ASSET_CATEGORIES: `${API_URL}/admin/asset-categories/delete-many`,
 
     // --- Manager Endpoints ---
     MANAGER_DASHBOARD_OVERVIEW: `${API_URL}/manager/dashboard/overview`,
