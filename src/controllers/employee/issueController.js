@@ -122,11 +122,13 @@ export const IssueController = {
                 asset_id: asset_id || null,
                 title: newIssue.title,
                 description: newIssue.description,
-                priority: priority || "medium",
+                priority: priority,
                 status: "pending",
                 created_by_id: newIssue.reported_by_id,
                 issue_id: newIssue.id,
             });
+
+            console.log("Created work order with priority:", workOrder.priority); // Debug log
 
             await notifyManager({
                 subject: "New Issue Reported",
@@ -245,6 +247,29 @@ export const IssueController = {
             if (data.machine_id !== undefined) {
                 updateData.machine_id = data.machine_id;
             }
+            if (data.asset_id !== undefined) {
+                updateData.asset_id = data.asset_id;
+            }
+
+            // Prepare work order update data
+            const workOrderUpdateData = {};
+            if (data.title !== undefined) {
+                workOrderUpdateData.title = data.title;
+            }
+            if (data.description !== undefined) {
+                workOrderUpdateData.description = data.description;
+            }
+            if (data.priority !== undefined) {
+                workOrderUpdateData.priority = data.priority;
+            }
+            if (data.machine_id !== undefined) {
+                workOrderUpdateData.machine_id = data.machine_id;
+                workOrderUpdateData.asset_id = null; // Clear asset_id if machine is set
+            }
+            if (data.asset_id !== undefined) {
+                workOrderUpdateData.asset_id = data.asset_id;
+                workOrderUpdateData.machine_id = null; // Clear machine_id if asset is set
+            }
 
             if (req.file) {
                 if (existingIssue.photo_url) {
@@ -274,13 +299,29 @@ export const IssueController = {
                 updateData.photo_url = null;
             }
 
-            if (Object.keys(updateData).length === 0) {
+            if (Object.keys(updateData).length === 0 && Object.keys(workOrderUpdateData).length === 0) {
                 return res.status(400).json({ message: "No valid data provided for update." });
             }
 
-            const updatedIssue = await Issue.query().patchAndFetchById(id, updateData);
+            // Update issue if there's data to update
+            let updatedIssue = existingIssue;
+            if (Object.keys(updateData).length > 0) {
+                updatedIssue = await Issue.query().patchAndFetchById(id, updateData);
+            }
 
-            res.status(200).json({ message: "Issue updated successfully", data: updatedIssue });
+            // Update work order if there's data to update
+            if (Object.keys(workOrderUpdateData).length > 0) {
+                await WorkOrder.query()
+                    .where('issue_id', id)
+                    .patch(workOrderUpdateData);
+            }
+
+            // Fetch the updated issue with work order for response
+            const finalIssue = await Issue.query()
+                .findById(id)
+                .withGraphFetched("[machine, asset, workOrder]");
+
+            res.status(200).json({ message: "Issue updated successfully", data: finalIssue });
         } catch (err) {
             console.error("Error updating issue:", err);
             res.status(500).json({ message: "Failed to update issue", error: err.message });
