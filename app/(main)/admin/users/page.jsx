@@ -51,6 +51,7 @@ const UserPage = () => {
         { field: 'full_name', header: 'Full Name', visible: true },
         { field: 'email', header: 'Email', visible: true },
         { field: 'role', header: 'Role', visible: true },
+    { field: 'division.name', header: 'Division', visible: true },
         { field: 'is_active', header: 'Status', visible: true },
         { field: 'created_at', header: 'Created Date', visible: true },
         { field: 'updated_at', header: 'Updated Date', visible: true }
@@ -131,6 +132,8 @@ const UserPage = () => {
                 .map(col => {
                     if (col.field === 'created_at' || col.field === 'updated_at') {
                         return formatDate(user[col.field]);
+                    } else if (col.field === 'division.name') {
+                        return user.division?.name || '';
                     } else if (col.field === 'is_active') {
                         return formatStatus(user[col.field]);
                     } else {
@@ -184,6 +187,8 @@ const UserPage = () => {
             return visibleColumns.map(col => {
                 if (col.field === 'created_at' || col.field === 'updated_at') {
                     return formatDate(user[col.field]);
+                } else if (col.field === 'division.name') {
+                    return user.division?.name || '';
                 } else if (col.field === 'is_active') {
                     return formatStatus(user[col.field]);
                 } else {
@@ -237,7 +242,7 @@ const UserPage = () => {
 
                 const rowData = {};
                 row.eachCell((cell, colNumber) => {
-                    const headers = ['username', 'email', 'password', 'full_name', 'role', 'is_active'];
+                    const headers = ['username', 'email', 'password', 'full_name', 'role', 'is_active', 'division'];
                     if (headers[colNumber - 1]) {
                         let value = cell.value;
 
@@ -261,7 +266,27 @@ const UserPage = () => {
                 }
             });
 
-            for (const item of data) {
+            // Resolve division name to division_id (nullable) before sending
+            const unresolved = new Set();
+            const payloads = data.map(item => {
+                const p = { ...item };
+                if (p.division) {
+                    const match = divisions.find(d => String(d.name).trim().toLowerCase() === String(p.division).trim().toLowerCase());
+                    if (match) p.division_id = match.id;
+                    else unresolved.add(p.division);
+                    delete p.division;
+                } else {
+                    // allow nullable division
+                    p.division_id = null;
+                }
+                return p;
+            });
+
+            if (unresolved.size > 0) {
+                throw new Error(`Import gagal. Unresolved divisions: ${[...unresolved].join(', ')}`);
+            }
+
+            for (const item of payloads) {
                 const res = await fetch("/api/admin/users", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
