@@ -132,7 +132,7 @@ const WorkOrderPage = () => {
     };
 
     const handleDelete = (workOrder) => {
-        setSelectedWorkOrders(workOrder);
+        setSelectedWorkOrder(workOrder);
         setDeleteOpen(true);
     };
 
