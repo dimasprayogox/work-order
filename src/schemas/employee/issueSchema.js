@@ -5,7 +5,7 @@ export const createIssueSchema = z.object({
     asset_id: z.string().uuid({ message: "asset_id harus UUID" }).optional(),
     title: z.string().min(3, { message: "Judul minimal 3 karakter" }),
     description: z.string().min(10, { message: "Deskripsi minimal 10 karakter" }),
-    priority: z.enum(["low", "medium", "high"], { message: "Priority harus low, medium, atau high" }).optional().default("medium"),
+    priority: z.enum(["low", "medium", "high"], { message: "Priority harus low, medium, atau high" }).default("medium"),
 }).refine(data => data.machine_id || data.asset_id, {
     message: "Salah satu dari machine_id atau asset_id harus diisi",
     path: ["machine_id"]
