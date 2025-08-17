@@ -1,0 +1,13 @@
+import express from 'express';
+import { AssetController } from '../../controllers/employee/assetController.js';
+import { authMiddleware } from '../../middleware/auth-middleware.js';
+import { authorizeRole } from '../../middleware/role-middleware.js';
+
+const router = express.Router();
+
+router.use(authMiddleware);
+router.use(authorizeRole('employee'));
+
+router.get('/available', AssetController.getAvailableAssets);
+
+export default router;
