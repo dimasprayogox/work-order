@@ -53,7 +53,8 @@ const MachinePage = () => {
         { field: 'name', header: 'Name', visible: true },
         { field: 'location', header: 'Location', visible: true },
         { field: 'status', header: 'Status', visible: true },
-        { field: 'category', header: 'Category', visible: true },
+    { field: 'category', header: 'Category', visible: true },
+    { field: 'division.name', header: 'Division', visible: true },
         { field: 'created_at', header: 'Created Date', visible: true },
         { field: 'updated_at', header: 'Updated Date', visible: true }
     ]);
@@ -144,6 +145,8 @@ const MachinePage = () => {
                         return formatDate(machine[col.field]);
                     } else if (col.field === 'category') {
                         return machine.category?.name || '-';
+                    } else if (col.field === 'division.name') {
+                        return machine.division?.name || '';
                     } else {
                         return machine[col.field] || '';
                     }
@@ -197,6 +200,8 @@ const MachinePage = () => {
                     return formatDate(machine[col.field]);
                 } else if (col.field === 'category') {
                     return machine.category?.name || '-';
+                } else if (col.field === 'division.name') {
+                    return machine.division?.name || '';
                 } else {
                     return machine[col.field] || '';
                 }
@@ -248,7 +253,7 @@ const MachinePage = () => {
 
                 const rowData = {};
                 row.eachCell((cell, colNumber) => {
-                    const headers = ['machine_code', 'name', 'location', 'status', 'category_id'];
+                    const headers = ['machine_code', 'name', 'location', 'status', 'category_id', 'division'];
                     if (headers[colNumber - 1]) {
                         rowData[headers[colNumber - 1]] = cell.value;
                     }
@@ -259,7 +264,26 @@ const MachinePage = () => {
                 }
             });
 
-            for (const item of data) {
+            // Resolve division name to division_id (nullable)
+            const unresolved = new Set();
+            const payloads = data.map(item => {
+                const p = { ...item };
+                if (p.division) {
+                    const match = divisions.find(d => String(d.name).trim().toLowerCase() === String(p.division).trim().toLowerCase());
+                    if (match) p.division_id = match.id;
+                    else unresolved.add(p.division);
+                    delete p.division;
+                } else {
+                    p.division_id = null;
+                }
+                return p;
+            });
+
+            if (unresolved.size > 0) {
+                throw new Error(`Import gagal. Unresolved divisions: ${[...unresolved].join(', ')}`);
+            }
+
+            for (const item of payloads) {
                 const res = await fetch("/api/admin/machines", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
