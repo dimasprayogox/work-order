@@ -9,7 +9,8 @@ import {
 export const UserController = {
     async index(req, res) {
         try {
-            const users = await User.query();
+            // Eager-load division relation so frontend can display division.name
+            const users = await User.query().withGraphFetched('division');
             res.json({
                 message: "Successfully retrieved users",
                 data: users,
@@ -21,7 +22,8 @@ export const UserController = {
 
     async show(req, res) {
         try {
-            const user = await User.query().findById(req.params.id);
+            // Include division relation for edit forms
+            const user = await User.query().findById(req.params.id).withGraphFetched('division');
             if (!user) return res.status(404).json({ message: "User not found" });
 
             res.json({
@@ -44,7 +46,7 @@ export const UserController = {
                 });
             }
 
-            const { username, email, password, full_name, role, is_active } = parsed.data;
+            const { username, email, password, full_name, role, is_active, division_id } = parsed.data;
             const hashedPassword = await bcrypt.hash(password, 10);
 
             const newUser = await User.query().insert({
@@ -55,6 +57,7 @@ export const UserController = {
                 full_name,
                 role,
                 is_active: is_active ?? true,
+                division_id: division_id || null,
             });
 
             res.status(201).json({
@@ -85,6 +88,11 @@ export const UserController = {
             const updateData = parsed.data;
             if (updateData.password) {
                 updateData.password = await bcrypt.hash(updateData.password, 10);
+            }
+
+            // Ensure division_id is set to null when empty string provided
+            if (Object.prototype.hasOwnProperty.call(updateData, 'division_id')) {
+                updateData.division_id = updateData.division_id || null;
             }
 
             updateData.updated_at = new Date();
@@ -137,7 +145,7 @@ export const UserController = {
                 deletedCount,
             });
         } catch (err) {
-            console.error("Error in UserController.deleteMany:", err);
+            // Log omitted to satisfy linting rules; include error message in response
             res.status(500).json({
                 message: "Failed to delete users",
                 error: err.message,
