@@ -9,6 +9,7 @@ export const createUserSchema = z.object({
     errorMap: () => ({ message: "Role tidak valid" }),
   }).default("employee"),
   is_active: z.boolean().optional(),
+  division_id: z.string().uuid().optional().nullable(),
 });
 
 export const updateUserSchema = z.object({
@@ -20,4 +21,5 @@ export const updateUserSchema = z.object({
     errorMap: () => ({ message: "Role tidak valid" }),
   }).optional(),
   is_active: z.boolean().optional(),
+  division_id: z.string().uuid().optional().nullable(),
 });
