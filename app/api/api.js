@@ -73,6 +73,9 @@ export const API_ENDPOINTS = {
     ASSET_CATEGORIES: `${API_URL}/admin/asset-categories`,
     ASSET_CATEGORY_BY_ID: (id) => `${API_URL}/admin/asset-categories/${id}`,
     DELETE_MANY_ASSET_CATEGORIES: `${API_URL}/admin/asset-categories/delete-many`,
+    ASSETS: `${API_URL}/admin/assets`,
+    ASSET_BY_ID: (id) => `${API_URL}/admin/assets/${id}`,
+    DELETE_MANY_ASSETS: `${API_URL}/admin/assets/delete-many`,
 
     // --- Manager Endpoints ---
     MANAGER_DASHBOARD_OVERVIEW: `${API_URL}/manager/dashboard/overview`,
