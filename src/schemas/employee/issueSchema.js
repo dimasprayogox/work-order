@@ -1,22 +1,22 @@
 import { z } from "zod";
 
 export const createIssueSchema = z.object({
-    machine_id: z.string().uuid({ message: "machine_id harus UUID" }).optional(),
-    asset_id: z.string().uuid({ message: "asset_id harus UUID" }).optional(),
-    title: z.string().min(3, { message: "Judul minimal 3 karakter" }),
-    description: z.string().min(10, { message: "Deskripsi minimal 10 karakter" }),
-    priority: z.enum(["low", "medium", "high"], { message: "Priority harus low, medium, atau high" }).default("medium"),
+    machine_id: z.string().uuid({ message: "machine_id must be a valid UUID" }).optional(),
+    asset_id: z.string().uuid({ message: "asset_id must be a valid UUID" }).optional(),
+    title: z.string().min(3, { message: "Title must be at least 3 characters long" }),
+    description: z.string().min(10, { message: "Description must be at least 10 characters long" }),
+    priority: z.enum(["low", "medium", "high"], { message: "Priority must be low, medium, or high" }).default("medium"),
 }).refine(data => data.machine_id || data.asset_id, {
-    message: "Salah satu dari machine_id atau asset_id harus diisi",
+    message: "Either machine_id or asset_id must be provided",
     path: ["machine_id"]
 });
 
 export const updateIssueSchema = z.object({
-  title: z.string().min(3).max(100).optional(),
-  description: z.string().min(5).max(500).optional(),
-  machine_id: z.string().uuid().optional(),
-  asset_id: z.string().uuid().optional(),
-  priority: z.enum(["low", "medium", "high"], { message: "Priority harus low, medium, atau high" }).optional(),
+  title: z.string().min(3, { message: "Title must be at least 3 characters long" }).max(100).optional(),
+  description: z.string().min(10, { message: "Description must be at least 10 characters long" }).max(500).optional(),
+  machine_id: z.string().uuid({ message: "machine_id must be a valid UUID" }).optional(),
+  asset_id: z.string().uuid({ message: "asset_id must be a valid UUID" }).optional(),
+  priority: z.enum(["low", "medium", "high"], { message: "Priority must be low, medium, or high" }).optional(),
 }).refine(data => {
     // If both are provided, that's an error
     if (data.machine_id && data.asset_id) {
@@ -24,6 +24,6 @@ export const updateIssueSchema = z.object({
     }
     return true;
 }, {
-    message: "Tidak boleh mengisi machine_id dan asset_id secara bersamaan",
+    message: "Cannot specify both machine_id and asset_id at the same time",
     path: ["machine_id"]
 });
