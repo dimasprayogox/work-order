@@ -39,11 +39,11 @@ export class Issue extends BaseModel {
             },
 
             workOrder: {
-                relation: BaseModel.BelongsToOneRelation,
+                relation: BaseModel.HasOneRelation,
                 modelClass: WorkOrder,
                 join: {
-                    from: 'issues.work_order_id',
-                    to: 'work_orders.id',
+                    from: 'issues.id',
+                    to: 'work_orders.issue_id',
                 },
             },
         };
