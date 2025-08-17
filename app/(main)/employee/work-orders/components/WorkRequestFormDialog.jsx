@@ -32,7 +32,8 @@ const WorkRequestFormDialog = ({
         current_photo_url: ""
     });
     const [loading, setLoading] = useState(false);
-    const [submitted] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         if (workOrder) {
@@ -58,6 +59,9 @@ const WorkRequestFormDialog = ({
                 current_photo_url: ""
             });
         }
+        // Reset errors and submitted state when dialog opens/closes
+        setErrors({});
+        setSubmitted(false);
         if (fileUploadRef.current) {
             fileUploadRef.current.clear();
         }
@@ -101,13 +105,13 @@ const WorkRequestFormDialog = ({
         const errors = {};
         let isValid = true;
 
-        if (!form.title) {
-            errors.title = "Title is required.";
+        if (!form.title || form.title.trim().length < 3) {
+            errors.title = "Title must be at least 3 characters long.";
             isValid = false;
         }
 
-        if (!form.description) {
-            errors.description = "Description is required.";
+        if (!form.description || form.description.trim().length < 10) {
+            errors.description = "Description must be at least 10 characters long.";
             isValid = false;
         }
 
@@ -126,10 +130,12 @@ const WorkRequestFormDialog = ({
             isValid = false;
         }
 
+        setErrors(errors);
         return { isValid, errors };
     };
 
     const handleSubmit = async () => {
+        setSubmitted(true);
         const { isValid } = validateForm();
 
         if (!isValid) {
@@ -168,6 +174,26 @@ const WorkRequestFormDialog = ({
 
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
+                
+                // Handle validation errors from backend
+                if (res.status === 400 && errorData.errors) {
+                    const backendErrors = {};
+                    Object.keys(errorData.errors).forEach(field => {
+                        if (Array.isArray(errorData.errors[field])) {
+                            backendErrors[field] = errorData.errors[field][0]; // Take first error message
+                        } else {
+                            backendErrors[field] = errorData.errors[field];
+                        }
+                    });
+                    setErrors(backendErrors);
+                    
+                    // Show specific error message based on the field
+                    const errorMessages = Object.values(backendErrors);
+                    const errorMessage = errorMessages.length > 0 ? errorMessages.join(', ') : "Please check the form for errors.";
+                    showToast("error", "Validation Failed", errorMessage);
+                    return;
+                }
+                
                 throw new Error(errorData.message || `Failed to ${workOrder ? "update" : "create"} issue. Status: ${res.status}`);
             }
 
@@ -219,8 +245,16 @@ const WorkRequestFormDialog = ({
                     Issue Title <span className="text-red-500">*</span>
                 </label>
                 <div className="col-12">
-                    <InputText id="title" value={form.title} onChange={(e) => handleChange("title", e.target.value)} className={classNames({ "p-invalid": submitted && !form.title })} />
-                    {submitted && !form.title && <small className="p-error">Title is required</small>}
+                    <InputText 
+                        id="title" 
+                        value={form.title} 
+                        onChange={(e) => handleChange("title", e.target.value)} 
+                        className={classNames({ "p-invalid": (submitted && errors.title) || (submitted && !form.title) })} 
+                    />
+                    {submitted && (errors.title || (!form.title && "Title is required")) && (
+                        <small className="p-error">{errors.title || "Title is required"}</small>
+                    )}
+                    <small className="text-500 block mt-1">Minimum 3 characters</small>
                 </div>
             </div>
 
@@ -229,8 +263,17 @@ const WorkRequestFormDialog = ({
                     Description <span className="text-red-500">*</span>
                 </label>
                 <div className="col-12">
-                    <InputTextarea id="description" value={form.description} onChange={(e) => handleChange("description", e.target.value)} rows={5} className={classNames({ "p-invalid": submitted && !form.description })} />
-                    {submitted && !form.description && <small className="p-error">Description is required</small>}
+                    <InputTextarea 
+                        id="description" 
+                        value={form.description} 
+                        onChange={(e) => handleChange("description", e.target.value)} 
+                        rows={5} 
+                        className={classNames({ "p-invalid": (submitted && errors.description) || (submitted && !form.description) })} 
+                    />
+                    {submitted && (errors.description || (!form.description && "Description is required")) && (
+                        <small className="p-error">{errors.description || "Description is required"}</small>
+                    )}
+                    <small className="text-500 block mt-1">Minimum 10 characters</small>
                 </div>
             </div>
 
@@ -278,9 +321,11 @@ const WorkRequestFormDialog = ({
                             options={machineOptions} 
                             onChange={(e) => handleChange("machine_id", e.value)} 
                             placeholder="Select Machine" 
-                            className={classNames({ "p-invalid": submitted && !form.machine_id })} 
+                            className={classNames({ "p-invalid": (submitted && errors.machine_id) || (submitted && !form.machine_id) })} 
                         />
-                        {submitted && !form.machine_id && <small className="p-error">Machine must be selected</small>}
+                        {submitted && (errors.machine_id || (!form.machine_id && "Machine must be selected")) && (
+                            <small className="p-error">{errors.machine_id || "Machine must be selected"}</small>
+                        )}
                     </div>
                 </div>
             )}
@@ -297,9 +342,11 @@ const WorkRequestFormDialog = ({
                             options={assetOptions} 
                             onChange={(e) => handleChange("asset_id", e.value)} 
                             placeholder="Select Asset" 
-                            className={classNames({ "p-invalid": submitted && !form.asset_id })} 
+                            className={classNames({ "p-invalid": (submitted && errors.asset_id) || (submitted && !form.asset_id) })} 
                         />
-                        {submitted && !form.asset_id && <small className="p-error">Asset must be selected</small>}
+                        {submitted && (errors.asset_id || (!form.asset_id && "Asset must be selected")) && (
+                            <small className="p-error">{errors.asset_id || "Asset must be selected"}</small>
+                        )}
                     </div>
                 </div>
             )}
@@ -315,9 +362,11 @@ const WorkRequestFormDialog = ({
                         options={priorityOptions} 
                         onChange={(e) => handleChange("priority", e.value)} 
                         placeholder="Select Priority" 
-                        className={classNames({ "p-invalid": submitted && !form.priority })} 
+                        className={classNames({ "p-invalid": (submitted && errors.priority) || (submitted && !form.priority) })} 
                     />
-                    {submitted && !form.priority && <small className="p-error">Priority must be selected</small>}
+                    {submitted && (errors.priority || (!form.priority && "Priority must be selected")) && (
+                        <small className="p-error">{errors.priority || "Priority must be selected"}</small>
+                    )}
                 </div>
             </div>
 
