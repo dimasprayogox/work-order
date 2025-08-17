@@ -24,6 +24,7 @@ const UserPage = () => {
     const fileInputRef = useRef(null);
 
     const [users, setUsers] = useState([]);
+    const [divisions, setDivisions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [selectedUsers, setSelectedUsers] = useState([]);
@@ -74,9 +75,22 @@ const UserPage = () => {
         }
     }, [showToast]);
 
+    const fetchDivisions = useCallback(async () => {
+        try {
+            const res = await fetch("/api/admin/divisions", {
+                credentials: "include"
+            });
+            const body = await res.json();
+            setDivisions(body.data || []);
+        } catch (err) {
+            showToast("error", "Error", "Gagal mengambil data divisi");
+        }
+    }, [showToast]);
+
     useEffect(() => {
         fetchUsers();
-    }, [fetchUsers]);
+        fetchDivisions();
+    }, [fetchUsers, fetchDivisions]);
 
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
@@ -384,6 +398,7 @@ const UserPage = () => {
                         setSelectedUser(null);
                     }}
                     user={selectedUser}
+                    divisions={divisions}
                     fetchUsers={fetchUsers}
                     showToast={showToast}
                 />

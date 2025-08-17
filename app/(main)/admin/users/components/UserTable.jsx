@@ -81,6 +81,10 @@ const UserTable = ({
         });
     };
 
+    const divisionBodyTemplate = (rowData) => {
+        return rowData.division?.name || '-';
+    };
+
     const actionBodyTemplate = (rowData) => (
         <div className="flex gap-2">
             <Button
@@ -138,7 +142,7 @@ const UserTable = ({
                 loading={loading}
                 emptyMessage="No users found."
                 filters={filters}
-                globalFilterFields={["username", "full_name", "email", "role"]}
+                globalFilterFields={["username", "full_name", "email", "role", "division.name"]}
                 className="border-round-lg"
                 rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
@@ -151,6 +155,7 @@ const UserTable = ({
                 <Column field="username" header="Username" style={{ width: "150px" }} sortable />
                 <Column field="full_name" header="Full Name" style={{ width: "200px" }} sortable />
                 <Column field="email" header="Email" style={{ width: "200px" }} sortable />
+                <Column field="division" header="Division" body={divisionBodyTemplate} style={{ width: "150px" }} sortable />
                 <Column field="role" header="Role" body={roleBodyTemplate} style={{ width: "120px" }} sortable />
                 <Column field="is_active" header="Status" body={statusBodyTemplate} style={{ width: "100px" }} sortable />
                 <Column field="created_at" header="Created" body={createdAtBodyTemplate} style={{ width: "120px" }} sortable />

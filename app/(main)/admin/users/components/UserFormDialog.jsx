@@ -9,14 +9,15 @@ import { Button } from "primereact/button";
 import { classNames } from "primereact/utils";
 import { useState, useEffect } from "react";
 
-const UserFormDialog = ({ visible, onHide, user, fetchUsers, showToast }) => {
+const UserFormDialog = ({ visible, onHide, user, divisions = [], fetchUsers, showToast }) => {
     const [form, setForm] = useState({
         username: "",
         email: "",
         password: "",
         full_name: "",
         role: "employee",
-        is_active: true
+    is_active: true,
+    division_id: null
     });
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -37,7 +38,8 @@ const UserFormDialog = ({ visible, onHide, user, fetchUsers, showToast }) => {
                 password: "", // Always empty for edit mode
                 full_name: user.full_name || "",
                 role: user.role || "employee",
-                is_active: user.is_active === 1 || user.is_active === true
+                is_active: user.is_active === 1 || user.is_active === true,
+                division_id: user.division_id || null
             });
         } else {
             setForm({
@@ -47,6 +49,7 @@ const UserFormDialog = ({ visible, onHide, user, fetchUsers, showToast }) => {
                 full_name: "",
                 role: "employee",
                 is_active: true
+                , division_id: null
             });
         }
         setSubmitted(false);
@@ -241,6 +244,22 @@ const UserFormDialog = ({ visible, onHide, user, fetchUsers, showToast }) => {
                         options={roleOptions}
                         onChange={(e) => handleChange("role", e.value)}
                         placeholder="Select role"
+                    />
+                </div>
+            </div>
+
+            <div className="field grid mb-4">
+                <label htmlFor="division_id" className="col-12 mb-2 font-medium">
+                    Division
+                </label>
+                <div className="col-12">
+                    <Dropdown
+                        id="division_id"
+                        value={form.division_id}
+                        options={divisions.map(d => ({ label: d.name, value: d.id }))}
+                        onChange={(e) => handleChange("division_id", e.value)}
+                        placeholder="Select division"
+                        showClear
                     />
                 </div>
             </div>
