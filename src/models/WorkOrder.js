@@ -1,5 +1,6 @@
 import { BaseModel } from './BaseModel.js';
 import { Machine } from './Machine.js';
+import { Asset } from './Asset.js';
 import { User } from './User.js';
 import { Issue } from './Issue.js';
 import { PartRequest } from './PartRequest.js';
@@ -18,6 +19,14 @@ export class WorkOrder extends BaseModel {
                 join: {
                     from: 'work_orders.machine_id',
                     to: 'machines.id',
+                },
+            },
+            asset: {
+                relation: BaseModel.BelongsToOneRelation,
+                modelClass: Asset,
+                join: {
+                    from: 'work_orders.asset_id',
+                    to: 'assets.id',
                 },
             },
             assignedTo: {
