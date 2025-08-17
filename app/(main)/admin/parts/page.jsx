@@ -56,6 +56,8 @@ const AdminPartPage = () => {
     { field: 'quantity_in_stock', header: 'Quantity', visible: true },
     { field: 'min_stock', header: 'Min Stock', visible: true },
     { field: 'location', header: 'Location', visible: true },
+  { field: 'asset.name', header: 'Asset', visible: true },
+  { field: 'machine.name', header: 'Machine', visible: true },
     { field: 'created_at', header: 'Created Date', visible: true },
     { field: 'updated_at', header: 'Updated Date', visible: true }
   ]);
@@ -263,17 +265,51 @@ const AdminPartPage = () => {
         }
       });
 
-        for (const item of data) {
-        // Menggunakan API route handler yang baru
-        const res = await fetch("/api/admin/parts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(item),
+        // Resolve asset/machine names to IDs before sending to API
+        const unresolved = { assets: new Set(), machines: new Set() };
+        const payloads = data.map(item => {
+          const payload = { ...item };
+          // Normalize keys expected by backend
+          if (payload.asset) {
+            const match = assets.find(a => String(a.name).trim().toLowerCase() === String(payload.asset).trim().toLowerCase());
+            if (match) {
+              payload.asset_id = match.id;
+            } else {
+              unresolved.assets.add(payload.asset);
+            }
+            delete payload.asset;
+          }
+
+          if (payload.machine) {
+            const match = machines.find(m => String(m.name).trim().toLowerCase() === String(payload.machine).trim().toLowerCase());
+            if (match) {
+              payload.machine_id = match.id;
+            } else {
+              unresolved.machines.add(payload.machine);
+            }
+            delete payload.machine;
+          }
+
+          return payload;
         });
-        const body = await res.json();
-        if (!res.ok) throw new Error(body.message || "Import gagal");
-      }
+
+        if (unresolved.assets.size > 0 || unresolved.machines.size > 0) {
+          const messages = [];
+          if (unresolved.assets.size > 0) messages.push(`Unresolved assets: ${[...unresolved.assets].join(', ')}`);
+          if (unresolved.machines.size > 0) messages.push(`Unresolved machines: ${[...unresolved.machines].join(', ')}`);
+          throw new Error(`Import gagal. ${messages.join(' | ')}`);
+        }
+
+        for (const item of payloads) {
+          const res = await fetch("/api/admin/parts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(item),
+          });
+          const body = await res.json();
+          if (!res.ok) throw new Error(body.message || "Import gagal");
+        }
 
       showToast("success", "Import Sukses", `${data.length} data berhasil diimpor`);
       fetchParts();
