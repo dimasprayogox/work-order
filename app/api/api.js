@@ -67,6 +67,9 @@ export const API_ENDPOINTS = {
     ADMIN_SCHEDULES: `${API_URL}/admin/schedules`,
     ADMIN_SCHEDULE_BY_ID: (id) => `${API_URL}/admin/schedules/${id}`,
     ADMIN_SCHEDULES_GENERATE: `${API_URL}/admin/schedules/generate`,
+    DIVISIONS: `${API_URL}/admin/divisions`,
+    DIVISION_BY_ID: (id) => `${API_URL}/admin/divisions/${id}`,
+    DELETE_MANY_DIVISIONS: `${API_URL}/admin/divisions/delete-many`,
 
     // --- Manager Endpoints ---
     MANAGER_DASHBOARD_OVERVIEW: `${API_URL}/manager/dashboard/overview`,
