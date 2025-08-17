@@ -100,6 +100,11 @@ const AppMenu = () => {
                             label: "USER MANAGEMENT",
                             items: [
                                 {
+                                    label: "Divisions",
+                                    icon: "pi pi-fw pi-sitemap",
+                                    to: "/admin/divisions"
+                                },
+                                {
                                     label: "Users",
                                     icon: "pi pi-fw pi-users",
                                     to: "/admin/users"
