@@ -4,11 +4,12 @@ import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
 import { InputNumber } from "primereact/inputnumber";
 import { InputTextarea } from "primereact/inputtextarea";
+import { Dropdown } from "primereact/dropdown";
 import { Button } from "primereact/button";
 import { classNames } from "primereact/utils";
 import { useState, useEffect } from "react";
 
-const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast }) => {
+const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast, assets = [], machines = [] }) => {
   const [form, setForm] = useState({
     name: "",
     part_number: "",
@@ -16,6 +17,8 @@ const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast }) =
     quantity_in_stock: 0,
     min_stock: 0,
     location: "",
+    asset_id: null,
+    machine_id: null,
   });
 
   const [loading, setLoading] = useState(false);
@@ -29,7 +32,9 @@ const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast }) =
         description: part.description || "",
         quantity_in_stock: part.quantity_in_stock || 0,
         min_stock: part.min_stock || 0,
-        location: part.location || "",
+  location: part.location || "",
+  asset_id: part.asset?.id || null,
+  machine_id: part.machine?.id || null,
       });
     } else {
       setForm({
@@ -38,7 +43,9 @@ const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast }) =
         description: "",
         quantity_in_stock: 0,
         min_stock: 0,
-        location: "",
+  location: "",
+  asset_id: null,
+  machine_id: null,
       });
     }
     setSubmitted(false);
@@ -49,7 +56,13 @@ const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast }) =
   };
 
   const validateForm = () => {
-    return form.name && form.part_number && form.location;
+    // Require basic fields and at least one relation (asset OR machine)
+    return (
+      form.name &&
+      form.part_number &&
+      form.location &&
+      (form.asset_id || form.machine_id)
+    );
   };
 
   const handleSubmit = async () => {
@@ -69,7 +82,7 @@ const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast }) =
 
       const method = part ? "PATCH" : "POST";
 
-      const res = await fetch(endpoint, {
+  const res = await fetch(endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -94,6 +107,16 @@ const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast }) =
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectAsset = (value) => {
+    // If asset selected, clear machine
+    setForm((prev) => ({ ...prev, asset_id: value, machine_id: null }));
+  };
+
+  const handleSelectMachine = (value) => {
+    // If machine selected, clear asset
+    setForm((prev) => ({ ...prev, machine_id: value, asset_id: null }));
   };
 
   return (
@@ -208,6 +231,29 @@ const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast }) =
           {submitted && !form.location && (
             <small className="p-error">Location is required</small>
           )}
+        </div>
+
+        {/* Asset / Machine selection (XOR) */}
+        <div className="field col-12 md:col-6 mb-4">
+          <label className="block mb-2 font-medium">Asset (choose either Asset or Machine) </label>
+          <Dropdown
+            value={form.asset_id}
+            options={assets.map(a => ({ label: a.name, value: a.id }))}
+            onChange={(e) => handleSelectAsset(e.value)}
+            placeholder="Select Asset or leave empty"
+            showClear
+          />
+        </div>
+
+        <div className="field col-12 md:col-6 mb-4">
+          <label className="block mb-2 font-medium">Machine (choose either Machine or Asset)</label>
+          <Dropdown
+            value={form.machine_id}
+            options={machines.map(m => ({ label: m.name, value: m.id }))}
+            onChange={(e) => handleSelectMachine(e.value)}
+            placeholder="Select Machine or leave empty"
+            showClear
+          />
         </div>
       </div>
 

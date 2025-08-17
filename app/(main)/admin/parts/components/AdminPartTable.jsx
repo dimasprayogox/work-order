@@ -113,7 +113,7 @@ const AdminPartTable = ({
         loading={loading}
         emptyMessage="No parts found."
         filters={filters}
-        globalFilterFields={["name", "part_number", "description", "location"]}
+  globalFilterFields={["name", "part_number", "description", "location", "asset.name", "machine.name"]}
         className="border-round-lg"
         rowClassName={() =>
           "hover:bg-gray-50 transition-colors cursor-pointer"
@@ -125,9 +125,11 @@ const AdminPartTable = ({
         selectionMode="multiple"
       >
         <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
-        <Column field="name" header="Part Name" style={{ width: "180px" }} sortable />
+  <Column field="name" header="Part Name" style={{ width: "180px" }} sortable />
         <Column field="part_number" header="Part Number" style={{ width: "150px" }} sortable />
         <Column field="description" header="Description" style={{ width: "200px" }} />
+  <Column field="asset.name" header="Asset" style={{ width: "160px" }} body={(row) => row.asset?.name || '-'} />
+  <Column field="machine.name" header="Machine" style={{ width: "160px" }} body={(row) => row.machine?.name || '-'} />
         <Column
           field="quantity_in_stock"
           header="Stock"

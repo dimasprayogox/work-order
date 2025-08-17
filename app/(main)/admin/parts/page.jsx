@@ -27,6 +27,8 @@ const AdminPartPage = () => {
   const [loading, setLoading] = useState(false);
   const [selectedPart, setSelectedPart] = useState(null);
   const [selectedParts, setSelectedParts] = useState([]);
+  const [assets, setAssets] = useState([]);
+  const [machines, setMachines] = useState([]);
 
   const [isFormOpen, setFormOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
@@ -78,8 +80,30 @@ const AdminPartPage = () => {
     }
   }, [showToast]);
 
+  const fetchAssets = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/assets', { credentials: 'include' });
+      const json = await res.json();
+      setAssets(json.data || []);
+    } catch (err) {
+      // ignore
+    }
+  }, []);
+
+  const fetchMachines = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/machines', { credentials: 'include' });
+      const json = await res.json();
+      setMachines(json.data || []);
+    } catch (err) {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     fetchParts();
+  fetchAssets();
+  fetchMachines();
   }, [fetchParts]);
 
   // Date formatter helper
@@ -118,6 +142,10 @@ const AdminPartPage = () => {
         .map(col => {
           if (col.field === 'created_at' || col.field === 'updated_at') {
             return formatDate(part[col.field]);
+          } else if (col.field === 'asset.name') {
+            return part.asset?.name || '';
+          } else if (col.field === 'machine.name') {
+            return part.machine?.name || '';
           } else {
             return part[col.field] || '';
           }
@@ -169,8 +197,12 @@ const AdminPartPage = () => {
       return visibleColumns.map(col => {
         if (col.field === 'created_at' || col.field === 'updated_at') {
           return formatDate(part[col.field]);
-        } else {
-          return part[col.field] || '';
+          } else if (col.field === 'asset.name') {
+            return part.asset?.name || '';
+          } else if (col.field === 'machine.name') {
+            return part.machine?.name || '';
+          } else {
+            return part[col.field] || '';
         }
       });
     });
@@ -220,9 +252,9 @@ const AdminPartPage = () => {
 
         const rowData = {};
         row.eachCell((cell, colNumber) => {
-          const headers = ['name', 'part_number', 'description', 'quantity_in_stock', 'min_stock', 'location'];
+      const headers = ['name', 'part_number', 'description', 'quantity_in_stock', 'min_stock', 'location', 'asset', 'machine'];
           if (headers[colNumber - 1]) {
-            rowData[headers[colNumber - 1]] = cell.value;
+        rowData[headers[colNumber - 1]] = cell.value;
           }
         });
 
@@ -231,7 +263,7 @@ const AdminPartPage = () => {
         }
       });
 
-      for (const item of data) {
+        for (const item of data) {
         // Menggunakan API route handler yang baru
         const res = await fetch("/api/admin/parts", {
           method: "POST",
@@ -371,6 +403,8 @@ const AdminPartPage = () => {
           part={selectedPart}
           fetchParts={fetchParts}
           showToast={showToast}
+          assets={assets}
+          machines={machines}
         />
 
         <AdminConfirmDeleteDialog
