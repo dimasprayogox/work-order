@@ -7,6 +7,7 @@ import { Button } from "primereact/button";
 import { Dropdown } from "primereact/dropdown";
 import { FileUpload } from "primereact/fileupload";
 import { Image } from "primereact/image";
+import { RadioButton } from "primereact/radiobutton";
 import { classNames } from "primereact/utils";
 import { useState, useEffect, useRef } from "react";
 
@@ -14,7 +15,8 @@ const WorkRequestFormDialog = ({
     visible,
     onHide,
     workOrder,
-    machines = [], // Default to empty array if undefined
+    machines = [],
+    assets = [],
     fetchWorkOrders,
     showToast
 }) => {
@@ -22,7 +24,10 @@ const WorkRequestFormDialog = ({
     const [form, setForm] = useState({
         title: "",
         description: "",
+        entity_type: "machine", // 'machine' or 'asset'
         machine_id: null,
+        asset_id: null,
+        priority: "medium", // Add priority field
         photo: null,
         current_photo_url: ""
     });
@@ -34,7 +39,10 @@ const WorkRequestFormDialog = ({
             setForm({
                 title: workOrder.title || "",
                 description: workOrder.description || "",
+                entity_type: workOrder.machine_id ? "machine" : "asset",
                 machine_id: workOrder.machine_id || null,
+                asset_id: workOrder.asset_id || null,
+                priority: workOrder.priority || "medium",
                 photo: null,
                 current_photo_url: workOrder.photo_url || ""
             });
@@ -42,7 +50,10 @@ const WorkRequestFormDialog = ({
             setForm({
                 title: "",
                 description: "",
+                entity_type: "machine",
                 machine_id: null,
+                asset_id: null,
+                priority: "medium",
                 photo: null,
                 current_photo_url: ""
             });
@@ -53,7 +64,20 @@ const WorkRequestFormDialog = ({
     }, [visible, workOrder]);
 
     const handleChange = (field, value) => {
-        setForm((prev) => ({ ...prev, [field]: value }));
+        setForm((prev) => {
+            const newForm = { ...prev, [field]: value };
+            
+            // When entity type changes, clear the other entity selection
+            if (field === "entity_type") {
+                if (value === "machine") {
+                    newForm.asset_id = null;
+                } else {
+                    newForm.machine_id = null;
+                }
+            }
+            
+            return newForm;
+        });
     };
 
     const handleFileChange = (e) => {
@@ -74,21 +98,28 @@ const WorkRequestFormDialog = ({
     };
 
     const validateForm = () => {
-        const requiredFields = {
-            title: "Title is required.",
-            description: "Description is required.",
-            machine_id: "Machine must be selected."
-        };
-
         const errors = {};
         let isValid = true;
 
-        Object.entries(requiredFields).forEach(([field, message]) => {
-            if (!form[field]) {
-                errors[field] = message;
-                isValid = false;
-            }
-        });
+        if (!form.title) {
+            errors.title = "Title is required.";
+            isValid = false;
+        }
+
+        if (!form.description) {
+            errors.description = "Description is required.";
+            isValid = false;
+        }
+
+        if (form.entity_type === "machine" && !form.machine_id) {
+            errors.machine_id = "Machine must be selected.";
+            isValid = false;
+        }
+
+        if (form.entity_type === "asset" && !form.asset_id) {
+            errors.asset_id = "Asset must be selected.";
+            isValid = false;
+        }
 
         return { isValid, errors };
     };
@@ -106,7 +137,13 @@ const WorkRequestFormDialog = ({
             const formPayload = new FormData();
             formPayload.append("title", form.title);
             formPayload.append("description", form.description);
-            formPayload.append("machine_id", form.machine_id);
+            formPayload.append("priority", form.priority);
+            
+            if (form.entity_type === "machine") {
+                formPayload.append("machine_id", form.machine_id);
+            } else {
+                formPayload.append("asset_id", form.asset_id);
+            }
 
             if (form.photo) {
                 formPayload.append("photo", form.photo);
@@ -148,11 +185,23 @@ const WorkRequestFormDialog = ({
         return statusMap[statusValue] || statusValue.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
     };
 
-    // Safely handle machines prop
+    // Safely handle machines and assets props
     const machineOptions = (machines || []).map((machine) => ({
         label: machine.name,
         value: machine.id
     }));
+
+    const assetOptions = (assets || []).map((asset) => ({
+        label: asset.name,
+        value: asset.id
+    }));
+
+    // Priority options
+    const priorityOptions = [
+        { label: "Low", value: "low" },
+        { label: "Medium", value: "medium" },
+        { label: "High", value: "high" }
+    ];
 
     return (
         <Dialog header={workOrder ? "Edit Work Order" : "Create New Work Order Request"} visible={visible} style={{ width: "60vw" }} breakpoints={{ "960px": "75vw", "641px": "90vw" }} onHide={onHide} modal className="p-fluid">
@@ -188,13 +237,78 @@ const WorkRequestFormDialog = ({
                 </div>
             )}
 
+            {!workOrder && (
+                <div className="field grid mb-4">
+                    <label className="col-12 mb-2 font-medium">
+                        Report Issue For <span className="text-red-500">*</span>
+                    </label>
+                    <div className="col-12">
+                        <div className="flex gap-4">
+                            <div className="flex align-items-center">
+                                <RadioButton inputId="entity_machine" name="entity_type" value="machine" onChange={(e) => handleChange("entity_type", e.value)} checked={form.entity_type === "machine"} />
+                                <label htmlFor="entity_machine" className="ml-2">Machine</label>
+                            </div>
+                            <div className="flex align-items-center">
+                                <RadioButton inputId="entity_asset" name="entity_type" value="asset" onChange={(e) => handleChange("entity_type", e.value)} checked={form.entity_type === "asset"} />
+                                <label htmlFor="entity_asset" className="ml-2">Asset</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {form.entity_type === "machine" && (
+                <div className="field grid mb-4">
+                    <label htmlFor="machine_id" className="col-12 mb-2 font-medium">
+                        Machine <span className="text-red-500">*</span>
+                    </label>
+                    <div className="col-12">
+                        <Dropdown 
+                            id="machine_id" 
+                            value={form.machine_id} 
+                            options={machineOptions} 
+                            onChange={(e) => handleChange("machine_id", e.value)} 
+                            placeholder="Select Machine" 
+                            className={classNames({ "p-invalid": submitted && !form.machine_id })} 
+                        />
+                        {submitted && !form.machine_id && <small className="p-error">Machine must be selected</small>}
+                    </div>
+                </div>
+            )}
+
+            {form.entity_type === "asset" && (
+                <div className="field grid mb-4">
+                    <label htmlFor="asset_id" className="col-12 mb-2 font-medium">
+                        Asset <span className="text-red-500">*</span>
+                    </label>
+                    <div className="col-12">
+                        <Dropdown 
+                            id="asset_id" 
+                            value={form.asset_id} 
+                            options={assetOptions} 
+                            onChange={(e) => handleChange("asset_id", e.value)} 
+                            placeholder="Select Asset" 
+                            className={classNames({ "p-invalid": submitted && !form.asset_id })} 
+                        />
+                        {submitted && !form.asset_id && <small className="p-error">Asset must be selected</small>}
+                    </div>
+                </div>
+            )}
+
             <div className="field grid mb-4">
-                <label htmlFor="machine_id" className="col-12 mb-2 font-medium">
-                    Machine <span className="text-red-500">*</span>
+                <label htmlFor="priority" className="col-12 mb-2 font-medium">
+                    Priority <span className="text-red-500">*</span>
                 </label>
                 <div className="col-12">
-                    <Dropdown id="machine_id" value={form.machine_id} options={machineOptions} onChange={(e) => handleChange("machine_id", e.value)} placeholder="Select Machine" className={classNames({ "p-invalid": submitted && !form.machine_id })} />
-                    {submitted && !form.machine_id && <small className="p-error">Machine must be selected</small>}
+                    <Dropdown 
+                        id="priority" 
+                        value={form.priority} 
+                        options={priorityOptions} 
+                        onChange={(e) => handleChange("priority", e.value)} 
+                        placeholder="Select Priority" 
+                        className={classNames({ "p-invalid": submitted && !form.priority })} 
+                    />
+                    {submitted && !form.priority && <small className="p-error">Priority must be selected</small>}
                 </div>
             </div>
 

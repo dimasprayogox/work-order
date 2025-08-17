@@ -152,7 +152,7 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
                         loading={loading}
                         emptyMessage="No work orders found."
                         filters={filters}
-                        globalFilterFields={["title", "description", "machine.name", "status"]}
+                        globalFilterFields={["title", "description", "machine.name", "asset.name", "status", "priority"]}
                         className="border-round-lg"
                         rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
@@ -196,7 +196,19 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
                                 </>
                             )}
                         />
-                        <Column field="machine.name" header="Machine" body={(rowData) => <Tag value={rowData.machine?.name} className="bg-gray-100 text-gray-800 font-medium" />} />
+                        <Column 
+                            field="machine.name" 
+                            header="Machine/Asset" 
+                            body={(rowData) => {
+                                if (rowData.machine?.name) {
+                                    return <Tag value={`Machine: ${rowData.machine.name}`} className="bg-blue-100 text-blue-800 font-medium" />;
+                                } else if (rowData.asset?.name) {
+                                    return <Tag value={`Asset: ${rowData.asset.name}`} className="bg-green-100 text-green-800 font-medium" />;
+                                }
+                                return <span className="text-gray-400">N/A</span>;
+                            }} 
+                        />
+                        <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                         <Column field="status" header="Status" body={statusBodyTemplate} sortable />
                         <Column header="Photo" body={photoBodyTemplate} />
                         <Column field="created_at" header="Created" body={dateBodyTemplate} sortable />

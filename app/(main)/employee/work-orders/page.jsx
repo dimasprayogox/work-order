@@ -27,10 +27,17 @@ const statusMapForExport = {
     closed: "Closed"
 };
 
+const priorityMapForExport = {
+    low: "Low",
+    medium: "Medium",
+    high: "High"
+};
+
 const columnOptionsForExport = [
     { field: "title", header: "Judul Isu", visible: true },
     { field: "description", header: "Deskripsi", visible: true },
-    { field: "machine.name", header: "Mesin", visible: true },
+    { field: "entity", header: "Mesin/Asset", visible: true },
+    { field: "priority", header: "Priority", visible: true },
     { field: "status", header: "Status", visible: true },
     { field: "created_at", header: "Dikirim", visible: true }
 ];
@@ -46,6 +53,7 @@ const WorkOrderPage = () => {
     const [selectedWorkOrders, setSelectedWorkOrders] = useState([]);
     const [workOrders, setWorkOrders] = useState([]);
     const [machines, setMachines] = useState([]);
+    const [assets, setAssets] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
     const [searchText, setSearchText] = useState("");
@@ -96,10 +104,22 @@ const WorkOrderPage = () => {
         }
     }, [showToast]);
 
+    const fetchAssets = useCallback(async () => {
+        try {
+            const response = await fetch(`/api/employee/assets/available`);
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || "Failed to fetch assets");
+            setAssets(result.data || []);
+        } catch (error) {
+            showToast("error", "Error", error.message);
+        }
+    }, [showToast]);
+
     useEffect(() => {
         fetchWorkOrders();
         fetchMachines();
-    }, [fetchWorkOrders, fetchMachines]);
+        fetchAssets();
+    }, [fetchWorkOrders, fetchMachines, fetchAssets]);
 
     const handleRefresh = () => {
         fetchWorkOrders();
@@ -143,9 +163,14 @@ const WorkOrderPage = () => {
                 const rowData = columnOptionsForExport
                     .filter((col) => col.visible)
                     .map((col) => {
-                        if (col.field === "machine.name") return wo.machine?.name || "N/A";
+                        if (col.field === "entity") {
+                            if (wo.machine?.name) return `Machine: ${wo.machine.name}`;
+                            if (wo.asset?.name) return `Asset: ${wo.asset.name}`;
+                            return "N/A";
+                        }
                         if (col.field.includes("_at")) return wo[col.field] ? new Date(wo[col.field]).toLocaleString("id-ID") : "N/A";
                         if (col.field === "status") return statusMapForExport[wo.status] || wo.status;
+                        if (col.field === "priority") return priorityMapForExport[wo.priority] || wo.priority || "Medium";
                         return wo[col.field];
                     });
                 worksheet.addRow(rowData);
@@ -238,9 +263,17 @@ const exportPdf = (config = null) => {
             format: currentConfig.format
         });
 
-        const headers = ["No", "Title", "Description", "Machine", "Status", "Created"];
+        const headers = ["No", "Title", "Description", "Machine/Asset", "Priority", "Status", "Created"];
 
-        const data = workOrders.map((wo, index) => [(index + 1).toString(), wo.title || "-", wo.description || "-", wo.machine?.name || "-",  statusMapForExport[wo.status] || wo.status || "-", wo.created_at ? new Date(wo.created_at).toLocaleDateString("id-ID") : "-"]);
+        const data = workOrders.map((wo, index) => [
+            (index + 1).toString(), 
+            wo.title || "-", 
+            wo.description || "-", 
+            wo.machine?.name ? `Machine: ${wo.machine.name}` : wo.asset?.name ? `Asset: ${wo.asset.name}` : "-",  
+            priorityMapForExport[wo.priority] || wo.priority || "Medium",
+            statusMapForExport[wo.status] || wo.status || "-", 
+            wo.created_at ? new Date(wo.created_at).toLocaleDateString("id-ID") : "-"
+        ]);
 
         doc.text("Work Orders Report", currentConfig.marginLeft, currentConfig.marginTop);
 
@@ -325,7 +358,16 @@ const exportPdf = (config = null) => {
                 />
 
                 {/* Dialog Components */}
-                <WorkRequestFormDialog visible={isFormOpen} onHide={() => setFormOpen(false)} workOrder={selectedWorkOrder} fetchWorkOrders={fetchWorkOrders} machines={machines} fetchMachines={fetchMachines} showToast={showToast} />
+                <WorkRequestFormDialog 
+                    visible={isFormOpen} 
+                    onHide={() => setFormOpen(false)} 
+                    workOrder={selectedWorkOrder} 
+                    fetchWorkOrders={fetchWorkOrders} 
+                    machines={machines} 
+                    assets={assets}
+                    fetchMachines={fetchMachines} 
+                    showToast={showToast} 
+                />
 
                 <ConfirmDeleteDialog
                     visible={isDeleteOpen}
