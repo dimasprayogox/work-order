@@ -1,5 +1,6 @@
 import { BaseModel } from './BaseModel.js';
 import { Machine } from './Machine.js';
+import { Asset } from './Asset.js';
 import { User } from './User.js';
 
 export class MaintenanceSchedule extends BaseModel {
@@ -15,6 +16,15 @@ export class MaintenanceSchedule extends BaseModel {
                 join: {
                     from: 'maintenance_schedules.machine_id',
                     to: 'machines.id',
+                },
+            },
+
+            asset: {
+                relation: BaseModel.BelongsToOneRelation,
+                modelClass: Asset,
+                join: {
+                    from: 'maintenance_schedules.asset_id',
+                    to: 'assets.id',
                 },
             },
 
