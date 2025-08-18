@@ -26,6 +26,7 @@ const SchedulePage = () => {
 
     const [schedules, setSchedules] = useState([]);
     const [machines, setMachines] = useState([]);
+    const [assets, setAssets] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedSchedule, setSelectedSchedule] = useState(null);
     const [selectedSchedules, setSelectedSchedules] = useState([]);
@@ -52,7 +53,8 @@ const SchedulePage = () => {
 
     const [columnOptions] = useState([
         { field: 'title', header: 'Title', visible: true },
-        { field: 'machine.name', header: 'Machine', visible: true },
+        { field: 'type', header: 'Type', visible: true },
+        { field: 'target', header: 'Machine/Asset', visible: true },
         { field: 'frequency', header: 'Frequency', visible: true },
         { field: 'priority', header: 'Priority', visible: true },
         { field: 'next_due_date', header: 'Next Due Date', visible: true },
@@ -90,10 +92,23 @@ const SchedulePage = () => {
         }
     }, [showToast]);
 
+    const fetchAssets = useCallback(async () => {
+        try {
+            const res = await fetch("/api/admin/assets", {
+                credentials: "include"
+            });
+            const body = await res.json();
+            setAssets(body.data || []);
+        } catch (err) {
+            showToast("error", "Error", "Gagal mengambil data asset");
+        }
+    }, [showToast]);
+
     useEffect(() => {
         fetchSchedules();
         fetchMachines();
-    }, [fetchSchedules, fetchMachines]);
+        fetchAssets();
+    }, [fetchSchedules, fetchMachines, fetchAssets]);
 
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
@@ -171,6 +186,15 @@ const SchedulePage = () => {
                 .map(col => {
                     if (col.field === 'created_at' || col.field === 'next_due_date') {
                         return formatDate(schedule[col.field]);
+                    } else if (col.field === 'type') {
+                        return schedule.type === 'machine' ? 'Machine' : 'Asset';
+                    } else if (col.field === 'target') {
+                        if (schedule.type === 'machine' && schedule.machine) {
+                            return `${schedule.machine.name} (${schedule.machine.machine_code || schedule.machine.id})`;
+                        } else if (schedule.type === 'asset' && schedule.asset) {
+                            return `${schedule.asset.name} (${schedule.asset.asset_code || schedule.asset.id})`;
+                        }
+                        return '-';
                     } else if (col.field === 'machine.name') {
                         return schedule.machine?.name || '-';
                     } else if (col.field === 'frequency') {
@@ -228,6 +252,15 @@ const SchedulePage = () => {
             return visibleColumns.map(col => {
                 if (col.field === 'created_at' || col.field === 'next_due_date') {
                     return formatDate(schedule[col.field]);
+                } else if (col.field === 'type') {
+                    return schedule.type === 'machine' ? 'Machine' : 'Asset';
+                } else if (col.field === 'target') {
+                    if (schedule.type === 'machine' && schedule.machine) {
+                        return `${schedule.machine.name}`;
+                    } else if (schedule.type === 'asset' && schedule.asset) {
+                        return `${schedule.asset.name}`;
+                    }
+                    return '-';
                 } else if (col.field === 'machine.name') {
                     return schedule.machine?.name || '-';
                 } else if (col.field === 'frequency') {
@@ -453,6 +486,7 @@ const SchedulePage = () => {
                     }}
                     schedule={selectedSchedule}
                     machines={machines}
+                    assets={assets}
                     fetchSchedules={fetchSchedules}
                     showToast={showToast}
                 />

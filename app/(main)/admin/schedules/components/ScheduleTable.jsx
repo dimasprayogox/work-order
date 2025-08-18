@@ -94,6 +94,52 @@ const ScheduleTable = ({
         );
     };
 
+    const typeBodyTemplate = (rowData) => {
+        const typeConfig = {
+            'machine': { label: 'Machine', severity: 'info', icon: 'pi pi-cog' },
+            'asset': { label: 'Asset', severity: 'success', icon: 'pi pi-box' }
+        };
+
+        const config = typeConfig[rowData.type] || { label: rowData.type || 'Machine', severity: 'info', icon: 'pi pi-cog' };
+
+        return (
+            <Tag
+                value={<span className="flex align-items-center gap-1"><i className={config.icon}></i> {config.label}</span>}
+                severity={config.severity}
+                className="font-medium"
+            />
+        );
+    };
+
+    const targetBodyTemplate = (rowData) => {
+        if (rowData.type === 'machine' && rowData.machine) {
+            return (
+                <div className="flex flex-column">
+                    <span className="font-medium flex align-items-center gap-1">
+                        <i className="pi pi-cog text-blue-500"></i>
+                        {rowData.machine.name}
+                    </span>
+                    {rowData.machine.machine_code && (
+                        <small className="text-gray-500">{rowData.machine.machine_code}</small>
+                    )}
+                </div>
+            );
+        } else if (rowData.type === 'asset' && rowData.asset) {
+            return (
+                <div className="flex flex-column">
+                    <span className="font-medium flex align-items-center gap-1">
+                        <i className="pi pi-box text-green-500"></i>
+                        {rowData.asset.name}
+                    </span>
+                    {rowData.asset.asset_code && (
+                        <small className="text-gray-500">{rowData.asset.asset_code}</small>
+                    )}
+                </div>
+            );
+        }
+        return <span className="text-gray-500">N/A</span>;
+    };
+
     const machineBodyTemplate = (rowData) => {
         return (
             <div className="flex flex-column">
@@ -262,7 +308,7 @@ const ScheduleTable = ({
                 loading={loading}
                 emptyMessage="No schedules found."
                 filters={filters}
-                globalFilterFields={["title", "machine.name", "frequency", "priority"]}
+                globalFilterFields={["title", "machine.name", "asset.name", "frequency", "priority"]}
                 className="border-round-lg"
                 rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
@@ -273,7 +319,8 @@ const ScheduleTable = ({
             >
                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
                 <Column field="title" header="Title" style={{ width: "200px" }} sortable />
-                <Column field="machine" header="Machine" body={machineBodyTemplate} sortable />
+                <Column field="type" header="Type" body={typeBodyTemplate} style={{ width: "100px" }} sortable />
+                <Column field="target" header="Machine/Asset" body={targetBodyTemplate} style={{ width: "200px" }} sortable />
                 <Column field="frequency" header="Frequency" body={frequencyBodyTemplate} sortable />
                 <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                 <Column

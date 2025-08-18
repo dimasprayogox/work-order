@@ -10,11 +10,13 @@ import { classNames } from "primereact/utils";
 import { useState, useEffect } from "react";
 import { Checkbox } from "primereact/checkbox";
 
-const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedules, showToast }) => {
+const ScheduleFormDialog = ({ visible, onHide, schedule, machines, assets, fetchSchedules, showToast }) => {
     const [form, setForm] = useState({
         title: "",
         description: "",
+        type: "machine",
         machine_id: "",
+        asset_id: "",
         frequency: "",
         priority: "medium",
         next_due_date: null,
@@ -24,6 +26,11 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedule
     const [submitted, setSubmitted] = useState(false);
 
     // Options for dropdowns
+    const typeOptions = [
+        { label: 'Machine', value: 'machine' },
+        { label: 'Asset', value: 'asset' }
+    ];
+
     const frequencyOptions = [
         { label: 'Daily', value: 'daily' },
         { label: 'Weekly', value: 'weekly' },
@@ -43,7 +50,9 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedule
             setForm({
                 title: schedule.title || "",
                 description: schedule.description || "",
+                type: schedule.type || "machine",
                 machine_id: schedule.machine_id || "",
+                asset_id: schedule.asset_id || "",
                 frequency: schedule.frequency || "",
                 priority: schedule.priority || "medium",
                 next_due_date: schedule.next_due_date ? new Date(schedule.next_due_date) : null,
@@ -55,7 +64,9 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedule
             setForm({
                 title: "",
                 description: "",
+                type: "machine",
                 machine_id: "",
+                asset_id: "",
                 frequency: "",
                 priority: "medium",
                 next_due_date: null,
@@ -66,12 +77,33 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedule
     }, [schedule, visible]);
 
     const handleChange = (field, value) => {
-        setForm((prev) => ({ ...prev, [field]: value }));
+        setForm(prev => {
+            const newForm = { ...prev, [field]: value };
+            
+            // Reset machine_id/asset_id when type changes
+            if (field === 'type') {
+                if (value === 'machine') {
+                    newForm.asset_id = "";
+                } else if (value === 'asset') {
+                    newForm.machine_id = "";
+                }
+            }
+            
+            return newForm;
+        });
     };
 
     const validateForm = () => {
-        const { title, machine_id, frequency, next_due_date } = form;
-        return title.trim() && machine_id && frequency && next_due_date;
+        const { title, type, machine_id, asset_id, frequency, next_due_date } = form;
+        const baseValid = title.trim() && type && frequency && next_due_date;
+        
+        if (!baseValid) return false;
+        
+        // Type-based validation
+        if (type === 'machine' && !machine_id) return false;
+        if (type === 'asset' && !asset_id) return false;
+        
+        return true;
     };
 
     // Handler untuk submit form
@@ -87,12 +119,22 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedule
             const formData = {
                 title: form.title,
                 description: form.description,
-                machine_id: form.machine_id,
+                type: form.type,
                 frequency: form.frequency,
                 priority: form.priority,
                 next_due_date: form.next_due_date.toISOString(),
-                is_active: form.is_active // <-- tambahkan ini
+                is_active: form.is_active
             };
+
+            // Add type-specific fields
+            if (form.type === 'machine' && form.machine_id) {
+                formData.machine_id = form.machine_id;
+            }
+            if (form.type === 'asset' && form.asset_id) {
+                formData.asset_id = form.asset_id;
+            }
+
+            console.log('Sending data:', JSON.stringify(formData, null, 2)); // Debug log
 
             const res = await fetch(
                 schedule ? `/api/admin/schedules/${schedule.id}` : "/api/admin/schedules",
@@ -105,7 +147,13 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedule
             );
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Gagal menyimpan");
+            console.log('Response:', data); // Debug log
+            
+            if (!res.ok) {
+                console.error('Submit error details:', data); // Debug log
+                console.error('Validation errors:', JSON.stringify(data.errors, null, 2)); // More detailed error log
+                throw new Error(data.message || "Gagal menyimpan");
+            }
 
             showToast("success", "Sukses", data.message || "Data berhasil disimpan");
             fetchSchedules();
@@ -121,6 +169,11 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedule
     const machineOptions = machines.map(machine => ({
         label: `${machine.name} (${machine.machine_code || machine.id})`,
         value: machine.id
+    }));
+
+    const assetOptions = assets.map(asset => ({
+        label: `${asset.name} (${asset.asset_code || asset.id})`,
+        value: asset.id
     }));
 
     const footerContent = (
@@ -169,23 +222,61 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, fetchSchedule
                     {submitted && !form.title.trim() && <small className="p-error">Title is required</small>}
                 </div>
 
-                {/* Machine Field */}
+                {/* Type Field */}
                 <div className="field col-12">
-                    <label htmlFor="machine_id" className="font-medium">
-                        Machine <span className="text-red-500">*</span>
+                    <label htmlFor="type" className="font-medium">
+                        Type <span className="text-red-500">*</span>
                     </label>
                     <Dropdown
-                        id="machine_id"
-                        value={form.machine_id}
-                        options={machineOptions}
-                        onChange={(e) => handleChange("machine_id", e.value)}
-                        placeholder="Select machine"
-                        filter
-                        showClear
-                        className={classNames({ "p-invalid": submitted && !form.machine_id })}
+                        id="type"
+                        value={form.type}
+                        options={typeOptions}
+                        onChange={(e) => handleChange("type", e.value)}
+                        placeholder="Select type"
+                        className={classNames({ "p-invalid": submitted && !form.type })}
                     />
-                    {submitted && !form.machine_id && <small className="p-error">Machine is required</small>}
+                    {submitted && !form.type && <small className="p-error">Type is required</small>}
                 </div>
+
+                {/* Machine Field - shown when type is machine */}
+                {form.type === 'machine' && (
+                    <div className="field col-12">
+                        <label htmlFor="machine_id" className="font-medium">
+                            Machine <span className="text-red-500">*</span>
+                        </label>
+                        <Dropdown
+                            id="machine_id"
+                            value={form.machine_id}
+                            options={machineOptions}
+                            onChange={(e) => handleChange("machine_id", e.value)}
+                            placeholder="Select machine"
+                            filter
+                            showClear
+                            className={classNames({ "p-invalid": submitted && form.type === 'machine' && !form.machine_id })}
+                        />
+                        {submitted && form.type === 'machine' && !form.machine_id && <small className="p-error">Machine is required</small>}
+                    </div>
+                )}
+
+                {/* Asset Field - shown when type is asset */}
+                {form.type === 'asset' && (
+                    <div className="field col-12">
+                        <label htmlFor="asset_id" className="font-medium">
+                            Asset <span className="text-red-500">*</span>
+                        </label>
+                        <Dropdown
+                            id="asset_id"
+                            value={form.asset_id}
+                            options={assetOptions}
+                            onChange={(e) => handleChange("asset_id", e.value)}
+                            placeholder="Select asset"
+                            filter
+                            showClear
+                            className={classNames({ "p-invalid": submitted && form.type === 'asset' && !form.asset_id })}
+                        />
+                        {submitted && form.type === 'asset' && !form.asset_id && <small className="p-error">Asset is required</small>}
+                    </div>
+                )}
 
                 {/* Frequency and Priority Row */}
                 <div className="field col-12 md:col-6">

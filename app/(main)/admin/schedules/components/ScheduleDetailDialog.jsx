@@ -158,18 +158,33 @@ const ScheduleDetailDialog = ({ visible, onHide, schedule }) => {
                     )}
 
                     <div className="field mb-4">
-                        <label className="font-semibold text-gray-800 block mb-2">Machine</label>
+                        <label className="font-semibold text-gray-800 block mb-2">Type & Target</label>
                         <div className="flex align-items-center gap-2">
-                            <i className="pi pi-cog text-blue-500"></i>
-                            <span className="font-medium">{schedule.machine?.name || 'N/A'}</span>
-                            {schedule.machine?.machine_code && (
-                                <Tag value={schedule.machine.machine_code} className="p-tag-secondary" />
+                            {schedule.type === 'machine' ? (
+                                <>
+                                    <i className="pi pi-cog text-blue-500"></i>
+                                    <span className="font-medium">Machine: {schedule.machine?.name || 'N/A'}</span>
+                                    {schedule.machine?.machine_code && (
+                                        <Tag value={schedule.machine.machine_code} className="p-tag-secondary" />
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <i className="pi pi-box text-green-500"></i>
+                                    <span className="font-medium">Asset: {schedule.asset?.name || 'N/A'}</span>
+                                    {schedule.asset?.asset_code && (
+                                        <Tag value={schedule.asset.asset_code} className="p-tag-secondary" />
+                                    )}
+                                </>
                             )}
                         </div>
-                        {schedule.machine?.location && (
+                        {((schedule.type === 'machine' && schedule.machine?.location) || 
+                          (schedule.type === 'asset' && schedule.asset?.location)) && (
                             <div className="flex align-items-center gap-2 mt-1">
                                 <i className="pi pi-map-marker text-gray-500"></i>
-                                <span className="text-gray-600">{schedule.machine.location}</span>
+                                <span className="text-gray-600">
+                                    {schedule.type === 'machine' ? schedule.machine.location : schedule.asset.location}
+                                </span>
                             </div>
                         )}
                     </div>
