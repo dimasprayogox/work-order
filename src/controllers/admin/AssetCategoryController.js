@@ -5,7 +5,11 @@ import { createAssetCategorySchema, updateAssetCategorySchema } from '../../sche
 export const AssetCategoryController = {
   async index(req, res) {
     try {
-      const categories = await AssetCategory.query();
+  // Fetch categories together with their related assets so the frontend
+  // can compute the assets count using `category.assets.length`.
+  // Note: for large datasets consider returning a pre-computed count
+  // instead of the full assets array for performance.
+  const categories = await AssetCategory.query().withGraphFetched('assets');
       res.json({ success: true, message: 'Fetched asset categories', data: categories });
     } catch (err) {
       res.status(500).json({ success: false, message: 'Failed to fetch asset categories', error: err.message });
