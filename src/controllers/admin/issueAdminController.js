@@ -2,6 +2,7 @@
 
 import { Issue } from "../../models/Issue.js";
 import { Machine } from "../../models/Machine.js";
+import { Asset } from "../../models/Asset.js";
 import { WorkOrder } from "../../models/WorkOrder.js";
 import { User } from "../../models/User.js";
 import path from "path";
@@ -49,11 +50,20 @@ export const IssueAdminController = {
                 });
             }
 
-            const { machine_id, title, description } = parsed.data;
+            const { type, machine_id, asset_id, title, description, priority = "medium" } = parsed.data;
 
-            const machine = await Machine.query().findById(machine_id);
-            if (!machine) {
-                return res.status(404).json({ message: "Machine not found" });
+            // Validate target exists based on type
+            let targetEntity = null;
+            if (type === "machine") {
+                targetEntity = await Machine.query().findById(machine_id);
+                if (!targetEntity) {
+                    return res.status(404).json({ message: "Machine not found" });
+                }
+            } else if (type === "asset") {
+                targetEntity = await Asset.query().findById(asset_id);
+                if (!targetEntity) {
+                    return res.status(404).json({ message: "Asset not found" });
+                }
             }
 
             const issueId = uuidv4();
@@ -83,7 +93,8 @@ export const IssueAdminController = {
 
             const newIssue = await Issue.query().insert({
                 id: issueId,
-                machine_id,
+                machine_id: type === "machine" ? machine_id : null,
+                asset_id: type === "asset" ? asset_id : null,
                 title,
                 description,
                 photo_url: photoUrl,
@@ -91,33 +102,42 @@ export const IssueAdminController = {
                 reported_by_id: reportedById,
             });
 
-            await Machine.query().patchAndFetchById(machine_id, {
-                status: "down",
-            });
+            // Update target entity status based on type
+            if (type === "machine") {
+                await Machine.query().patchAndFetchById(machine_id, {
+                    status: "down",
+                });
+            } else if (type === "asset") {
+                await Asset.query().patchAndFetchById(asset_id, {
+                    status: "down",
+                });
+            }
 
             const workOrder = await WorkOrder.query().insert({
                 id: uuidv4(),
-                machine_id,
+                machine_id: type === "machine" ? machine_id : null,
+                asset_id: type === "asset" ? asset_id : null,
                 title: newIssue.title,
                 description: newIssue.description,
+                priority,
                 status: "pending",
                 created_by_id: newIssue.reported_by_id,
                 issue_id: newIssue.id,
             });
 
             await notifyManager({
-                subject: "New Issue Reported (Admin)",
-                message: `Issue "${title}" created for machine ${machine.name} by admin.`,
+                subject: `New Issue Reported (Admin) - ${type.charAt(0).toUpperCase() + type.slice(1)}`,
+                message: `Issue "${title}" created for ${type} ${targetEntity.name} by admin.`,
                 issueId: newIssue.id,
-                machineId: machine_id,
+                machineId: type === "machine" ? machine_id : null,
+                assetId: type === "asset" ? asset_id : null,
             });
 
             res.status(201).json({
-                message: "Issue created by admin, machine set to maintenance, work order generated, manager notified.",
+                message: `Issue created by admin, ${type} set to maintenance, work order generated, manager notified.`,
                 data: { issue: newIssue, workOrder },
             });
         } catch (err) {
-            console.error("Error creating issue (admin):", err);
             res.status(500).json({ message: "Failed to create issue", error: err.message });
         }
     },
@@ -125,7 +145,7 @@ export const IssueAdminController = {
     async getAll(req, res) {
         try {
             const issues = await Issue.query()
-                .withGraphFetched("[machine, workOrder]")
+                .withGraphFetched("[machine, asset, workOrder, reportedBy]")
                 .orderBy("created_at", "desc");
                 
             // Transform MinIO URLs to use the current public URL
@@ -136,7 +156,6 @@ export const IssueAdminController = {
             
             res.status(200).json({ message: "Issues fetched successfully", data: transformedIssues });
         } catch (err) {
-            console.error("Error fetching issues (admin):", err);
             res.status(500).json({ message: "Failed to fetch issues", error: err.message });
         }
     },
@@ -148,8 +167,19 @@ export const IssueAdminController = {
                 .orderBy('full_name', 'asc');
             res.status(200).json({ message: "Users fetched successfully", data: users });
         } catch (err) {
-            console.error("Error fetching users (admin):", err);
             res.status(500).json({ message: "Failed to fetch users", error: err.message });
+        }
+    },
+
+    async getAssets(req, res) {
+        try {
+            const assets = await Asset.query()
+                .withGraphFetched('[category, division]')
+                .where('status', '!=', 'inactive')
+                .orderBy('name', 'asc');
+            res.status(200).json({ message: "Assets fetched successfully", data: assets });
+        } catch (err) {
+            res.status(500).json({ message: "Failed to fetch assets", error: err.message });
         }
     },
     
@@ -158,7 +188,7 @@ export const IssueAdminController = {
             const id = req.params.id;
             const issue = await Issue.query()
                 .findById(id)
-                .withGraphFetched("[machine, workOrder]");
+                .withGraphFetched("[machine, asset, workOrder, reportedBy]");
             if (!issue) {
                 return res.status(404).json({ message: "Issue not found" });
             }
@@ -171,7 +201,6 @@ export const IssueAdminController = {
             
             res.status(200).json({ message: "Issue fetched successfully", data: transformedIssue });
         } catch (err) {
-            console.error("Error fetching issue by ID (admin):", err);
             res.status(500).json({ message: "Failed to fetch issue", error: err.message });
         }
     },
@@ -203,10 +232,24 @@ export const IssueAdminController = {
             if (data.description !== undefined) {
                 updateData.description = data.description;
             }
-            if (data.machine_id !== undefined) {
-                updateData.machine_id = data.machine_id;
+            if (data.type !== undefined) {
+                // Handle type change
+                if (data.type === "machine" && data.machine_id) {
+                    updateData.machine_id = data.machine_id;
+                    updateData.asset_id = null;
+                } else if (data.type === "asset" && data.asset_id) {
+                    updateData.asset_id = data.asset_id;
+                    updateData.machine_id = null;
+                }
+            } else {
+                // Handle individual ID updates without type change
+                if (data.machine_id !== undefined) {
+                    updateData.machine_id = data.machine_id;
+                }
+                if (data.asset_id !== undefined) {
+                    updateData.asset_id = data.asset_id;
+                }
             }
-            // ✅ Add reported_by_id handling
             if (data.reported_by_id !== undefined) {
                 updateData.reported_by_id = data.reported_by_id;
             }
@@ -247,7 +290,6 @@ export const IssueAdminController = {
 
             res.status(200).json({ message: "Issue updated successfully", data: updatedIssue });
         } catch (err) {
-            console.error("Error updating issue (admin):", err);
             res.status(500).json({ message: "Failed to update issue", error: err.message });
         }
     },
