@@ -13,7 +13,7 @@ export const ScheduleController = {
     async index(req, res) {
         try {
             const schedules = await Schedule.query()
-                .withGraphFetched('[machine, createdBy]')
+                .withGraphFetched('[machine, asset, createdBy]')
                 .orderBy('created_at', 'desc');
 
             res.json({ success: true, data: schedules });
@@ -28,7 +28,7 @@ export const ScheduleController = {
             const { id } = req.params;
             const schedule = await Schedule.query()
                 .findById(id)
-                .withGraphFetched('[machine, createdBy]');
+                .withGraphFetched('[machine, asset, createdBy]');
 
             if (!schedule) {
                 return res.status(404).json({ success: false, message: 'Schedule not found' });
@@ -65,7 +65,9 @@ export const ScheduleController = {
                 next_due_date: data.next_due_date,
                 title: data.title,
                 description: data.description,
-                machine_id: data.machine_id,
+                type: data.type,
+                machine_id: data.machine_id || null,
+                asset_id: data.asset_id || null,
                 frequency: data.frequency,
                 priority: data.priority,
                 is_active: data.is_active !== undefined ? data.is_active : true
@@ -113,14 +115,20 @@ export const ScheduleController = {
             const dueSchedules = await Schedule.query()
                 .where('next_due_date', '<=', now)
                 .where('is_active', 1)
-                .withGraphFetched('machine');
+                .withGraphFetched('[machine, asset]');
 
             const createdWOs = [];
 
             for (const schedule of dueSchedules) {
                 const existingWO = await WorkOrder.query()
                     .where('title', schedule.title)
-                    .where('machine_id', schedule.machine_id)
+                    .where(function() {
+                        if (schedule.type === 'machine') {
+                            this.where('machine_id', schedule.machine_id);
+                        } else {
+                            this.where('asset_id', schedule.asset_id);
+                        }
+                    })
                     .where('scheduled_date', schedule.next_due_date)
                     .first();
 
@@ -130,7 +138,8 @@ export const ScheduleController = {
                     id: uuidv4(),
                     title: schedule.title,
                     description: `Scheduled maintenance: ${schedule.title}`,
-                    machine_id: schedule.machine_id,
+                    machine_id: schedule.type === 'machine' ? schedule.machine_id : null,
+                    asset_id: schedule.type === 'asset' ? schedule.asset_id : null,
                     created_by_id: schedule.created_by_id,
                     priority: 'medium',
                     scheduled_date: schedule.next_due_date,
