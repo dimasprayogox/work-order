@@ -15,15 +15,20 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
     const [form, setForm] = useState({
         title: "",
         description: "",
+        type: "",
         machine_id: "",
-        reported_by_id: ""
+        asset_id: "",
+        reported_by_id: "",
+        priority: "medium"
     });
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const [removePhoto, setRemovePhoto] = useState(false);
     const [users, setUsers] = useState([]);
+    const [assets, setAssets] = useState([]);
     const [loadingUsers, setLoadingUsers] = useState(false);
+    const [loadingAssets, setLoadingAssets] = useState(false);
     const fileUploadRef = useRef(null);
 
     // Fetch users function
@@ -44,28 +49,61 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
         }
     }, [showToast]);
 
-    // Fetch users saat dialog dibuka
+    // Fetch assets function
+    const fetchAssets = useCallback(async () => {
+        setLoadingAssets(true);
+        try {
+            const res = await fetch("/api/admin/issues/assets", { credentials: "include" });
+            const data = await res.json();
+            if (res.ok) {
+                setAssets(data.data || []);
+            } else {
+                showToast("error", "Error", "Gagal mengambil data assets");
+            }
+        } catch (error) {
+            showToast("error", "Error", "Gagal mengambil data assets");
+        } finally {
+            setLoadingAssets(false);
+        }
+    }, [showToast]);
+
+    // Fetch users and assets saat dialog dibuka
     useEffect(() => {
         if (visible) {
             fetchUsers();
+            fetchAssets();
         }
-    }, [visible, fetchUsers]);
+    }, [visible, fetchUsers, fetchAssets]);
 
     // Mengisi dan mereset form
     useEffect(() => {
         if (issue) {
+            // Determine type based on existing data
+            let issueType = "";
+            if (issue.machine_id) {
+                issueType = "machine";
+            } else if (issue.asset_id) {
+                issueType = "asset";
+            }
+
             setForm({
                 title: issue.title || "",
                 description: issue.description || "",
+                type: issueType,
                 machine_id: issue.machine_id || "",
-                reported_by_id: issue.reported_by_id || ""
+                asset_id: issue.asset_id || "",
+                reported_by_id: issue.reported_by_id || "",
+                priority: issue.workOrder?.priority || "medium"
             });
         } else {
             setForm({
                 title: "",
                 description: "",
+                type: "",
                 machine_id: "",
-                reported_by_id: ""
+                asset_id: "",
+                reported_by_id: "",
+                priority: "medium"
             });
         }
         setSubmitted(false);
@@ -77,12 +115,30 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
     }, [issue, visible]);
 
     const handleChange = (field, value) => {
-        setForm((prev) => ({ ...prev, [field]: value }));
+        setForm((prev) => {
+            const newForm = { ...prev, [field]: value };
+            
+            // Clear opposite type field when type changes
+            if (field === "type") {
+                if (value === "machine") {
+                    newForm.asset_id = "";
+                } else if (value === "asset") {
+                    newForm.machine_id = "";
+                }
+            }
+            
+            return newForm;
+        });
     };
 
     const validateForm = () => {
-        const { title, description, machine_id } = form;
-        return title.trim() && description.trim() && machine_id;
+        const { title, description, type, machine_id, asset_id } = form;
+        const hasTitle = title.trim();
+        const hasDescription = description.trim();
+        const hasType = type;
+        const hasValidTarget = (type === "machine" && machine_id) || (type === "asset" && asset_id);
+        
+        return hasTitle && hasDescription && hasType && hasValidTarget;
     };
 
     // Handler untuk memilih file baru
@@ -124,7 +180,15 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
             const formData = new FormData();
             formData.append('title', form.title);
             formData.append('description', form.description);
-            formData.append('machine_id', form.machine_id);
+            formData.append('type', form.type);
+            formData.append('priority', form.priority);
+
+            if (form.type === "machine" && form.machine_id) {
+                formData.append('machine_id', form.machine_id);
+            }
+            if (form.type === "asset" && form.asset_id) {
+                formData.append('asset_id', form.asset_id);
+            }
 
             if (form.reported_by_id) {
                 formData.append('reported_by_id', form.reported_by_id);
@@ -168,10 +232,26 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
         value: machine.id
     }));
 
+    const assetOptions = assets.map(asset => ({
+        label: `${asset.name} (${asset.asset_code || asset.id})`,
+        value: asset.id
+    }));
+
     const userOptions = users.map(user => ({
         label: `${user.full_name} (${user.role})`,
         value: user.id
     }));
+
+    const typeOptions = [
+        { label: "Machine", value: "machine" },
+        { label: "Asset", value: "asset" }
+    ];
+
+    const priorityOptions = [
+        { label: "Low", value: "low" },
+        { label: "Medium", value: "medium" },
+        { label: "High", value: "high" }
+    ];
 
     // Template untuk menampilkan file yang dipilih
     const itemTemplate = (file) => (
@@ -241,22 +321,75 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                     {submitted && !form.title.trim() && <small className="p-error">Title is required</small>}
                 </div>
 
-                {/* Machine Field */}
+                {/* Type Field */}
                 <div className="field col-12">
-                    <label htmlFor="machine_id" className="font-medium">
-                        Machine <span className="text-red-500">*</span>
+                    <label htmlFor="type" className="font-medium">
+                        Type <span className="text-red-500">*</span>
                     </label>
                     <Dropdown
-                        id="machine_id"
-                        value={form.machine_id}
-                        options={machineOptions}
-                        onChange={(e) => handleChange("machine_id", e.value)}
-                        placeholder="Select machine"
-                        filter
+                        id="type"
+                        value={form.type}
+                        options={typeOptions}
+                        onChange={(e) => handleChange("type", e.value)}
+                        placeholder="Select type"
                         showClear
-                        className={classNames({ "p-invalid": submitted && !form.machine_id })}
+                        className={classNames({ "p-invalid": submitted && !form.type })}
                     />
-                    {submitted && !form.machine_id && <small className="p-error">Machine is required</small>}
+                    {submitted && !form.type && <small className="p-error">Type is required</small>}
+                </div>
+
+                {/* Machine Field - only show when type is machine */}
+                {form.type === "machine" && (
+                    <div className="field col-12">
+                        <label htmlFor="machine_id" className="font-medium">
+                            Machine <span className="text-red-500">*</span>
+                        </label>
+                        <Dropdown
+                            id="machine_id"
+                            value={form.machine_id}
+                            options={machineOptions}
+                            onChange={(e) => handleChange("machine_id", e.value)}
+                            placeholder="Select machine"
+                            filter
+                            showClear
+                            className={classNames({ "p-invalid": submitted && form.type === "machine" && !form.machine_id })}
+                        />
+                        {submitted && form.type === "machine" && !form.machine_id && <small className="p-error">Machine is required</small>}
+                    </div>
+                )}
+
+                {/* Asset Field - only show when type is asset */}
+                {form.type === "asset" && (
+                    <div className="field col-12">
+                        <label htmlFor="asset_id" className="font-medium">
+                            Asset <span className="text-red-500">*</span>
+                        </label>
+                        <Dropdown
+                            id="asset_id"
+                            value={form.asset_id}
+                            options={assetOptions}
+                            onChange={(e) => handleChange("asset_id", e.value)}
+                            placeholder="Select asset"
+                            filter
+                            showClear
+                            emptyMessage={loadingAssets ? "Loading assets..." : "No assets available"}
+                            disabled={loadingAssets}
+                            className={classNames({ "p-invalid": submitted && form.type === "asset" && !form.asset_id })}
+                        />
+                        {submitted && form.type === "asset" && !form.asset_id && <small className="p-error">Asset is required</small>}
+                    </div>
+                )}
+
+                {/* Priority Field */}
+                <div className="field col-12">
+                    <label htmlFor="priority" className="font-medium">Priority</label>
+                    <Dropdown
+                        id="priority"
+                        value={form.priority}
+                        options={priorityOptions}
+                        onChange={(e) => handleChange("priority", e.value)}
+                        placeholder="Select priority"
+                    />
                 </div>
 
                 {/* Reported By Field */}

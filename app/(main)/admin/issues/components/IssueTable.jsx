@@ -66,8 +66,39 @@ const IssueTable = ({
         );
     };
 
-    const machineBodyTemplate = (rowData) => {
-        return rowData.machine?.name || '-';
+    const machineOrAssetBodyTemplate = (rowData) => {
+        if (rowData.machine) {
+            return (
+                <div className="flex flex-column">
+                    <span className="font-medium">{rowData.machine.name}</span>
+                    <small className="text-gray-500">Machine</small>
+                </div>
+            );
+        } else if (rowData.asset) {
+            return (
+                <div className="flex flex-column">
+                    <span className="font-medium">{rowData.asset.name}</span>
+                    <small className="text-gray-500">Asset</small>
+                </div>
+            );
+        }
+        return '-';
+    };
+
+    const priorityBodyTemplate = (rowData) => {
+        const priority = rowData.workOrder?.priority || 'medium';
+        const priorityConfig = {
+            low: { bgColor: 'bg-green-100', textColor: 'text-green-800', label: 'Low' },
+            medium: { bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', label: 'Medium' },
+            high: { bgColor: 'bg-red-100', textColor: 'text-red-800', label: 'High' }
+        };
+        const config = priorityConfig[priority] || priorityConfig.medium;
+
+        return (
+            <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${config.bgColor} ${config.textColor}`}>
+                {config.label}
+            </div>
+        );
     };
 
     const descriptionBodyTemplate = (rowData) => {
@@ -177,7 +208,7 @@ const IssueTable = ({
                 loading={loading}
                 emptyMessage="No issues found."
                 filters={filters}
-                globalFilterFields={["title", "description", "machine.name", "status"]}
+                globalFilterFields={["title", "description", "machine.name", "asset.name", "status"]}
                 className="border-round-lg"
                 rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
@@ -188,7 +219,8 @@ const IssueTable = ({
             >
                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
                 <Column field="title" header="Title" style={{ width: "200px" }} sortable />
-                <Column field="machine" header="Machine" body={machineBodyTemplate} sortable />
+                <Column field="target" header="Machine/Asset" body={machineOrAssetBodyTemplate} sortable />
+                <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                 <Column
                     field="description"
                     header="Description"

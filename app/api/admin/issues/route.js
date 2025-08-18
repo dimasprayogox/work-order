@@ -47,13 +47,19 @@ export const POST = async (request) => {
         // Append text fields
         const title = formData.get('title');
         const description = formData.get('description');
+        const type = formData.get('type');
         const machine_id = formData.get('machine_id');
+        const asset_id = formData.get('asset_id');
         const reported_by_id = formData.get('reported_by_id');
+        const priority = formData.get('priority');
 
         if (title) backendFormData.append('title', title);
         if (description) backendFormData.append('description', description);
+        if (type) backendFormData.append('type', type);
         if (machine_id) backendFormData.append('machine_id', machine_id);
+        if (asset_id) backendFormData.append('asset_id', asset_id);
         if (reported_by_id) backendFormData.append('reported_by_id', reported_by_id);
+        if (priority) backendFormData.append('priority', priority);
 
         // Append photo if exists
         const photo = formData.get('photo');

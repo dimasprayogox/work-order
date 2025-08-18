@@ -90,9 +90,42 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
         }
     };
 
+    const getPriorityDetails = (priority) => {
+        switch (priority) {
+            case "low":
+                return {
+                    bgColor: "bg-green-100",
+                    textColor: "text-green-800",
+                    icon: "pi pi-arrow-down",
+                    label: "Low"
+                };
+            case "medium":
+                return {
+                    bgColor: "bg-yellow-100",
+                    textColor: "text-yellow-800",
+                    icon: "pi pi-minus",
+                    label: "Medium"
+                };
+            case "high":
+                return {
+                    bgColor: "bg-red-100",
+                    textColor: "text-red-800",
+                    icon: "pi pi-arrow-up",
+                    label: "High"
+                };
+            default:
+                return {
+                    bgColor: "bg-gray-100",
+                    textColor: "text-gray-800",
+                    icon: "pi pi-minus",
+                    label: "Medium"
+                };
+        }
+    };
+
     const getReportedByName = () => {
-        if (issue?.reported_by?.full_name) {
-            return issue.reported_by.full_name;
+        if (issue?.reportedBy?.full_name) {
+            return issue.reportedBy.full_name;
         }
         if (reportedByUser?.full_name) {
             return reportedByUser.full_name;
@@ -107,6 +140,7 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
     if (!issue) return null;
 
     const statusDetails = getStatusDetails(issue.status);
+    const priorityDetails = getPriorityDetails(issue.workOrder?.priority || "medium");
 
     const footerContent = (
         <div className="flex justify-content-end">
@@ -142,21 +176,37 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
                         <p className="line-height-3 text-gray-700">{issue.description}</p>
                     </div>
 
+                    {/* Target Machine or Asset */}
                     <div className="field mb-4">
-                        <label className="font-semibold text-gray-800 block mb-2">Machine</label>
+                        <label className="font-semibold text-gray-800 block mb-2">
+                            {issue.machine ? "Machine" : issue.asset ? "Asset" : "Target"}
+                        </label>
                         <div className="flex align-items-center gap-2">
-                            <i className="pi pi-cog text-blue-500"></i>
-                            <span className="font-medium">{issue.machine?.name || 'N/A'}</span>
-                            {issue.machine?.machine_code && (
-                                <Tag value={issue.machine.machine_code} className="p-tag-secondary" />
+                            <i className={`pi ${issue.machine ? 'pi-cog' : 'pi-box'} text-blue-500`}></i>
+                            <span className="font-medium">
+                                {issue.machine?.name || issue.asset?.name || 'N/A'}
+                            </span>
+                            {(issue.machine?.machine_code || issue.asset?.asset_code) && (
+                                <Tag 
+                                    value={issue.machine?.machine_code || issue.asset?.asset_code} 
+                                    className="p-tag-secondary" 
+                                />
                             )}
                         </div>
-                        {issue.machine?.location && (
+                        {(issue.machine?.location || issue.asset?.location) && (
                             <div className="flex align-items-center gap-2 mt-1">
                                 <i className="pi pi-map-marker text-gray-500"></i>
-                                <span className="text-gray-600">{issue.machine.location}</span>
+                                <span className="text-gray-600">
+                                    {issue.machine?.location || issue.asset?.location}
+                                </span>
                             </div>
                         )}
+                        <div className="flex align-items-center gap-2 mt-1">
+                            <i className="pi pi-tag text-gray-500"></i>
+                            <span className="text-gray-600">
+                                {issue.machine ? "Machine" : issue.asset ? "Asset" : "Unknown Type"}
+                            </span>
+                        </div>
                     </div>
 
                     <div className="field mb-4">
@@ -167,6 +217,17 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
                         >
                             <i className={`pi ${statusDetails.icon}`}></i>
                             <span className="font-medium">{statusDetails.label}</span>
+                        </div>
+                    </div>
+
+                    <div className="field mb-4">
+                        <label className="font-semibold text-gray-800 block mb-2">Priority</label>
+                        <div
+                            className={`flex items-center gap-2 px-3 py-1 rounded-full ${priorityDetails.bgColor} ${priorityDetails.textColor}`}
+                            style={{ width: "fit-content", minWidth: "100px" }}
+                        >
+                            <i className={`pi ${priorityDetails.icon}`}></i>
+                            <span className="font-medium">{priorityDetails.label}</span>
                         </div>
                     </div>
 
@@ -235,7 +296,7 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
                         </div>
                     )}
 
-                    {(issue.reported_by_id || issue.reported_by) && (
+                    {(issue.reported_by_id || issue.reportedBy) && (
                         <div className="field mb-3">
                             <label className="font-semibold text-gray-800 block mb-2">Reported By</label>
                             <div className="flex align-items-center gap-2">

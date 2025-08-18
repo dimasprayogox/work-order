@@ -53,6 +53,8 @@ const IssuePage = () => {
     const [columnOptions] = useState([
         { field: 'title', header: 'Title', visible: true },
         { field: 'machine.name', header: 'Machine', visible: true },
+        { field: 'asset.name', header: 'Asset', visible: true },
+        { field: 'priority', header: 'Priority', visible: true },
         { field: 'description', header: 'Description', visible: true },
         { field: 'status', header: 'Status', visible: true },
         { field: 'created_at', header: 'Created Date', visible: true },
@@ -132,6 +134,10 @@ const IssuePage = () => {
                         return formatDate(issue[col.field]);
                     } else if (col.field === 'machine.name') {
                         return issue.machine?.name || '-';
+                    } else if (col.field === 'asset.name') {
+                        return issue.asset?.name || '-';
+                    } else if (col.field === 'priority') {
+                        return issue.workOrder?.priority || 'medium';
                     } else if (col.field === 'description') {
                         return issue.description?.substring(0, 100) + (issue.description?.length > 100 ? '...' : '') || '';
                     } else {
@@ -187,6 +193,10 @@ const IssuePage = () => {
                     return formatDate(issue[col.field]);
                 } else if (col.field === 'machine.name') {
                     return issue.machine?.name || '-';
+                } else if (col.field === 'asset.name') {
+                    return issue.asset?.name || '-';
+                } else if (col.field === 'priority') {
+                    return issue.workOrder?.priority || 'medium';
                 } else if (col.field === 'description') {
                     return issue.description?.substring(0, 50) + (issue.description?.length > 50 ? '...' : '') || '';
                 } else {
@@ -240,13 +250,16 @@ const IssuePage = () => {
 
                 const rowData = {};
                 row.eachCell((cell, colNumber) => {
-                    const headers = ['title', 'machine_id', 'description'];
+                    const headers = ['title', 'machine_id', 'description', 'priority'];
                     if (headers[colNumber - 1]) {
                         rowData[headers[colNumber - 1]] = cell.value;
                     }
                 });
 
                 if (rowData.title && rowData.machine_id && rowData.description) {
+                    // Set default values for import
+                    rowData.type = 'machine'; // Default to machine for import
+                    rowData.priority = rowData.priority || 'medium';
                     data.push(rowData);
                 }
             });
