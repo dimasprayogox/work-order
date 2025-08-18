@@ -137,16 +137,73 @@ const WorkOrderAssignmentTable = ({
         );
     };
 
-    // Machine template
-    const machineBodyTemplate = (rowData) => {
-        return (
-            <div>
-                <div className="font-medium">{rowData.machine?.name || 'N/A'}</div>
-                {rowData.machine?.machine_code && (
-                    <div className="text-sm text-gray-500">{rowData.machine.machine_code}</div>
-                )}
-            </div>
-        );
+    // Machine/Asset template
+    const machineOrAssetBodyTemplate = (rowData) => {
+        // First check work order direct relations
+        if (rowData.machine) {
+            return (
+                <div>
+                    <div className="font-medium flex align-items-center gap-2">
+                        <i className="pi pi-cog text-blue-500"></i>
+                        {rowData.machine.name}
+                    </div>
+                    {rowData.machine.machine_code && (
+                        <div className="text-sm text-gray-500">{rowData.machine.machine_code}</div>
+                    )}
+                    <div className="text-xs text-blue-600">Machine</div>
+                </div>
+            );
+        }
+        
+        if (rowData.asset) {
+            return (
+                <div>
+                    <div className="font-medium flex align-items-center gap-2">
+                        <i className="pi pi-box text-green-500"></i>
+                        {rowData.asset.name}
+                    </div>
+                    {rowData.asset.asset_code && (
+                        <div className="text-sm text-gray-500">{rowData.asset.asset_code}</div>
+                    )}
+                    <div className="text-xs text-green-600">Asset</div>
+                </div>
+            );
+        }
+        
+        // Then check issue relations
+        if (rowData.issue) {
+            if (rowData.issue.machine) {
+                return (
+                    <div>
+                        <div className="font-medium flex align-items-center gap-2">
+                            <i className="pi pi-cog text-blue-500"></i>
+                            {rowData.issue.machine.name}
+                        </div>
+                        {rowData.issue.machine.machine_code && (
+                            <div className="text-sm text-gray-500">{rowData.issue.machine.machine_code}</div>
+                        )}
+                        <div className="text-xs text-blue-600">Machine (from Issue)</div>
+                    </div>
+                );
+            }
+            
+            if (rowData.issue.asset) {
+                return (
+                    <div>
+                        <div className="font-medium flex align-items-center gap-2">
+                            <i className="pi pi-box text-green-500"></i>
+                            {rowData.issue.asset.name}
+                        </div>
+                        {rowData.issue.asset.asset_code && (
+                            <div className="text-sm text-gray-500">{rowData.issue.asset.asset_code}</div>
+                        )}
+                        <div className="text-xs text-green-600">Asset (from Issue)</div>
+                    </div>
+                );
+            }
+        }
+        
+        return <span className="text-gray-500">N/A</span>;
     };
 
     // Issue template
@@ -343,10 +400,10 @@ const WorkOrderAssignmentTable = ({
                 />
 
                 <Column
-                    field="machine"
-                    header="Machine"
-                    body={machineBodyTemplate}
-                    style={{ minWidth: "150px" }}
+                    field="target"
+                    header="Machine/Asset"
+                    body={machineOrAssetBodyTemplate}
+                    style={{ minWidth: "180px" }}
                     sortable
                     sortField="machine.name"
                 />

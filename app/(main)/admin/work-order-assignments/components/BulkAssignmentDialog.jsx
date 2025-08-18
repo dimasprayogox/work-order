@@ -161,8 +161,30 @@ const BulkAssignmentDialog = ({
     const workOrderTemplate = (rowData) => (
         <div>
             <div className="font-medium">{rowData.work_order.title}</div>
-            <div className="text-sm text-gray-500">
-                {rowData.work_order.machine?.name || 'N/A'}
+            <div className="text-sm text-gray-500 flex align-items-center gap-1">
+                {rowData.work_order.machine ? (
+                    <>
+                        <i className="pi pi-cog text-blue-500"></i>
+                        {rowData.work_order.machine.name}
+                    </>
+                ) : rowData.work_order.asset ? (
+                    <>
+                        <i className="pi pi-box text-green-500"></i>
+                        {rowData.work_order.asset.name}
+                    </>
+                ) : rowData.work_order.issue?.machine ? (
+                    <>
+                        <i className="pi pi-cog text-blue-500"></i>
+                        {rowData.work_order.issue.machine.name} (from Issue)
+                    </>
+                ) : rowData.work_order.issue?.asset ? (
+                    <>
+                        <i className="pi pi-box text-green-500"></i>
+                        {rowData.work_order.issue.asset.name} (from Issue)
+                    </>
+                ) : (
+                    'N/A'
+                )}
             </div>
         </div>
     );

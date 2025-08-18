@@ -1,4 +1,4 @@
-// api/MANAGER/work-order-assignments/assign/route.js
+// api/admin/work-order-assignments/assign/route.js
 import { Axios } from "../../../../utils/axios";
 import { API_ENDPOINTS } from "../../../api";
 import { NextResponse } from "next/server";
@@ -16,7 +16,7 @@ export const POST = async (request) => {
     try {
         const body = await request.json();
 
-        const response = await Axios.post(API_ENDPOINTS.MANAGER_WORK_ORDER_ASSIGN, body, {
+        const response = await Axios.post(API_ENDPOINTS.ADMIN_WORK_ORDER_ASSIGN, body, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'

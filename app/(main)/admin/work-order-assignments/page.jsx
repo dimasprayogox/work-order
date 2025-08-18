@@ -33,7 +33,7 @@ const WorkOrderAssignmentPage = () => {
         status: '',
         assigned: '',
         priority: '',
-        machine_id: ''
+        type: ''
     });
 
     const showToast = useCallback((severity, summary, detail) => {
@@ -158,7 +158,7 @@ const WorkOrderAssignmentPage = () => {
             status: '',
             assigned: '',
             priority: '',
-            machine_id: ''
+            type: ''
         });
     };
 
@@ -181,6 +181,12 @@ const WorkOrderAssignmentPage = () => {
         { label: 'Low', value: 'low' },
         { label: 'Medium', value: 'medium' },
         { label: 'High', value: 'high' }
+    ];
+
+    const typeOptions = [
+        { label: 'All Types', value: '' },
+        { label: 'Machine', value: 'machine' },
+        { label: 'Asset', value: 'asset' }
     ];
 
     return (
@@ -265,6 +271,18 @@ const WorkOrderAssignmentPage = () => {
                             className="w-full"
                         />
                     </div>
+                    <div className="col-12 md:col-3">
+                        <label className="block text-sm font-medium mb-1">Type</label>
+                        <Dropdown
+                            value={filters.type}
+                            options={typeOptions}
+                            onChange={(e) => handleFilterChange('type', e.value)}
+                            placeholder="Select Type"
+                            className="w-full"
+                        />
+                    </div>
+                </div>
+                <div className="grid">
                     <div className="col-12 md:col-3 flex align-items-end">
                         <Button
                             label="Clear Filters"

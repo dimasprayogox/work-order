@@ -199,7 +199,30 @@ const AssignmentDialog = ({
                         <strong>Title:</strong> {workOrder.title}
                     </div>
                     <div className="col-12 md:col-6">
-                        <strong>Machine:</strong> {workOrder.machine?.name || 'N/A'}
+                        <strong>Machine/Asset:</strong> 
+                        {workOrder.machine ? (
+                            <span className="ml-1 flex align-items-center gap-1">
+                                <i className="pi pi-cog text-blue-500"></i>
+                                {workOrder.machine.name}
+                            </span>
+                        ) : workOrder.asset ? (
+                            <span className="ml-1 flex align-items-center gap-1">
+                                <i className="pi pi-box text-green-500"></i>
+                                {workOrder.asset.name}
+                            </span>
+                        ) : workOrder.issue?.machine ? (
+                            <span className="ml-1 flex align-items-center gap-1">
+                                <i className="pi pi-cog text-blue-500"></i>
+                                {workOrder.issue.machine.name} (from Issue)
+                            </span>
+                        ) : workOrder.issue?.asset ? (
+                            <span className="ml-1 flex align-items-center gap-1">
+                                <i className="pi pi-box text-green-500"></i>
+                                {workOrder.issue.asset.name} (from Issue)
+                            </span>
+                        ) : (
+                            ' N/A'
+                        )}
                     </div>
                     <div className="col-12 md:col-6">
                         <strong>Status:</strong>
