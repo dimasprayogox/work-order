@@ -104,9 +104,9 @@ const AdminPartPage = () => {
 
   useEffect(() => {
     fetchParts();
-  fetchAssets();
-  fetchMachines();
-  }, [fetchParts]);
+    fetchAssets();
+    fetchMachines();
+  }, [fetchParts, fetchAssets, fetchMachines]);
 
   // Date formatter helper
   const formatDate = (dateString) => {
