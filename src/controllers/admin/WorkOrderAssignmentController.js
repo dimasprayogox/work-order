@@ -7,14 +7,15 @@ export const WorkOrderAssignmentController = {
     // Get all work orders with assignment status
     async index(req, res) {
         try {
-            const { status, assigned, priority, machine_id, page = 1, limit = 10 } = req.query;
+            const { status, assigned, priority, type, page = 1, limit = 10 } = req.query;
 
             let query = WorkOrder.query()
                 .withGraphFetched(`[
-                    machine, 
+                    machine.[category], 
+                    asset.[category],
                     assignedTo,
                     createdBy, 
-                    issue
+                    issue.[machine.[category], asset.[category]]
                 ]`)
                 .orderBy('created_at', 'desc');
 
@@ -33,11 +34,34 @@ export const WorkOrderAssignmentController = {
                 query = query.where('priority', priority);
             }
 
-            if (machine_id) {
-                query = query.where('machine_id', machine_id);
+            if (type) {
+                if (type === 'machine') {
+                    // Filter for work orders with machines (either direct machine_id or issue.machine_id)
+                    query = query.where(function() {
+                        this.whereNotNull('machine_id')
+                            .orWhereExists(
+                                WorkOrder.relatedQuery('issue')
+                                    .whereNotNull('machine_id')
+                            );
+                    });
+                } else if (type === 'asset') {
+                    // Filter for work orders with assets (either direct asset_id or issue.asset_id)
+                    query = query.where(function() {
+                        this.whereNotNull('asset_id')
+                            .orWhereExists(
+                                WorkOrder.relatedQuery('issue')
+                                    .whereNotNull('asset_id')
+                            );
+                    });
+                }
             }
 
             const workOrders = await query;
+
+            // Debug: log sample work order to check data structure
+            if (workOrders.length > 0) {
+                console.log('Sample work order data:', JSON.stringify(workOrders[0], null, 2));
+            }
 
             // Add current_workload and profile_photo_url to assignedTo
             for (const wo of workOrders) {
