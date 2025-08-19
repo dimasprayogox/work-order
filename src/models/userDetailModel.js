@@ -7,7 +7,9 @@ import { db } from "../core/config/knex.js";
  */
 export const getUserDetailByUserId = (userId) => {
   return db("users")
-    .join("user_details", "users.id", "=", "user_details.user_id")
+    .leftJoin("user_details", "users.id", "=", "user_details.user_id")
+    // left join divisions so users without a division still return
+    .leftJoin("divisions", "users.division_id", "=", "divisions.id")
     .where("users.id", userId)
     .select(
       // Kolom dari tabel 'users'
@@ -24,7 +26,9 @@ export const getUserDetailByUserId = (userId) => {
       "user_details.city",
       "user_details.country",
       "user_details.date_of_birth",
-      "user_details.bio"
+  "user_details.bio",
+  // include division name if present
+  "divisions.name as division_name"
     )
     .first(); // .first() untuk mengambil satu objek hasil saja
 };

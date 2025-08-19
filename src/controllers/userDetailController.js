@@ -17,7 +17,9 @@ export const show = async (req, res) => {
     const detail = await getUserDetailByUserId(userId);
     if (!detail)
       return res.status(404).json({ message: "Detail tidak ditemukan" });
-    res.json({ message: "Success", data: detail });
+  // If model now returns division_name, include it in response as-is
+  console.log('Fetched user detail for', userId, 'division_name=', detail.division_name);
+  res.json({ message: "Success", data: detail });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
@@ -121,7 +123,8 @@ export const update = async (req, res) => {
       detailsData
     );
 
-    res.json({ message: "Profil berhasil diperbarui", data: updatedProfile });
+  // updatedProfile will include division_name thanks to the model change
+  res.json({ message: "Profil berhasil diperbarui", data: updatedProfile });
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ message: "Email sudah digunakan." });
