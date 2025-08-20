@@ -19,7 +19,8 @@ export const WorkOrderController = {
             const workOrders = await WorkOrder.query()
                 .where("assigned_to_id", technicianId)
                 // Fetch asset directly and also fetch issue with its machine/asset relations
-                .withGraphFetched("[issue.[machine,asset], machine, asset, assignedTo, partRequests]")
+                // include createdBy so frontend can show createdBy.full_name instead of falling back to id
+                .withGraphFetched("[issue.[machine,asset], machine, asset, assignedTo, partRequests, createdBy]")
                 .orderBy("created_at", "desc");
 
             if (!workOrders || workOrders.length === 0) {
