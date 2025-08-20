@@ -16,8 +16,8 @@ const UserFormDialog = ({ visible, onHide, user, divisions = [], fetchUsers, sho
         password: "",
         full_name: "",
         role: "employee",
-    is_active: true,
-    division_id: null
+        is_active: true,
+        division_id: ""
     });
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -39,7 +39,7 @@ const UserFormDialog = ({ visible, onHide, user, divisions = [], fetchUsers, sho
                 full_name: user.full_name || "",
                 role: user.role || "employee",
                 is_active: user.is_active === 1 || user.is_active === true,
-                division_id: user.division_id || null
+                division_id: user.division_id || ""
             });
         } else {
             setForm({
@@ -48,8 +48,8 @@ const UserFormDialog = ({ visible, onHide, user, divisions = [], fetchUsers, sho
                 password: "",
                 full_name: "",
                 role: "employee",
-                is_active: true
-                , division_id: null
+                is_active: true,
+                division_id: ""
             });
         }
         setSubmitted(false);
@@ -83,7 +83,12 @@ const UserFormDialog = ({ visible, onHide, user, divisions = [], fetchUsers, sho
 
         setLoading(true);
         try {
-            const payload = { ...form };
+            // Prepare form data with proper null handling
+            const payload = {
+                ...form,
+                division_id: form.division_id === "" || form.division_id === undefined ? null : form.division_id
+            };
+
             // Don't send empty password for updates
             if (user && !payload.password.trim()) {
                 delete payload.password;
