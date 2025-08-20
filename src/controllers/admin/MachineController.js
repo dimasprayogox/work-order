@@ -87,16 +87,20 @@ export const MachineController = {
                 });
             }
 
-            await Machine.query().patchAndFetchById(req.params.id, {
-                ...parsed.data,
-                updated_at: new Date(),
-            });
+            // Prepare update data - schema already handles null transformation
+            const updateData = { ...parsed.data, updated_at: new Date() };
 
-            const updated = await Machine.query().findById(req.params.id).withGraphFetched('[category, division]');
+            // Use patch instead of patchAndFetchById to ensure null values are stored
+            const patchCount = await Machine.query()
+                .patch(updateData)
+                .where('id', req.params.id);
 
-            if (!updated) {
+            if (patchCount === 0) {
                 return res.status(404).json({ success: false, message: 'Machine not found' });
             }
+
+            // Fetch the updated machine with relations
+            const updated = await Machine.query().findById(req.params.id).withGraphFetched('[category, division]');
 
             res.status(200).json({
                 success: true,
