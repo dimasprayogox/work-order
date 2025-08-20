@@ -23,9 +23,11 @@ export const AssetController = {
                 .where('status', '!=', 'inactive')
                 .orderBy('name', 'asc');
 
-            // If user has a division, filter assets by that division
+            // If user has a division, filter assets by that division and include unassigned assets (division_id IS NULL)
             if (user.division_id) {
-                query = query.where('division_id', user.division_id);
+                query = query.where(function () {
+                    this.where('division_id', user.division_id).orWhereNull('division_id');
+                });
             }
 
             const assets = await query;
@@ -35,6 +37,7 @@ export const AssetController = {
                 data: assets
             });
         } catch (err) {
+            // eslint-disable-next-line no-console
             console.error("Error fetching available assets:", err);
             res.status(500).json({
                 message: "Failed to fetch available assets",
