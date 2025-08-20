@@ -142,10 +142,10 @@ const WorkOrderDetailDialog = ({ visible, onHide, workOrder }) => {
                         </div>
                     )}
 
-                    {(workOrder.createdBy || workOrder.created_by_id) && (
+                    {workOrder.createdBy && (
                         <div className="field mb-3">
                             <label className="font-semibold text-gray-800 block mb-2">Created By</label>
-                            <div className="flex align-items-center gap-2"><i className="pi pi-user text-gray-500"></i><span className="text-sm text-gray-700">{workOrder.createdBy?.full_name || workOrder.createdBy?.name || workOrder.created_by_id || 'Unknown'}</span></div>
+                            <div className="flex align-items-center gap-2"><i className="pi pi-user text-gray-500"></i><span className="text-sm text-gray-700">{workOrder.createdBy?.full_name || workOrder.createdBy?.name || 'Unknown'}</span></div>
                         </div>
                     )}
                 </div>
