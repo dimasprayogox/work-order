@@ -19,7 +19,7 @@ const statusFilterOptions = [
     { label: "Completed", value: "completed" }
 ];
 
-const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, setSearchText, statusFilter, setStatusFilter }) => {
+const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, setSearchText, statusFilter, setStatusFilter }) => {
     const [filteredWorkOrders, setFilteredWorkOrders] = useState([]);
     const [filters, setFilters] = useState({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -183,7 +183,12 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, setSearchTe
         return <span className="text-gray-400">No photo</span>;
     };
 
-    const actionBodyTemplate = (rowData) => <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onUpdate(rowData)} />;
+    const actionBodyTemplate = (rowData) => (
+        <div className="flex gap-2 justify-content-center">
+            <Button icon="pi pi-eye" rounded outlined className="p-button-sm" onClick={() => onView && onView(rowData)} tooltip="View" />
+            <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onUpdate(rowData)} tooltip="Update" />
+        </div>
+    );
 
     const machineOrAssetBodyTemplate = (rowData) => {
         // Helper to pick common name/code keys used in different responses
