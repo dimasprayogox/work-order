@@ -18,7 +18,8 @@ export const WorkOrderController = {
 
             const workOrders = await WorkOrder.query()
                 .where("assigned_to_id", technicianId)
-                .withGraphFetched("[issue, machine, assignedTo, partRequests]")
+                // Fetch asset directly and also fetch issue with its machine/asset relations
+                .withGraphFetched("[issue.[machine,asset], machine, asset, assignedTo, partRequests]")
                 .orderBy("created_at", "desc");
 
             if (!workOrders || workOrders.length === 0) {
@@ -28,9 +29,18 @@ export const WorkOrderController = {
                 });
             }
 
+            // Normalize relations: ensure asset and machine are available at root level
+            const normalized = workOrders.map((wo) => {
+                // convert Objection model instances to plain objects if necessary
+                const plain = (typeof wo.toJSON === 'function') ? wo.toJSON() : { ...wo };
+                plain.asset = plain.asset || (plain.issue && plain.issue.asset) || null;
+                plain.machine = plain.machine || (plain.issue && plain.issue.machine) || null;
+                return plain;
+            });
+
             res.status(200).json({
                 message: "Work orders fetched successfully.",
-                data: workOrders
+                data: normalized
             });
         } catch (err) {
             console.error("Error fetching work orders for technician:", err);
