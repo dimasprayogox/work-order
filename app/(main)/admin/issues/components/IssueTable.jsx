@@ -69,20 +69,32 @@ const IssueTable = ({
     const machineOrAssetBodyTemplate = (rowData) => {
         if (rowData.machine) {
             return (
-                <div className="flex flex-column">
-                    <span className="font-medium">{rowData.machine.name}</span>
-                    <small className="text-gray-500">Machine</small>
+                <div>
+                    <div className="font-medium flex align-items-center gap-2">
+                        <i className="pi pi-cog text-blue-500"></i>
+                        {rowData.machine.name}
+                    </div>
+                    {rowData.machine.machine_code && (
+                        <div className="text-sm text-gray-500">{rowData.machine.machine_code}</div>
+                    )}
+                    <div className="text-xs text-blue-600">Machine</div>
                 </div>
             );
         } else if (rowData.asset) {
             return (
-                <div className="flex flex-column">
-                    <span className="font-medium">{rowData.asset.name}</span>
-                    <small className="text-gray-500">Asset</small>
+                <div>
+                    <div className="font-medium flex align-items-center gap-2">
+                        <i className="pi pi-box text-green-500"></i>
+                        {rowData.asset.name}
+                    </div>
+                    {rowData.asset.asset_code && (
+                        <div className="text-sm text-gray-500">{rowData.asset.asset_code}</div>
+                    )}
+                    <div className="text-xs text-green-600">Asset</div>
                 </div>
             );
         }
-        return '-';
+        return <span className="text-gray-500">N/A</span>;
     };
 
     const priorityBodyTemplate = (rowData) => {
@@ -219,7 +231,7 @@ const IssueTable = ({
             >
                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
                 <Column field="title" header="Title" style={{ width: "200px" }} sortable />
-                <Column field="target" header="Machine/Asset" body={machineOrAssetBodyTemplate} sortable />
+                <Column field="target" header="Machine/Asset" body={machineOrAssetBodyTemplate} style={{ minWidth: "180px" }} sortable />
                 <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                 <Column
                     field="description"
