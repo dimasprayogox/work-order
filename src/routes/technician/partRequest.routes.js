@@ -16,7 +16,7 @@ router.get("/", PartRequestController.getMyPartRequests);
 // teknisi get semua part
 router.get("/part", PartRequestController.getAllParts);
 // teknisi delete many selected part requests 
-router.delete("/deletemany", authMiddleware, PartRequestController.deleteMany);
+router.post("/deletemany", authMiddleware, PartRequestController.deleteMany);
 // Teknisi: lihat semua Part Request untuk Work Order tertentu
 router.get("/:workOrderId", PartRequestController.getByWorkOrder);
 // Teknisi: delete Part Request jika status masih pending
