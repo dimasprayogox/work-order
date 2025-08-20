@@ -57,12 +57,14 @@ export const UserController = {
                 full_name,
                 role,
                 is_active: is_active ?? true,
-                division_id: division_id || null,
+                division_id: division_id, // schema already handles null transformation
             });
+
+            const userWithRelations = await User.query().findById(newUser.id).withGraphFetched('division');
 
             res.status(201).json({
                 message: "User created successfully",
-                data: newUser,
+                data: userWithRelations,
             });
         } catch (err) {
             res.status(500).json({ message: "Failed to create user", error: err.message });
@@ -85,19 +87,23 @@ export const UserController = {
                 return res.status(404).json({ message: "User not found" });
             }
 
-            const updateData = parsed.data;
+            // Prepare update data - schema already handles null transformation
+            const updateData = { ...parsed.data, updated_at: new Date() };
+            
             if (updateData.password) {
                 updateData.password = await bcrypt.hash(updateData.password, 10);
             }
 
-            // Ensure division_id is set to null when empty string provided
-            if (Object.prototype.hasOwnProperty.call(updateData, 'division_id')) {
-                updateData.division_id = updateData.division_id || null;
+            // Use patch instead of patchAndFetchById to ensure null values are stored
+            const patchCount = await User.query()
+                .patch(updateData)
+                .where('id', req.params.id);
+
+            if (patchCount === 0) {
+                return res.status(404).json({ message: "User not found" });
             }
 
-            updateData.updated_at = new Date();
-
-            const updatedUser = await User.query().patchAndFetchById(req.params.id, updateData);
+            const updatedUser = await User.query().findById(req.params.id).withGraphFetched('division');
 
             res.json({
                 message: "User updated successfully",
