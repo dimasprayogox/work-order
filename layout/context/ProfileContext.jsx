@@ -39,7 +39,8 @@ export function ProfileProvider({ children }) {
                 date_of_birth: profileData.date_of_birth ? new Date(profileData.date_of_birth) : null,
                 address: profileData.address || "",
                 bio: profileData.bio || "",
-                profile_photo_url: profileData.profile_photo_url ? `${profileData.profile_photo_url}?t=${Date.now()}` : null
+                profile_photo_url: profileData.profile_photo_url ? `${profileData.profile_photo_url}?t=${Date.now()}` : null,
+                division_name: profileData.division_name || ""
             });
             setPreviewUrl(profileData.profile_photo_url || null);
         } catch (err) {
