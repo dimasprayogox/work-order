@@ -1,7 +1,7 @@
 // routes/employee/machine.routes.js
 import express from 'express';
 // Pastikan MachineController diimpor dengan path yang benar dari lokasi file ini
-import { MachineController } from '../../controllers/admin/MachineController.js';
+import { MachineController } from '../../controllers/employee/MachineController.js';
 import { authMiddleware } from '../../middleware/auth-middleware.js';
 import { authorizeRole } from '../../middleware/role-middleware.js';
 
