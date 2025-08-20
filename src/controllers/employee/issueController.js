@@ -108,7 +108,7 @@ export const IssueController = {
             // Update machine or asset status to down/maintenance
             if (machine_id) {
                 await Machine.query().patchAndFetchById(machine_id, {
-                    status: "down",
+                    status: "maintenance",
                 });
             } else if (asset_id) {
                 await Asset.query().patchAndFetchById(asset_id, {
