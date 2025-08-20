@@ -233,12 +233,14 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, setSearchTe
         <div className="flex flex-wrap align-items-center justify-content-between gap-3">
             <div className="flex align-items-center gap-3">
                 <span className="text-xl font-bold">Work Order List</span>
-                <Dropdown value={statusFilter} options={statusFilterOptions} onChange={onStatusFilterChange} placeholder="All Status" className="w-full md:w-auto" />
             </div>
-            <span className="p-input-icon-left">
-                <i className="pi pi-search" />
-                <InputText value={searchText} onChange={onGlobalFilterChange} placeholder="Search" className="w-full md:w-auto" />
-            </span>
+            <div className="flex align-items-center gap-3">
+                <Dropdown value={statusFilter} options={statusFilterOptions} onChange={onStatusFilterChange} placeholder="All Status" className="w-full md:w-auto" />
+                <span className="p-input-icon-left">
+                    <i className="pi pi-search" />
+                    <InputText value={searchText} onChange={onGlobalFilterChange} placeholder="Search" className="w-full md:w-auto" />
+                </span>
+            </div>
         </div>
     );
 
