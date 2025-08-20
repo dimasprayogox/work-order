@@ -39,6 +39,15 @@ export const POST = async (request) => {
 
     try {
         const body = await request.json();
+
+        // Handle delete many request
+        if (body.ids && Array.isArray(body.ids)) {
+            const response = await Axios.post(API_ENDPOINTS.TECHNICIAN_PART_REQUEST_DELETE_MANY, body, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return NextResponse.json(response.data, { status: 200 });
+        }
+
         const response = await Axios.post(API_ENDPOINTS.TECHNICIAN_PART_REQUEST_BASE, body, {
             headers: { Authorization: `Bearer ${token}` }
         });

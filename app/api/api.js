@@ -24,6 +24,7 @@ export const API_ENDPOINTS = {
     TECHNICIAN_PART_REQUEST_BASE: `${API_URL}/technician/part-request`,
     TECHNICIAN_PART_REQUEST_BY_ID: (id) => `${API_URL}/technician/part-request/${id}`,
     TECHNICIAN_PART_BASE: `${API_URL}/technician/part-request/part`,
+    TECHNICIAN_PART_REQUEST_DELETE_MANY: `${API_URL}/technician/part-request/deletemany`,
 
     // --- Logistics Endpoints ---
     LOGISTICS_DASHBOARD: `${API_URL}/logistics/dashboard`,

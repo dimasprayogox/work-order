@@ -4,6 +4,7 @@ import { Dialog } from "primereact/dialog";
 import { Divider } from "primereact/divider";
 
 export default function ItemDetailDialog({ visible, onHide, items }) {
+
     return (
         <Dialog
             header="Requested Items Detail"

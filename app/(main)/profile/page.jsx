@@ -50,7 +50,7 @@ const ProfilePage = () => {
                 <div className="flex flex-column md:flex-row align-items-center gap-5 p-5 pb-0">
                     <div className="relative">
                         <Avatar image={user.profile_photo_url} label={user.full_name?.charAt(0) || "U"} size="xlarge" shape="circle" className="border-2 border-primary" style={{ width: "120px", height: "120px", fontSize: "3rem" }} />
-                        <Chip label={user.role} className="absolute -bottom-2 left-50 transform -translate-x-50 shadow-2" style={{ minWidth: "80px" }} />
+                        <Chip label={user.division_name} className="absolute -bottom-2 left-50 transform -translate-x-50 shadow-2" style={{ minWidth: "80px" }} />
                     </div>
 
                     <div className="flex-1 text-center md:text-left">
