@@ -13,8 +13,8 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, divisions = [
         name: "",
         location: "",
         status: "operational",
-    category_id: "",
-    division_id: null
+        category_id: "",
+        division_id: ""
     });
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -33,7 +33,7 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, divisions = [
                 location: machine.location || "",
                 status: machine.status || "operational",
                 category_id: machine.category_id || "",
-                division_id: machine.division_id || null
+                division_id: machine.division_id || ""
             });
         } else {
             setForm({
@@ -42,7 +42,7 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, divisions = [
                 location: "",
                 status: "operational",
                 category_id: "",
-                division_id: null
+                division_id: ""
             });
         }
         setSubmitted(false);
@@ -67,13 +67,20 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, divisions = [
 
         setLoading(true);
         try {
+            // Prepare form data with proper null handling
+            const formData = {
+                ...form,
+                category_id: form.category_id === "" || form.category_id === undefined ? null : form.category_id,
+                division_id: form.division_id === "" || form.division_id === undefined ? null : form.division_id
+            };
+
             const res = await fetch(
                 machine ? `/api/admin/machines/${machine.id}` : "/api/admin/machines",
                 {
                     method: machine ? "PATCH" : "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify(form)
+                    body: JSON.stringify(formData)
                 }
             );
             const data = await res.json();
