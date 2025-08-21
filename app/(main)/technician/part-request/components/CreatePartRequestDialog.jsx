@@ -30,7 +30,10 @@ export default function CreatePartRequestDialog({ visible, onHide, workOrder, fe
                 woData.map((wo) => ({
                     label: wo.title,
                     value: wo.id,
-                    machineId: wo.machine_id
+                    // try to get machine id from multiple possible shapes returned by backend
+                    machineId: wo.machine_id || (wo.machine && wo.machine.id) || (wo.issue && wo.issue.machine && wo.issue.machine.id) || null,
+                    // also include asset id when WO refers to an asset
+                    assetId: wo.asset_id || (wo.asset && wo.asset.id) || (wo.issue && wo.issue.asset && wo.issue.asset.id) || null
                 }))
             );
 
@@ -43,7 +46,8 @@ export default function CreatePartRequestDialog({ visible, onHide, workOrder, fe
                 partsData.map((p) => ({
                     label: `${p.name} (${p.part_number})`,
                     value: p.id,
-                    machineId: p.machine_id
+                    machineId: p.machine_id || (p.machine && p.machine.id) || null,
+                    assetId: p.asset_id || (p.asset && p.asset.id) || null
                 }))
             );
         } catch (error) {
@@ -71,8 +75,13 @@ export default function CreatePartRequestDialog({ visible, onHide, workOrder, fe
     useEffect(() => {
         if (formData.work_order_id) {
             const selectedWorkOrder = workOrders.find((wo) => wo.value === formData.work_order_id);
-            if (selectedWorkOrder) {
-                const filtered = allParts.filter((part) => part.machineId === selectedWorkOrder.machineId);
+                if (selectedWorkOrder) {
+                // Filter parts that match either the machine or the asset related to the selected work order
+                const filtered = allParts.filter((part) => {
+                    const matchesMachine = selectedWorkOrder.machineId && part.machineId && part.machineId === selectedWorkOrder.machineId;
+                    const matchesAsset = selectedWorkOrder.assetId && part.assetId && part.assetId === selectedWorkOrder.assetId;
+                    return matchesMachine || matchesAsset;
+                });
                 setFilteredParts(filtered);
 
                 // Gunakan ref untuk mengakses items terbaru tanpa menyebabkan infinite loop
