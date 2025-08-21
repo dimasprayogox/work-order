@@ -21,7 +21,7 @@ const statusOptions = [
     { label: "resolved", value: "resolved" },
 ];
 
-const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders = [], onSelectionChange = () => {}, onEdit = () => {}, onDelete = () => {}, searchText = "", onSearch = () => {} }) => {
+const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders = [], onSelectionChange = () => {}, onEdit = () => {}, onDelete = () => {}, onDetail = () => {}, searchText = "", onSearch = () => {} }) => {
    const [filters, setFilters] = useState({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS },
         status: { value: null, matchMode: FilterMatchMode.EQUALS }
@@ -111,8 +111,9 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
     const actionBodyTemplate = (rowData) => {
         return (
             <div className="flex gap-2">
-                <Button icon="pi pi-pencil" rounded outlined severity="info" onClick={() => onEdit(rowData)} tooltip="Edit" tooltipOptions={{ position: "top" }} />
-                <Button icon="pi pi-trash" rounded outlined severity="danger" onClick={() => onDelete(rowData)} tooltip="Delete" tooltipOptions={{ position: "top" }} />
+                <Button icon="pi pi-eye" rounded outlined className="p-button-sm" onClick={() => onDetail(rowData)} tooltip="View Details" tooltipOptions={{ position: "top" }} />
+                <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onEdit(rowData)} tooltip="Edit" tooltipOptions={{ position: "top" }} />
+                <Button icon="pi pi-trash" rounded outlined severity="danger" className="p-button-sm" onClick={() => onDelete(rowData)} tooltip="Delete" tooltipOptions={{ position: "top" }} />
             </div>
         );
     };
@@ -196,9 +197,9 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
                                 </>
                             )}
                         />
-                        <Column 
-                            field="machine.name" 
-                            header="Machine/Asset" 
+                        <Column
+                            field="machine.name"
+                            header="Machine/Asset"
                             body={(rowData) => {
                                 if (rowData.machine?.name) {
                                     return <Tag value={`Machine: ${rowData.machine.name}`} className="bg-blue-100 text-blue-800 font-medium" />;
@@ -206,13 +207,68 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
                                     return <Tag value={`Asset: ${rowData.asset.name}`} className="bg-green-100 text-green-800 font-medium" />;
                                 }
                                 return <span className="text-gray-400">N/A</span>;
-                            }} 
+                            }}
+                        />
+                        <Column
+                            field="reportedBy.full_name"
+                            header="Reported By"
+                            body={(rowData) => {
+                                const reportedBy = rowData.reportedBy || rowData.reported_by;
+                                return reportedBy?.full_name || "Unknown User";
+                            }}
+                            sortable
+                            style={{ width: "150px" }}
+                        />
+                        <Column
+                            field="note"
+                            header="Note"
+                            body={(rowData) => {
+                                const note = rowData.note || rowData.workOrder?.notes;
+                                if (!note) return <span className="text-gray-400">No note</span>;
+                                return (
+                                    <>
+                                        <Tooltip target={`.note-tooltip-${rowData.id}`} position="bottom" />
+                                        <span
+                                            className={`note-tooltip-${rowData.id}`}
+                                            data-pr-tooltip={note}
+                                            style={{
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                display: "block",
+                                                maxWidth: "150px"
+                                            }}
+                                        >
+                                            {note}
+                                        </span>
+                                    </>
+                                );
+                            }}
+                            style={{ width: "150px" }}
+                        />
+                        <Column
+                            field="repairable"
+                            header="Repairable"
+                            body={(rowData) => {
+                                const repairable = rowData.workOrder?.repairable;
+                                if (repairable === undefined || repairable === null) {
+                                    return <span className="text-gray-400">N/A</span>;
+                                }
+                                return (
+                                    <Tag
+                                        value={repairable ? "Yes" : "No"}
+                                        className={repairable ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}
+                                    />
+                                );
+                            }}
+                            sortable
+                            style={{ width: "100px" }}
                         />
                         <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                         <Column field="status" header="Status" body={statusBodyTemplate} sortable />
                         <Column header="Photo" body={photoBodyTemplate} />
                         <Column field="created_at" header="Created" body={dateBodyTemplate} sortable />
-                        <Column header="Actions" body={actionBodyTemplate} style={{ width: "120px" }} />
+                        <Column header="Actions" body={actionBodyTemplate} style={{ width: "150px" }} />
                     </DataTable>
 
                     {/* Remove custom preview dialog, since <Image preview /> handles it */}
