@@ -145,6 +145,26 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
         );
     };
 
+    const repairableBodyTemplate = (rowData) => {
+        // Only meaningful for completed work orders; but render a pill consistently
+        const val = (typeof rowData.repairable === 'boolean') ? rowData.repairable : (typeof rowData.issue?.repairable === 'boolean' ? rowData.issue.repairable : null);
+
+        const config = val === true
+            ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check' , label: 'Repairable'}
+            : val === false
+                ? { bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle', label: 'Not Repairable'}
+                : { bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', icon: 'pi-question', label: '-'};
+
+        return (
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                    <i className={`pi ${config.icon}`}></i>
+                    <span className="font-medium">{config.label}</span>
+                </div>
+            </motion.div>
+        );
+    };
+
     const dateBodyTemplate = (dateString) => {
         if (!dateString) return "N/A";
         return new Date(dateString).toLocaleString("id-ID", {
@@ -263,23 +283,7 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
                 <Column field="started_at" header="Started At" body={(rowData) => dateBodyTemplate(rowData.started_at)} sortable />
                 <Column field="completed_at" header="Completed At" body={(rowData) => dateBodyTemplate(rowData.completed_at)} sortable />
                 <Column field="notes" header="Notes" style={{ maxWidth: "200px" }} />
-                <Column header="Repairable" body={(rowData) => {
-                    // show only when completed
-                    if (rowData.status !== 'completed') return (
-                        <Tag value="-" severity="info" className="px-3 py-1" />
-                    );
-
-                    // Prefer top-level field, fallback to issue
-                    const val = typeof rowData.repairable === 'boolean' ? rowData.repairable : rowData.issue?.repairable;
-
-                    if (typeof val === 'boolean') {
-                        // use Tag to mimic status design
-                        if (val) return <Tag value="Repairable" severity="success" className="flex items-center gap-2 px-3 py-1" />;
-                        return <Tag value="Not Repairable" severity="danger" className="flex items-center gap-2 px-3 py-1" />;
-                    }
-
-                    return <Tag value="-" severity="warning" className="px-3 py-1" />;
-                }} style={{ width: '150px', textAlign: 'center' }} />
+                <Column header="Repairable" body={repairableBodyTemplate} style={{ width: '150px', textAlign: 'center' }} />
                 <Column header="Actions" body={actionBodyTemplate} style={{ width: "6rem", textAlign: "center" }} />
             </DataTable>
         </div>

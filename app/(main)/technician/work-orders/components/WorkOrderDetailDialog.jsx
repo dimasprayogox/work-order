@@ -153,15 +153,21 @@ const WorkOrderDetailDialog = ({ visible, onHide, workOrder }) => {
                         <div className="field mb-3">
                             <label className="font-semibold text-gray-800 block mb-2">Repairable</label>
                             <div className="flex align-items-center gap-2">
-                                {typeof workOrder.repairable === 'boolean' ? (
-                                    workOrder.repairable ? (
-                                        <Tag value={<span className="flex items-center gap-2"><i className="pi pi-check"></i><span>Repairable</span></span>} severity="success" />
-                                    ) : (
-                                        <Tag value={<span className="flex items-center gap-2"><i className="pi pi-times"></i><span>Not Repairable</span></span>} severity="danger" />
-                                    )
-                                ) : (
-                                    <Tag value="-" severity="warning" />
-                                )}
+                                {(() => {
+                                    const val = (typeof workOrder.repairable === 'boolean') ? workOrder.repairable : (typeof workOrder.issue?.repairable === 'boolean' ? workOrder.issue.repairable : null);
+                                    const config = val === true
+                                        ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check', label: 'Repairable' }
+                                        : val === false
+                                            ? { bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle', label: 'Not Repairable' }
+                                            : { bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', icon: 'pi-question', label: '-' };
+
+                                    return (
+                                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                                            <i className={`pi ${config.icon}`}></i>
+                                            <span className="font-medium">{config.label}</span>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                             <small className="text-xs text-gray-500 block mt-2">Indicates whether the machine/asset was repairable when this work order was completed.</small>
                         </div>
