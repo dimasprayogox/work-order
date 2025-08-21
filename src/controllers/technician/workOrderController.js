@@ -70,7 +70,7 @@ export const WorkOrderController = {
                 });
             }
 
-            const { status, description, started_at, completed_at } = parsed.data;
+            const { status, description, started_at, completed_at, repairable } = parsed.data;
 
             const workOrder = await WorkOrder.query().findById(id);
             if (!workOrder) {
@@ -166,21 +166,24 @@ export const WorkOrderController = {
                 }
             }
 
-            // Jika work order selesai, update status mesin dan asset ke 'operational'
+            // Jika work order selesai, update status mesin dan asset berdasarkan flag `repairable`
+            // repairable === true => 'operational', false => 'down'. Default behavior: treat as repairable (operational)
             if (status === "completed") {
+                const targetStatus = (typeof repairable === 'boolean') ? (repairable ? 'operational' : 'down') : 'operational';
+
                 if (workOrder.machine_id) {
-                    await Machine.query().patchAndFetchById(workOrder.machine_id, { status: "operational" });
+                    await Machine.query().patchAndFetchById(workOrder.machine_id, { status: targetStatus });
                 }
 
                 // Prefer update asset attached directly to work order; fallback to asset on related issue
                 try {
                     if (workOrder.asset_id) {
-                        await Asset.query().patchAndFetchById(workOrder.asset_id, { status: "operational" });
+                        await Asset.query().patchAndFetchById(workOrder.asset_id, { status: targetStatus });
                     } else if (workOrder.issue_id) {
                         // fetch issue to see if it has asset_id
                         const issue = await Issue.query().findById(workOrder.issue_id).select('asset_id');
                         if (issue && issue.asset_id) {
-                            await Asset.query().patchAndFetchById(issue.asset_id, { status: "operational" });
+                            await Asset.query().patchAndFetchById(issue.asset_id, { status: targetStatus });
                         }
                     }
                 } catch (assetErr) {
