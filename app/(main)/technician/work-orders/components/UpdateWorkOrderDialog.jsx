@@ -15,6 +15,8 @@ const getDefaultFormData = () => ({
     description: "",
     started_at: null,
     completed_at: null,
+    // flag whether machine/asset is repairable when marking completed
+    repairable: true,
 });
 
 export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetchWorkOrders, showToast }) {
@@ -93,7 +95,7 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
             }
 
             const result = await response.json();
-            
+
             // Check if there are part requests and if they are fulfilled
             if (!result.data || result.data.length === 0) {
                 // No part requests is OK, allow the update
@@ -103,7 +105,7 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
 
             const allFulfilled = result.data.every(request => request.status === 'fulfilled');
             console.log("Part request eligibility result:", result.data.map(pr => pr.status));
-            
+
             // If there are part requests, they must all be fulfilled
             if (!allFulfilled) {
                 showToast('error', 'Update Failed', 'Not all part requests for this work order have been fulfilled. Please ensure all part requests are fulfilled before updating the status.');
@@ -152,6 +154,8 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
                 // Conditionally add dates to payload only if they exist
                 ...(formData.status === 'in_progress' && formData.started_at && { started_at: formData.started_at.toISOString() }),
                 ...(formData.status === 'completed' && formData.completed_at && { completed_at: formData.completed_at.toISOString() }),
+            // Include repairable status in the payload when completed
+            ...(formData.status === 'completed' && { repairable: formData.repairable }),
             };
 
             const response = await fetch(`/api/technician/work-orders/${workOrder.id}`, {
@@ -231,6 +235,16 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
                             <label htmlFor="completed_at" className="font-bold mb-2 block">Completion Date</label>
                             <Calendar id="completed_at" value={formData.completed_at} onChange={(e) => setFormData(prev => ({...prev, completed_at: e.value}))} showIcon showTime hourFormat="24" className={formErrors.completed_at ? "p-invalid" : ""} />
                             {formErrors.completed_at && <Message severity="error" text={formErrors.completed_at} className="mt-2" />}
+                        </div>
+                    )}
+
+                    {formData.status === 'completed' && (
+                        <div className="field mb-4">
+                            <label className="font-bold mb-2 block">Repairable?</label>
+                            <div className="flex gap-3">
+                                <Button label="Yes - Can be repaired" outlined className={formData.repairable ? 'p-button-success' : ''} onClick={() => setFormData(prev => ({...prev, repairable: true}))} />
+                                <Button label="No - Not repairable" outlined className={!formData.repairable ? 'p-button-danger' : ''} onClick={() => setFormData(prev => ({...prev, repairable: false}))} />
+                            </div>
                         </div>
                     )}
 
