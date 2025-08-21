@@ -66,8 +66,19 @@ const IssueTable = ({
         );
     };
 
+    const normalizeRepairable = (val) => {
+        if (val === null || val === undefined) return null;
+        if (typeof val === 'boolean') return val;
+        const s = String(val).toLowerCase();
+        if (s === '1' || s === 'true' || s === 't' ) return true;
+        if (s === '0' || s === 'false' || s === 'f') return false;
+        return null;
+    };
+
     const repairableBodyTemplate = (rowData) => {
-        const val = rowData.workOrder?.repairable;
+        // Accept repairable from multiple possible shapes and coerce to boolean|null
+        const raw = rowData.workOrder?.repairable ?? rowData.repairable ?? rowData.work_order?.repairable;
+        const val = normalizeRepairable(raw);
         const config = val === true
             ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check', label: 'Repairable' }
             : val === false
