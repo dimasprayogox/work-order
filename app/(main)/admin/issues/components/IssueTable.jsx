@@ -66,6 +66,31 @@ const IssueTable = ({
         );
     };
 
+    const repairableBodyTemplate = (rowData) => {
+        const val = rowData.workOrder?.repairable;
+        const config = val === true
+            ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check', label: 'Repairable' }
+            : val === false
+                ? { bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle', label: 'Not Repairable' }
+                : { bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', icon: 'pi-question', label: '-' };
+
+        return (
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                    <i className={`pi ${config.icon}`}></i>
+                    <span className="font-medium text-sm">{config.label}</span>
+                </div>
+            </motion.div>
+        );
+    };
+
+    const workOrderNoteBodyTemplate = (rowData) => {
+        const note = rowData.workOrder?.notes || '';
+        if (!note) return <span className="text-gray-400">-</span>;
+        if (note.length > 80) return <span title={note}>{note.substring(0, 80)}...</span>;
+        return <span>{note}</span>;
+    };
+
     const machineOrAssetBodyTemplate = (rowData) => {
         if (rowData.machine) {
             return (
@@ -240,7 +265,9 @@ const IssueTable = ({
                     style={{ width: "250px" }}
                 />
                 <Column field="status" header="Status" body={statusBodyTemplate} sortable />
+                <Column header="Repairable" body={repairableBodyTemplate} style={{ width: '160px', textAlign: 'center' }} />
                 <Column field="photo_url" header="Photo" body={photoBodyTemplate} style={{ width: "80px" }} />
+                <Column header="Tech Note" body={workOrderNoteBodyTemplate} style={{ minWidth: '200px' }} />
                 <Column
                     field="created_at"
                     header="Created"
