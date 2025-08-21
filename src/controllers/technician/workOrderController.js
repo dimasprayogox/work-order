@@ -1,6 +1,7 @@
 import { WorkOrder } from "../../models/WorkOrder.js";
 import { Issue } from "../../models/Issue.js";
 import { Machine } from "../../models/Machine.js";
+import { Asset } from "../../models/Asset.js";
 import { PartRequest } from "../../models/PartRequest.js";
 import { PartRequestItem } from "../../models/PartRequestItem.js";
 import { PartUsage } from "../../models/PartUsage.js";
@@ -165,9 +166,26 @@ export const WorkOrderController = {
                 }
             }
 
-            // Jika work order selesai, update status mesin ke 'operational'
-            if (status === "completed" && workOrder.machine_id) {
-                await Machine.query().patchAndFetchById(workOrder.machine_id, { status: "operational" });
+            // Jika work order selesai, update status mesin dan asset ke 'operational'
+            if (status === "completed") {
+                if (workOrder.machine_id) {
+                    await Machine.query().patchAndFetchById(workOrder.machine_id, { status: "operational" });
+                }
+
+                // Prefer update asset attached directly to work order; fallback to asset on related issue
+                try {
+                    if (workOrder.asset_id) {
+                        await Asset.query().patchAndFetchById(workOrder.asset_id, { status: "operational" });
+                    } else if (workOrder.issue_id) {
+                        // fetch issue to see if it has asset_id
+                        const issue = await Issue.query().findById(workOrder.issue_id).select('asset_id');
+                        if (issue && issue.asset_id) {
+                            await Asset.query().patchAndFetchById(issue.asset_id, { status: "operational" });
+                        }
+                    }
+                } catch (assetErr) {
+                    // don't block work order update on asset update failures
+                }
             }
 
             res.status(200).json({
