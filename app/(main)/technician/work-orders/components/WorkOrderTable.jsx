@@ -265,13 +265,21 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
                 <Column field="notes" header="Notes" style={{ maxWidth: "200px" }} />
                 <Column header="Repairable" body={(rowData) => {
                     // show only when completed
-                    if (rowData.status !== 'completed') return '-';
-                    if (typeof rowData.repairable === 'boolean') return rowData.repairable ? 'Yes' : 'No';
-                    // if not persisted, try to read from issue or fallback
-                    const issueRepairable = rowData.issue?.repairable;
-                    if (typeof issueRepairable === 'boolean') return issueRepairable ? 'Yes' : 'No';
-                    return '-';
-                }} style={{ width: '120px' }} />
+                    if (rowData.status !== 'completed') return (
+                        <Tag value="-" severity="info" className="px-3 py-1" />
+                    );
+
+                    // Prefer top-level field, fallback to issue
+                    const val = typeof rowData.repairable === 'boolean' ? rowData.repairable : rowData.issue?.repairable;
+
+                    if (typeof val === 'boolean') {
+                        // use Tag to mimic status design
+                        if (val) return <Tag value="Repairable" severity="success" className="flex items-center gap-2 px-3 py-1" />;
+                        return <Tag value="Not Repairable" severity="danger" className="flex items-center gap-2 px-3 py-1" />;
+                    }
+
+                    return <Tag value="-" severity="warning" className="px-3 py-1" />;
+                }} style={{ width: '150px', textAlign: 'center' }} />
                 <Column header="Actions" body={actionBodyTemplate} style={{ width: "6rem", textAlign: "center" }} />
             </DataTable>
         </div>

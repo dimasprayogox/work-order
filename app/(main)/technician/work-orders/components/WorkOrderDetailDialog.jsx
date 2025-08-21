@@ -152,7 +152,18 @@ const WorkOrderDetailDialog = ({ visible, onHide, workOrder }) => {
                     {workOrder.status === 'completed' && (
                         <div className="field mb-3">
                             <label className="font-semibold text-gray-800 block mb-2">Repairable</label>
-                            <div className="flex align-items-center gap-2"><i className="pi pi-info-circle text-gray-500"></i><span className="text-sm text-gray-700">{typeof workOrder.repairable === 'boolean' ? (workOrder.repairable ? 'Yes' : 'No') : '-'}</span></div>
+                            <div className="flex align-items-center gap-2">
+                                {typeof workOrder.repairable === 'boolean' ? (
+                                    workOrder.repairable ? (
+                                        <Tag value={<span className="flex items-center gap-2"><i className="pi pi-check"></i><span>Repairable</span></span>} severity="success" />
+                                    ) : (
+                                        <Tag value={<span className="flex items-center gap-2"><i className="pi pi-times"></i><span>Not Repairable</span></span>} severity="danger" />
+                                    )
+                                ) : (
+                                    <Tag value="-" severity="warning" />
+                                )}
+                            </div>
+                            <small className="text-xs text-gray-500 block mt-2">Indicates whether the machine/asset was repairable when this work order was completed.</small>
                         </div>
                     )}
                 </div>
