@@ -80,7 +80,7 @@ export const WorkOrderController = {
                 });
             }
 
-            const { status, description, started_at, completed_at, repairable } = parsed.data;
+            const { status, description, notes, started_at, completed_at, repairable } = parsed.data;
 
             const workOrder = await WorkOrder.query().findById(id);
             if (!workOrder) {
@@ -162,7 +162,10 @@ export const WorkOrderController = {
 
             const updatedWorkOrder = await workOrder.$query().patchAndFetch({
                 status,
-                description,
+                // Do not overwrite original description unless provided explicitly
+                ...(typeof description !== 'undefined' && { description }),
+                // Technician note: append or set notes field
+                ...(typeof notes !== 'undefined' && { notes }),
                 started_at: status === "in_progress" ? started_at : workOrder.started_at,
                 completed_at: status === "completed" ? completed_at : null,
                 // persist repairable flag if provided
