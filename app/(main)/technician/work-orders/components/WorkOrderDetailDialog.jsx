@@ -148,6 +148,13 @@ const WorkOrderDetailDialog = ({ visible, onHide, workOrder }) => {
                             <div className="flex align-items-center gap-2"><i className="pi pi-user text-gray-500"></i><span className="text-sm text-gray-700">{workOrder.createdBy?.full_name || workOrder.createdBy?.name || 'Unknown'}</span></div>
                         </div>
                     )}
+
+                    {workOrder.status === 'completed' && (
+                        <div className="field mb-3">
+                            <label className="font-semibold text-gray-800 block mb-2">Repairable</label>
+                            <div className="flex align-items-center gap-2"><i className="pi pi-info-circle text-gray-500"></i><span className="text-sm text-gray-700">{typeof workOrder.repairable === 'boolean' ? (workOrder.repairable ? 'Yes' : 'No') : '-'}</span></div>
+                        </div>
+                    )}
                 </div>
             </div>
         </Dialog>

@@ -233,7 +233,7 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
         return <span className="text-gray-500">N/A</span>;
     };
 
-    
+
     const header = (
         <div className="flex flex-wrap align-items-center justify-content-between gap-3">
             <div className="flex align-items-center gap-3">
@@ -263,6 +263,15 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
                 <Column field="started_at" header="Started At" body={(rowData) => dateBodyTemplate(rowData.started_at)} sortable />
                 <Column field="completed_at" header="Completed At" body={(rowData) => dateBodyTemplate(rowData.completed_at)} sortable />
                 <Column field="notes" header="Notes" style={{ maxWidth: "200px" }} />
+                <Column header="Repairable" body={(rowData) => {
+                    // show only when completed
+                    if (rowData.status !== 'completed') return '-';
+                    if (typeof rowData.repairable === 'boolean') return rowData.repairable ? 'Yes' : 'No';
+                    // if not persisted, try to read from issue or fallback
+                    const issueRepairable = rowData.issue?.repairable;
+                    if (typeof issueRepairable === 'boolean') return issueRepairable ? 'Yes' : 'No';
+                    return '-';
+                }} style={{ width: '120px' }} />
                 <Column header="Actions" body={actionBodyTemplate} style={{ width: "6rem", textAlign: "center" }} />
             </DataTable>
         </div>
