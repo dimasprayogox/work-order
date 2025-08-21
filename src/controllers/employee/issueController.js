@@ -150,7 +150,15 @@ export const IssueController = {
 
     async getAll(req, res) {
         try {
+            // Only return issues reported by the authenticated user
+            if (!req.user || !req.user.userId) {
+                return res.status(401).json({ message: "Unauthorized: You must be logged in to view issues." });
+            }
+
+            const userId = req.user.userId;
+
             const issues = await Issue.query()
+                .where('reported_by_id', userId)
                 .withGraphFetched("[machine, asset, workOrder]")
                 .orderBy("created_at", "desc");
                 
