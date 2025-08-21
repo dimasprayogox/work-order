@@ -122,12 +122,14 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
          <div className="flex flex-wrap align-items-center justify-content-between gap-3">
             <div className="flex align-items-center gap-3">
                 <span className="text-xl font-bold">Work Order List</span>
-                <Dropdown placeholder="Filter Status" value={statusFilter} options={statusOptions} onChange={(e) => setStatusFilter(e.value)} className="w-10rem" />
             </div>
-            <span className="p-input-icon-left w-full md:w-auto">
-                <i className="pi pi-search" />
+            <div className="flex align-items-center gap-3">
+                <Dropdown placeholder="Filter Status" value={statusFilter} options={statusOptions} onChange={(e) => setStatusFilter(e.value)} className="w-10rem" />
+                <span className="p-input-icon-left w-full md:w-auto">
+                    <i className="pi pi-search" />
                     <InputText value={searchText} onChange={(e) => onSearch(e.target.value)} placeholder="Search" />
                 </span>
+            </div>
         </div>
     );
 
