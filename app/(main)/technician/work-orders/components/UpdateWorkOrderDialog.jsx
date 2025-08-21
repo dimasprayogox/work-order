@@ -12,7 +12,7 @@ import { motion } from "framer-motion";
 // Helper for default form state
 const getDefaultFormData = () => ({
     status: "",
-    description: "",
+    notes: "",
     started_at: null,
     completed_at: null,
     // flag whether machine/asset is repairable when marking completed
@@ -46,7 +46,7 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
 
             setFormData({
                 status: nextStatus,
-                description: workOrder.description || "",
+                notes: workOrder.notes || "",
                 // Set default start/completion time to now if not already set
                 started_at: workOrder.started_at ? new Date(workOrder.started_at) : (nextStatus === 'in_progress' ? new Date() : null),
                 completed_at: workOrder.completed_at ? new Date(workOrder.completed_at) : (nextStatus === 'completed' ? new Date() : null),
@@ -64,8 +64,8 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
         if (formData.status === 'completed' && !formData.completed_at) {
             errors.completed_at = "Completion date is required for 'Completed' status.";
         }
-        if (formData.status === 'completed' && !formData.description) {
-            errors.description = "Work description cannot be empty when completing a work order.";
+        if (formData.status === 'completed' && !formData.notes) {
+            errors.notes = "Please add a technician note when completing a work order.";
         }
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
@@ -150,7 +150,8 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
         try {
             const payload = {
                 status: formData.status,
-                description: formData.description,
+                // send technician note, not edit original description by default
+                notes: formData.notes,
                 // Conditionally add dates to payload only if they exist
                 ...(formData.status === 'in_progress' && formData.started_at && { started_at: formData.started_at.toISOString() }),
                 ...(formData.status === 'completed' && formData.completed_at && { completed_at: formData.completed_at.toISOString() }),
@@ -249,9 +250,9 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
                     )}
 
                     <div className="field mb-4">
-                        <label htmlFor="description" className="font-bold mb-2 block">Work description</label>
-                        <InputTextarea id="description" rows={5} value={formData.description} onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))} autoResize className={formErrors.description ? "p-invalid" : ""} />
-                        {formErrors.description && <Message severity="error" text={formErrors.description} className="mt-2" />}
+                        <label htmlFor="notes" className="font-bold mb-2 block">Technician Note</label>
+                        <InputTextarea id="notes" rows={5} value={formData.notes} onChange={(e) => setFormData(prev => ({...prev, notes: e.target.value}))} autoResize className={formErrors.notes ? "p-invalid" : ""} />
+                        {formErrors.notes && <Message severity="error" text={formErrors.notes} className="mt-2" />}
                     </div>
                 </motion.div>
             ) : (

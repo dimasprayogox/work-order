@@ -149,6 +149,15 @@ const WorkOrderDetailDialog = ({ visible, onHide, workOrder }) => {
                         </div>
                     )}
 
+                    {workOrder.notes && (
+                        <div className="field mb-3">
+                            <label className="font-semibold text-gray-800 block mb-2">Technician Note</label>
+                            <div className="p-3 bg-gray-50 border-1 border-gray-200 border-round">
+                                <p className="text-sm text-gray-700 whitespace-pre-line">{workOrder.notes}</p>
+                            </div>
+                        </div>
+                    )}
+
                     {workOrder.status === 'completed' && (
                         <div className="field mb-3">
                             <label className="font-semibold text-gray-800 block mb-2">Repairable</label>
