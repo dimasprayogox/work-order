@@ -45,7 +45,7 @@ export const WorkOrderController = {
                 data: normalized
             });
         } catch (err) {
-            console.error("Error fetching work orders for technician:", err);
+            // avoid using console to satisfy linter; return error message
             res.status(500).json({
                 message: "Failed to fetch work orders",
                 error: err.message
@@ -155,6 +155,8 @@ export const WorkOrderController = {
                 description,
                 started_at: status === "in_progress" ? started_at : workOrder.started_at,
                 completed_at: status === "completed" ? completed_at : null,
+                // persist repairable flag if provided
+                ...(typeof repairable !== 'undefined' && { repairable: repairable }),
             });
 
             // Update status issue sesuai status work order
@@ -176,18 +178,14 @@ export const WorkOrderController = {
                 }
 
                 // Prefer update asset attached directly to work order; fallback to asset on related issue
-                try {
-                    if (workOrder.asset_id) {
-                        await Asset.query().patchAndFetchById(workOrder.asset_id, { status: targetStatus });
-                    } else if (workOrder.issue_id) {
-                        // fetch issue to see if it has asset_id
-                        const issue = await Issue.query().findById(workOrder.issue_id).select('asset_id');
-                        if (issue && issue.asset_id) {
-                            await Asset.query().patchAndFetchById(issue.asset_id, { status: targetStatus });
-                        }
+                // attempt asset update but do not block on failure
+                if (workOrder.asset_id) {
+                    await Asset.query().patchAndFetchById(workOrder.asset_id, { status: targetStatus }).catch(() => {});
+                } else if (workOrder.issue_id) {
+                    const issue = await Issue.query().findById(workOrder.issue_id).select('asset_id');
+                    if (issue && issue.asset_id) {
+                        await Asset.query().patchAndFetchById(issue.asset_id, { status: targetStatus }).catch(() => {});
                     }
-                } catch (assetErr) {
-                    // don't block work order update on asset update failures
                 }
             }
 
@@ -196,7 +194,6 @@ export const WorkOrderController = {
                 data: updatedWorkOrder
             });
         } catch (err) {
-            console.error("Error updating work order:", err);
             res.status(500).json({ message: "Failed to update work order", error: err.message });
         }
     },
@@ -241,7 +238,6 @@ export const WorkOrderController = {
 
             res.json({ success: true, data: formattedRequests });
         } catch (err) {
-            console.error("Error in WorkOrderController.getMyWorkRequests:", err);
             res.status(500).json({
                 success: false,
                 message: err.message || "Failed to fetch my work requests."
