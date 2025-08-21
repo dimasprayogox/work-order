@@ -159,7 +159,7 @@ export const IssueController = {
 
             const issues = await Issue.query()
                 .where('reported_by_id', userId)
-                .withGraphFetched("[machine, asset, workOrder]")
+                .withGraphFetched("[machine, asset, workOrder, reportedBy]")
                 .orderBy("created_at", "desc");
                 
             // Transform MinIO URLs to use the current public URL
