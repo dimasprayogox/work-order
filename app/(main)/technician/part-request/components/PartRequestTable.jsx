@@ -164,12 +164,14 @@ const PartRequestTable = ({ partRequests, loading, onDetail, onDelete, setSelect
         <div className="flex flex-wrap align-items-center justify-content-between gap-3">
             <div className="flex align-items-center gap-3">
                 <span className="text-xl font-bold">Part Requests</span>
-                <Dropdown value={statusFilter} options={statusFilterOptions} onChange={onStatusFilterChange} placeholder="All Status" className="w-full md:w-auto" />
             </div>
-            <span className="p-input-icon-left">
-                <i className="pi pi-search" />
-                <InputText value={globalFilterValue} onChange={onGlobalFilterChange} placeholder="Search" className="w-full md:w-auto" />
-            </span>
+            <div className="flex align-items-center gap-3">
+                <Dropdown value={statusFilter} options={statusFilterOptions} onChange={onStatusFilterChange} placeholder="All Status" className="w-full md:w-auto" />
+                <span className="p-input-icon-left">
+                    <i className="pi pi-search" />
+                    <InputText value={globalFilterValue} onChange={onGlobalFilterChange} placeholder="Search" className="w-full md:w-auto" />
+                </span>
+            </div>
         </div>
     );
 
