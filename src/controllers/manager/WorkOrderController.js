@@ -14,9 +14,91 @@ import { db } from "../../core/config/knex.js";
 export const WorkOrderController = {
   async index(req, res) {
     try {
-      const workOrders = await WorkOrder.query()
-        .withGraphFetched("[machine, assignedTo, createdBy, issue]")
-        .orderBy("created_at", "desc");
+       const userId = req.user.userId;
+
+       // Ambil division_id user dari database
+       const userData = await db("users")
+         .leftJoin("divisions", "users.division_id", "divisions.id")
+         .where("users.id", userId)
+         .select(
+           "users.*",
+           "divisions.id as division_id",
+           "divisions.name as division_name"
+         )
+         .first();
+
+       const userDivisionId = userData?.division_id;
+       const { type } = req.query;
+
+       let query = WorkOrder.query()
+         .withGraphFetched(
+           `[
+          machine.[category], 
+          asset.[category],
+          assignedTo, 
+          createdBy, 
+          issue.[machine.[category], asset.[category]]
+        ]`
+         )
+         .orderBy("created_at", "desc");
+
+       // Filter berdasarkan divisi user
+       if (userDivisionId) {
+         query = query.where(function () {
+           this.whereExists(function () {
+             this.select("*")
+               .from("machines")
+               .whereRaw("machines.id = work_orders.machine_id")
+               .andWhere("machines.division_id", userDivisionId);
+           })
+             .orWhereExists(function () {
+               this.select("*")
+                 .from("assets")
+                 .whereRaw("assets.id = work_orders.asset_id")
+                 .andWhere("assets.division_id", userDivisionId);
+             })
+             .orWhereExists(function () {
+               this.select("*")
+                 .from("issues")
+                 .whereRaw("issues.id = work_orders.issue_id")
+                 .andWhere(function () {
+                   this.whereExists(function () {
+                     this.select("*")
+                       .from("machines")
+                       .whereRaw("machines.id = issues.machine_id")
+                       .andWhere("machines.division_id", userDivisionId);
+                   }).orWhereExists(function () {
+                     this.select("*")
+                       .from("assets")
+                       .whereRaw("assets.id = issues.asset_id")
+                       .andWhere("assets.division_id", userDivisionId);
+                   });
+                 });
+             });
+         });
+       } else {
+         // Jika user tidak memiliki divisi, kembalikan array kosong
+         return res.json({ success: true, data: [] });
+       }
+      if (type) {
+        if (type === "machine") {
+          // Filter for work orders with machines (either direct machine_id or issue.machine_id)
+          query = query.where(function () {
+            this.whereNotNull("machine_id").orWhereExists(
+              WorkOrder.relatedQuery("issue").whereNotNull("machine_id")
+            );
+          });
+        } else if (type === "asset") {
+          // Filter for work orders with assets (either direct asset_id or issue.asset_id)
+          query = query.where(function () {
+            this.whereNotNull("asset_id").orWhereExists(
+              WorkOrder.relatedQuery("issue").whereNotNull("asset_id")
+            );
+          });
+        }
+      }
+
+      const workOrders = await query;
 
       // Add workload and profile photo for each assigned technician
       for (const wo of workOrders) {
@@ -37,6 +119,21 @@ export const WorkOrderController = {
           wo.assignedTo.profile_photo_url =
             userDetail?.profile_photo_url || null;
         }
+
+        // Determine asset type and set appropriate data
+        if (wo.machine_id) {
+          wo.asset_type = "machine";
+          wo.asset_data = wo.machine;
+        } else if (wo.asset_id) {
+          wo.asset_type = "asset";
+          wo.asset_data = wo.asset;
+        } else if (wo.issue && wo.issue.machine_id) {
+          wo.asset_type = "machine";
+          wo.asset_data = wo.issue.machine;
+        } else if (wo.issue && wo.issue.asset_id) {
+          wo.asset_type = "asset";
+          wo.asset_data = wo.issue.asset;
+        }
       }
 
       res.json({ success: true, data: workOrders });
@@ -48,9 +145,13 @@ export const WorkOrderController = {
   async show(req, res) {
     try {
       const { id } = req.params;
-      const workOrder = await WorkOrder.query()
-        .findById(id)
-        .withGraphFetched("[machine, assignedTo, createdBy, issue]");
+      const workOrder = await WorkOrder.query().findById(id).withGraphFetched(`[
+          machine.[category], 
+          asset.[category],
+          assignedTo, 
+          createdBy, 
+          issue.[machine.[category], asset.[category]]
+        ]`);
 
       if (!workOrder) {
         return res
@@ -75,6 +176,21 @@ export const WorkOrderController = {
 
         workOrder.assignedTo.profile_photo_url =
           userDetail?.profile_photo_url || null;
+      }
+
+      // Determine asset type and set appropriate data
+      if (workOrder.machine_id) {
+        workOrder.asset_type = "machine";
+        workOrder.asset_data = workOrder.machine;
+      } else if (workOrder.asset_id) {
+        workOrder.asset_type = "asset";
+        workOrder.asset_data = workOrder.asset;
+      } else if (workOrder.issue && workOrder.issue.machine_id) {
+        workOrder.asset_type = "machine";
+        workOrder.asset_data = workOrder.issue.machine;
+      } else if (workOrder.issue && workOrder.issue.asset_id) {
+        workOrder.asset_type = "asset";
+        workOrder.asset_data = workOrder.issue.asset;
       }
 
       res.json({ success: true, data: workOrder });
@@ -108,7 +224,32 @@ export const WorkOrderController = {
           .where("id", data.issue_id);
       }
 
-      res.status(201).json({ success: true, data: newWO });
+      // Fetch the newly created work order with all relations
+      const createdWO = await WorkOrder.query().findById(newWOId)
+        .withGraphFetched(`[
+          machine.[category], 
+          asset.[category],
+          assignedTo, 
+          createdBy, 
+          issue.[machine.[category], asset.[category]]
+        ]`);
+
+      // Determine asset type and set appropriate data
+      if (createdWO.machine_id) {
+        createdWO.asset_type = "machine";
+        createdWO.asset_data = createdWO.machine;
+      } else if (createdWO.asset_id) {
+        createdWO.asset_type = "asset";
+        createdWO.asset_data = createdWO.asset;
+      } else if (createdWO.issue && createdWO.issue.machine_id) {
+        createdWO.asset_type = "machine";
+        createdWO.asset_data = createdWO.issue.machine;
+      } else if (createdWO.issue && createdWO.issue.asset_id) {
+        createdWO.asset_type = "asset";
+        createdWO.asset_data = createdWO.issue.asset;
+      }
+
+      res.status(201).json({ success: true, data: createdWO });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
     }
@@ -147,9 +288,36 @@ export const WorkOrderController = {
 
       await WorkOrder.query().patchAndFetchById(id, data);
 
-      const updatedWOWithRelations = await WorkOrder.query()
-        .findById(id)
-        .withGraphFetched("[machine, assignedTo, createdBy, issue]");
+      const updatedWOWithRelations = await WorkOrder.query().findById(id)
+        .withGraphFetched(`[
+          machine.[category], 
+          asset.[category],
+          assignedTo, 
+          createdBy, 
+          issue.[machine.[category], asset.[category]]
+        ]`);
+
+      // Determine asset type and set appropriate data
+      if (updatedWOWithRelations.machine_id) {
+        updatedWOWithRelations.asset_type = "machine";
+        updatedWOWithRelations.asset_data = updatedWOWithRelations.machine;
+      } else if (updatedWOWithRelations.asset_id) {
+        updatedWOWithRelations.asset_type = "asset";
+        updatedWOWithRelations.asset_data = updatedWOWithRelations.asset;
+      } else if (
+        updatedWOWithRelations.issue &&
+        updatedWOWithRelations.issue.machine_id
+      ) {
+        updatedWOWithRelations.asset_type = "machine";
+        updatedWOWithRelations.asset_data =
+          updatedWOWithRelations.issue.machine;
+      } else if (
+        updatedWOWithRelations.issue &&
+        updatedWOWithRelations.issue.asset_id
+      ) {
+        updatedWOWithRelations.asset_type = "asset";
+        updatedWOWithRelations.asset_data = updatedWOWithRelations.issue.asset;
+      }
 
       res.json({ success: true, data: updatedWOWithRelations });
     } catch (err) {
@@ -227,8 +395,29 @@ export const WorkOrderController = {
       const now = new Date().toISOString();
       const overdue = await WorkOrder.query()
         .where("scheduled_date", "<", now)
-        .whereNot("status", "completed")
-        .withGraphFetched("[machine, assignedTo]");
+        .whereNot("status", "completed").withGraphFetched(`[
+          machine.[category], 
+          asset.[category],
+          assignedTo, 
+          issue.[machine.[category], asset.[category]]
+        ]`);
+
+      // Determine asset type and set appropriate data for each overdue work order
+      for (const wo of overdue) {
+        if (wo.machine_id) {
+          wo.asset_type = "machine";
+          wo.asset_data = wo.machine;
+        } else if (wo.asset_id) {
+          wo.asset_type = "asset";
+          wo.asset_data = wo.asset;
+        } else if (wo.issue && wo.issue.machine_id) {
+          wo.asset_type = "machine";
+          wo.asset_data = wo.issue.machine;
+        } else if (wo.issue && wo.issue.asset_id) {
+          wo.asset_type = "asset";
+          wo.asset_data = wo.issue.asset;
+        }
+      }
 
       res.json({ success: true, data: overdue });
     } catch (err) {
@@ -369,15 +558,36 @@ export const WorkOrderController = {
       }
 
       // Update work order
-      const updatedWorkOrder = await WorkOrder.query()
-        .patchAndFetchById(work_order_id, {
+      const updatedWorkOrder = await WorkOrder.query().patchAndFetchById(
+        work_order_id,
+        {
           assigned_to_id,
           priority: priority || workOrder.priority,
           scheduled_date,
           notes,
           status: "pending",
-        })
-        .withGraphFetched("[assignedTo, machine, issue]");
+        }
+      ).withGraphFetched(`[
+          machine.[category], 
+          asset.[category],
+          assignedTo, 
+          issue.[machine.[category], asset.[category]]
+        ]`);
+
+      // Determine asset type and set appropriate data
+      if (updatedWorkOrder.machine_id) {
+        updatedWorkOrder.asset_type = "machine";
+        updatedWorkOrder.asset_data = updatedWorkOrder.machine;
+      } else if (updatedWorkOrder.asset_id) {
+        updatedWorkOrder.asset_type = "asset";
+        updatedWorkOrder.asset_data = updatedWorkOrder.asset;
+      } else if (updatedWorkOrder.issue && updatedWorkOrder.issue.machine_id) {
+        updatedWorkOrder.asset_type = "machine";
+        updatedWorkOrder.asset_data = updatedWorkOrder.issue.machine;
+      } else if (updatedWorkOrder.issue && updatedWorkOrder.issue.asset_id) {
+        updatedWorkOrder.asset_type = "asset";
+        updatedWorkOrder.asset_data = updatedWorkOrder.issue.asset;
+      }
 
       res.json({
         success: true,
@@ -418,7 +628,33 @@ export const WorkOrderController = {
               scheduled_date: assignment.scheduled_date,
               status: "pending",
             }
-          );
+          ).withGraphFetched(`[
+              machine.[category], 
+              asset.[category],
+              assignedTo, 
+              issue.[machine.[category], asset.[category]]
+            ]`);
+
+          // Determine asset type and set appropriate data
+          if (updatedWorkOrder.machine_id) {
+            updatedWorkOrder.asset_type = "machine";
+            updatedWorkOrder.asset_data = updatedWorkOrder.machine;
+          } else if (updatedWorkOrder.asset_id) {
+            updatedWorkOrder.asset_type = "asset";
+            updatedWorkOrder.asset_data = updatedWorkOrder.asset;
+          } else if (
+            updatedWorkOrder.issue &&
+            updatedWorkOrder.issue.machine_id
+          ) {
+            updatedWorkOrder.asset_type = "machine";
+            updatedWorkOrder.asset_data = updatedWorkOrder.issue.machine;
+          } else if (
+            updatedWorkOrder.issue &&
+            updatedWorkOrder.issue.asset_id
+          ) {
+            updatedWorkOrder.asset_type = "asset";
+            updatedWorkOrder.asset_data = updatedWorkOrder.issue.asset;
+          }
 
           results.push({
             work_order_id: assignment.work_order_id,
@@ -469,13 +705,31 @@ export const WorkOrderController = {
         });
       }
 
-      const updatedWorkOrder = await WorkOrder.query()
-        .patchAndFetchById(id, {
-          assigned_to_id: new_assigned_to_id,
-          priority: priority || workOrder.priority,
-          notes: reason,
-        })
-        .withGraphFetched("[assignedTo, machine, issue]");
+      const updatedWorkOrder = await WorkOrder.query().patchAndFetchById(id, {
+        assigned_to_id: new_assigned_to_id,
+        priority: priority || workOrder.priority,
+        notes: reason,
+      }).withGraphFetched(`[
+          machine.[category], 
+          asset.[category],
+          assignedTo, 
+          issue.[machine.[category], asset.[category]]
+        ]`);
+
+      // Determine asset type and set appropriate data
+      if (updatedWorkOrder.machine_id) {
+        updatedWorkOrder.asset_type = "machine";
+        updatedWorkOrder.asset_data = updatedWorkOrder.machine;
+      } else if (updatedWorkOrder.asset_id) {
+        updatedWorkOrder.asset_type = "asset";
+        updatedWorkOrder.asset_data = updatedWorkOrder.asset;
+      } else if (updatedWorkOrder.issue && updatedWorkOrder.issue.machine_id) {
+        updatedWorkOrder.asset_type = "machine";
+        updatedWorkOrder.asset_data = updatedWorkOrder.issue.machine;
+      } else if (updatedWorkOrder.issue && updatedWorkOrder.issue.asset_id) {
+        updatedWorkOrder.asset_type = "asset";
+        updatedWorkOrder.asset_data = updatedWorkOrder.issue.asset;
+      }
 
       res.json({
         success: true,
@@ -504,12 +758,29 @@ export const WorkOrderController = {
         });
       }
 
-      const updatedWorkOrder = await WorkOrder.query()
-        .patchAndFetchById(id, {
-          assigned_to_id: null,
-          status: "pending",
-        })
-        .withGraphFetched("[machine, issue]");
+      const updatedWorkOrder = await WorkOrder.query().patchAndFetchById(id, {
+        assigned_to_id: null,
+        status: "pending",
+      }).withGraphFetched(`[
+          machine.[category], 
+          asset.[category],
+          issue.[machine.[category], asset.[category]]
+        ]`);
+
+      // Determine asset type and set appropriate data
+      if (updatedWorkOrder.machine_id) {
+        updatedWorkOrder.asset_type = "machine";
+        updatedWorkOrder.asset_data = updatedWorkOrder.machine;
+      } else if (updatedWorkOrder.asset_id) {
+        updatedWorkOrder.asset_type = "asset";
+        updatedWorkOrder.asset_data = updatedWorkOrder.asset;
+      } else if (updatedWorkOrder.issue && updatedWorkOrder.issue.machine_id) {
+        updatedWorkOrder.asset_type = "machine";
+        updatedWorkOrder.asset_data = updatedWorkOrder.issue.machine;
+      } else if (updatedWorkOrder.issue && updatedWorkOrder.issue.asset_id) {
+        updatedWorkOrder.asset_type = "asset";
+        updatedWorkOrder.asset_data = updatedWorkOrder.issue.asset;
+      }
 
       res.json({
         success: true,

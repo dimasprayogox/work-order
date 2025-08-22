@@ -1,11 +1,11 @@
-import { Machine } from "../../models/Machine.js";
+import { Asset } from "../../models/Asset.js";
 import { db } from "../../core/config/knex.js";
 
-export const MachineController = {
+export const AssetController = {
   async index(req, res) {
     try {
       const userId = req.user.userId;
-     
+
       const userData = await db("users")
         .leftJoin("divisions", "users.division_id", "divisions.id")
         .where("users.id", userId)
@@ -17,18 +17,18 @@ export const MachineController = {
         .first();
 
       const userDivisionId = userData?.division_id;
-    
-      let query = Machine.query()
+
+      let query = Asset.query()
         .withGraphFetched("category")
         .orderBy("name", "asc");
-     if (userDivisionId) {
+
+      if (userDivisionId) {
         query = query.where("division_id", userDivisionId);
-        } else {
+      } else {
         return res.json({ success: true, data: [] });
       }
 
       const machines = await query;
-
       res.json({ success: true, data: machines });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
