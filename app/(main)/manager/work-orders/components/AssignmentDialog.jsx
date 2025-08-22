@@ -10,7 +10,7 @@ import { Tag } from "primereact/tag";
 import { Avatar } from "primereact/avatar";
 import { Divider } from "primereact/divider";
 import { classNames } from "primereact/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const AssignmentDialog = ({
     visible,
@@ -30,17 +30,22 @@ const AssignmentDialog = ({
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
 
+    const [tempDate, setTempDate] = useState(null);
+        const calendarRef = useRef(null);
+
     const isReassignment = workOrder?.assigned_to_id;
 
     useEffect(() => {
         if (workOrder && visible) {
+            const  scheduleDate = workOrder.scheduled_date ? new Date(workOrder.scheduled_date) : null;
             setForm({
                 assigned_to_id: workOrder.assigned_to_id || "",
                 priority: workOrder.priority || "medium",
-                scheduled_date: workOrder.scheduled_date ? new Date(workOrder.scheduled_date) : null,
+                scheduled_date: scheduleDate,
                 notes: workOrder.notes || "",
                 reason: ""
             });
+            setTempDate(null);
         } else {
             setForm({
                 assigned_to_id: "",
@@ -49,6 +54,7 @@ const AssignmentDialog = ({
                 notes: "",
                 reason: ""
             });
+            setTempDate(null);
         }
         setSubmitted(false);
     }, [workOrder, visible]);
@@ -180,17 +186,21 @@ const AssignmentDialog = ({
 
     if (!workOrder) return null;
 
+     const handleApplyDate = () => {
+            handleChange("next_due_date", tempDate);
+            calendarRef.current?.hide();
+        };
+    
+       const calendarFooterTemplate = () => (
+           <div>
+               <div className="flex justify-start w-full gap-2">
+                        <Button label="Submit" icon="pi pi-check" onClick={handleApplyDate} />
+               </div>
+           </div>
+       );
+
     return (
-        <Dialog
-            header={isReassignment ? "Reassign Work Order" : "Assign Work Order"}
-            visible={visible}
-            style={{ width: "50rem" }}
-            breakpoints={{ "960px": "75vw", "641px": "90vw" }}
-            onHide={onHide}
-            modal
-            className="p-fluid"
-            footer={footerContent}
-        >
+        <Dialog header={isReassignment ? "Reassign Work Order" : "Assign Work Order"} visible={visible} style={{ width: "50rem" }} breakpoints={{ "960px": "75vw", "641px": "90vw" }} onHide={onHide} modal className="p-fluid" footer={footerContent}>
             {/* Work Order Info */}
             <div className="mb-4 p-3 border-1 border-gray-300 border-round bg-gray-50">
                 <h4 className="mt-0 mb-2">Work Order Details</h4>
@@ -199,23 +209,38 @@ const AssignmentDialog = ({
                         <strong>Title:</strong> {workOrder.title}
                     </div>
                     <div className="col-12 md:col-6">
-                        <strong>Machine:</strong> {workOrder.machine?.name || 'N/A'}
+                        <strong>Machine/Asset:</strong>
+                        {workOrder.machine ? (
+                            <span className="ml-1 flex align-items-center gap-1">
+                                <i className="pi pi-cog text-blue-500"></i>
+                                {workOrder.machine.name}
+                            </span>
+                        ) : workOrder.asset ? (
+                            <span className="ml-1 flex align-items-center gap-1">
+                                <i className="pi pi-box text-green-500"></i>
+                                {workOrder.asset.name}
+                            </span>
+                        ) : workOrder.issue?.machine ? (
+                            <span className="ml-1 flex align-items-center gap-1">
+                                <i className="pi pi-cog text-blue-500"></i>
+                                {workOrder.issue.machine.name} (from Issue)
+                            </span>
+                        ) : workOrder.issue?.asset ? (
+                            <span className="ml-1 flex align-items-center gap-1">
+                                <i className="pi pi-box text-green-500"></i>
+                                {workOrder.issue.asset.name} (from Issue)
+                            </span>
+                        ) : (
+                            " N/A"
+                        )}
                     </div>
                     <div className="col-12 md:col-6">
                         <strong>Status:</strong>
-                        <Tag
-                            value={workOrder.status?.toUpperCase()}
-                            severity={workOrder.status === 'pending' ? 'warning' : 'info'}
-                            className="ml-2"
-                        />
+                        <Tag value={workOrder.status?.toUpperCase()} severity={workOrder.status === "pending" ? "warning" : "info"} className="ml-2" />
                     </div>
                     <div className="col-12 md:col-6">
                         <strong>Current Priority:</strong>
-                        <Tag
-                            value={workOrder.priority?.toUpperCase() || 'MEDIUM'}
-                            severity={workOrder.priority === 'high' ? 'danger' : workOrder.priority === 'low' ? 'success' : 'warning'}
-                            className="ml-2"
-                        />
+                        <Tag value={workOrder.priority?.toUpperCase() || "MEDIUM"} severity={workOrder.priority === "high" ? "danger" : workOrder.priority === "low" ? "success" : "warning"} className="ml-2" />
                     </div>
                 </div>
                 {workOrder.description && (
@@ -231,17 +256,10 @@ const AssignmentDialog = ({
                 <div className="mb-4 p-3 border-1 border-blue-300 border-round bg-blue-50">
                     <h5 className="mt-0 mb-2 text-blue-800">Currently Assigned To:</h5>
                     <div className="flex align-items-center gap-2">
-                        <Avatar
-                            image={currentTechnician.profile_photo_url}
-                            label={currentTechnician.full_name?.charAt(0)}
-                            size="normal"
-                            style={{ backgroundColor: '#2196F3', color: '#ffffff' }}
-                        />
+                        <Avatar image={currentTechnician.profile_photo_url} label={currentTechnician.full_name?.charAt(0)} size="normal" style={{ backgroundColor: "#2196F3", color: "#ffffff" }} />
                         <div>
                             <div className="font-medium text-blue-800">{currentTechnician.full_name}</div>
-                            <div className="text-sm text-blue-600">
-                                Workload: {currentTechnician.current_workload || 0} work orders
-                            </div>
+                            <div className="text-sm text-blue-600">Workload: {currentTechnician.current_workload || 0} work orders</div>
                         </div>
                     </div>
                 </div>
@@ -251,7 +269,7 @@ const AssignmentDialog = ({
                 {/* Technician Selection */}
                 <div className="field col-12">
                     <label htmlFor="assigned_to_id" className="font-medium">
-                        {isReassignment ? 'Reassign to Technician' : 'Assign to Technician'}
+                        {isReassignment ? "Reassign to Technician" : "Assign to Technician"}
                         <span className="text-red-500">*</span>
                     </label>
                     <Dropdown
@@ -265,9 +283,7 @@ const AssignmentDialog = ({
                         itemTemplate={technicianItemTemplate}
                         className={classNames({ "p-invalid": submitted && !form.assigned_to_id })}
                     />
-                    {submitted && !form.assigned_to_id && (
-                        <small className="p-error">Technician is required</small>
-                    )}
+                    {submitted && !form.assigned_to_id && <small className="p-error">Technician is required</small>}
                 </div>
 
                 {/* Selected Technician Preview */}
@@ -287,11 +303,7 @@ const AssignmentDialog = ({
                                 </div>
                                 <div className="col-12 md:col-6">
                                     <strong>Current Workload:</strong>
-                                    <Tag
-                                        value={`${selectedTechnician.current_workload || 0} WO`}
-                                        severity={selectedTechnician.current_workload > 3 ? 'danger' : selectedTechnician.current_workload > 1 ? 'warning' : 'success'}
-                                        className="ml-2"
-                                    />
+                                    <Tag value={`${selectedTechnician.current_workload || 0} WO`} severity={selectedTechnician.current_workload > 3 ? "danger" : selectedTechnician.current_workload > 1 ? "warning" : "success"} className="ml-2" />
                                 </div>
                             </div>
                         </div>
@@ -300,29 +312,31 @@ const AssignmentDialog = ({
 
                 {/* Priority */}
                 <div className="field col-12 md:col-6">
-                    <label htmlFor="priority" className="font-medium">Priority</label>
-                    <Dropdown
-                        id="priority"
-                        value={form.priority}
-                        options={priorityOptions}
-                        onChange={(e) => handleChange("priority", e.value)}
-                        placeholder="Select priority"
-                    />
+                    <label htmlFor="priority" className="font-medium">
+                        Priority
+                    </label>
+                    <Dropdown id="priority" value={form.priority} options={priorityOptions} onChange={(e) => handleChange("priority", e.value)} placeholder="Select priority" />
                 </div>
 
                 {/* Scheduled Date */}
                 <div className="field col-12 md:col-6">
-                    <label htmlFor="scheduled_date" className="font-medium">Scheduled Date</label>
+                    <label htmlFor="scheduled_date" className="font-medium">
+                        Scheduled Date
+                    </label>
                     <Calendar
-                        id="scheduled_date"
-                        value={form.scheduled_date}
-                        onChange={(e) => handleChange("scheduled_date", e.value)}
+                        id="next_due_date"
+                        ref={calendarRef}
+                        value={tempDate}
+                        onChange={(e) => setTempDate(e.value)}
                         showTime
                         hourFormat="24"
-                        placeholder="Select date and time"
-                        minDate={new Date()}
-                        showIcon
+                        placeholder="Select due date"
+                        dateFormat="dd/mm/yy"
+                        showButtonBar
+                        footerTemplate={calendarFooterTemplate}
+                        className={classNames({ "p-invalid": submitted && !form.next_due_date })}
                     />
+                    {submitted && !form.next_due_date && <small className="p-error">Next due date is required</small>}
                 </div>
 
                 {/* Reason (for reassignment) */}
@@ -339,24 +353,16 @@ const AssignmentDialog = ({
                             rows={3}
                             className={classNames({ "p-invalid": submitted && !form.reason.trim() })}
                         />
-                        {submitted && !form.reason.trim() && (
-                            <small className="p-error">Reason is required for reassignment</small>
-                        )}
+                        {submitted && !form.reason.trim() && <small className="p-error">Reason is required for reassignment</small>}
                     </div>
                 )}
 
                 {/* Notes */}
                 <div className="field col-12">
                     <label htmlFor="notes" className="font-medium">
-                        {isReassignment ? 'Additional Notes' : 'Notes'}
+                        {isReassignment ? "Additional Notes" : "Notes"}
                     </label>
-                    <InputTextarea
-                        id="notes"
-                        value={form.notes}
-                        onChange={(e) => handleChange("notes", e.target.value)}
-                        placeholder="Add any additional notes or instructions"
-                        rows={3}
-                    />
+                    <InputTextarea id="notes" value={form.notes} onChange={(e) => handleChange("notes", e.target.value)} placeholder="Add any additional notes or instructions" rows={3} />
                 </div>
             </div>
         </Dialog>
