@@ -236,6 +236,7 @@ const BulkAssignmentDialog = ({
             hourFormat="24"
             placeholder="Select date"
             className="w-full"
+            showButtonBar
             minDate={new Date()}
         />
     );
@@ -275,33 +276,14 @@ const BulkAssignmentDialog = ({
     );
 
     return (
-        <Dialog
-            header="Bulk Assignment"
-            visible={visible}
-            style={{ width: "90vw", height: "80vh" }}
-            onHide={onHide}
-            modal
-            maximizable
-            footer={footerContent}
-        >
+        <Dialog header="Bulk Assignment" visible={visible} style={{ width: "90vw", height: "80vh" }} onHide={onHide} modal maximizable footer={footerContent}>
             {/* Global Settings */}
             <div className="mb-4 p-3 border-1 border-blue-300 border-round bg-blue-50">
                 <div className="flex justify-content-between align-items-center mb-3">
                     <h5 className="mt-0 mb-0 text-blue-800">Global Assignment Settings</h5>
                     <div className="flex gap-2">
-                        <Button
-                            label="Auto-assign by Workload"
-                            icon="pi pi-bolt"
-                            size="small"
-                            onClick={autoAssignByWorkload}
-                            className="p-button-outlined"
-                        />
-                        <Button
-                            label="Apply to All"
-                            icon="pi pi-copy"
-                            size="small"
-                            onClick={applyGlobalSettings}
-                        />
+                        <Button label="Auto-assign by Workload" icon="pi pi-bolt" size="small" onClick={autoAssignByWorkload} className="p-button-outlined" />
+                        <Button label="Apply to All" icon="pi pi-copy" size="small" onClick={applyGlobalSettings} />
                     </div>
                 </div>
 
@@ -311,9 +293,12 @@ const BulkAssignmentDialog = ({
                         <Dropdown
                             value={globalAssignment.assigned_to_id}
                             options={technicianOptions}
-                            onChange={(e) => setGlobalAssignment(prev => ({
-                                ...prev, assigned_to_id: e.value
-                            }))}
+                            onChange={(e) =>
+                                setGlobalAssignment((prev) => ({
+                                    ...prev,
+                                    assigned_to_id: e.value
+                                }))
+                            }
                             placeholder="Select technician"
                             className="w-full"
                             filter
@@ -324,9 +309,12 @@ const BulkAssignmentDialog = ({
                         <Dropdown
                             value={globalAssignment.priority}
                             options={priorityOptions}
-                            onChange={(e) => setGlobalAssignment(prev => ({
-                                ...prev, priority: e.value
-                            }))}
+                            onChange={(e) =>
+                                setGlobalAssignment((prev) => ({
+                                    ...prev,
+                                    priority: e.value
+                                }))
+                            }
                             placeholder="Select priority"
                             className="w-full"
                         />
@@ -335,13 +323,17 @@ const BulkAssignmentDialog = ({
                         <label className="block text-sm font-medium mb-1">Scheduled Date</label>
                         <Calendar
                             value={globalAssignment.scheduled_date}
-                            onChange={(e) => setGlobalAssignment(prev => ({
-                                ...prev, scheduled_date: e.value
-                            }))}
+                            onChange={(e) =>
+                                setGlobalAssignment((prev) => ({
+                                    ...prev,
+                                    scheduled_date: e.value
+                                }))
+                            }
                             showTime
                             hourFormat="24"
                             placeholder="Select date"
                             className="w-full"
+                            showButtonBar
                             minDate={new Date()}
                         />
                     </div>
@@ -352,14 +344,14 @@ const BulkAssignmentDialog = ({
             <div className="mb-4">
                 <h5>Technician Workload Summary</h5>
                 <div className="flex flex-wrap gap-2">
-                    {technicians.map(tech => (
+                    {technicians.map((tech) => (
                         <Chip
                             key={tech.id}
                             label={`${tech.full_name}: ${tech.current_workload || 0} WO`}
                             className={classNames({
-                                'bg-green-100 text-green-800': (tech.current_workload || 0) <= 1,
-                                'bg-yellow-100 text-yellow-800': (tech.current_workload || 0) > 1 && (tech.current_workload || 0) <= 3,
-                                'bg-red-100 text-red-800': (tech.current_workload || 0) > 3
+                                "bg-green-100 text-green-800": (tech.current_workload || 0) <= 1,
+                                "bg-yellow-100 text-yellow-800": (tech.current_workload || 0) > 1 && (tech.current_workload || 0) <= 3,
+                                "bg-red-100 text-red-800": (tech.current_workload || 0) > 3
                             })}
                         />
                     ))}
@@ -367,43 +359,13 @@ const BulkAssignmentDialog = ({
             </div>
 
             {/* Assignment Table */}
-            <DataTable
-                value={assignments}
-                scrollable
-                scrollHeight="400px"
-                className="border-round"
-                emptyMessage="No work orders to assign"
-            >
-                <Column
-                    header="Work Order"
-                    body={workOrderTemplate}
-                    style={{ minWidth: '200px' }}
-                />
-                <Column
-                    header="Status"
-                    body={statusTemplate}
-                    style={{ minWidth: '100px' }}
-                />
-                <Column
-                    header="Current Assignment"
-                    body={assignedTechTemplate}
-                    style={{ minWidth: '180px' }}
-                />
-                <Column
-                    header="Assign To"
-                    body={technicianDropdownTemplate}
-                    style={{ minWidth: '200px' }}
-                />
-                <Column
-                    header="Priority"
-                    body={priorityDropdownTemplate}
-                    style={{ minWidth: '120px' }}
-                />
-                <Column
-                    header="Schedule"
-                    body={scheduleDateTemplate}
-                    style={{ minWidth: '180px' }}
-                />
+            <DataTable value={assignments} scrollable scrollHeight="400px" className="border-round" emptyMessage="No work orders to assign">
+                <Column header="Work Order" body={workOrderTemplate} style={{ minWidth: "200px" }} />
+                <Column header="Status" body={statusTemplate} style={{ minWidth: "100px" }} />
+                <Column header="Current Assignment" body={assignedTechTemplate} style={{ minWidth: "180px" }} />
+                <Column header="Assign To" body={technicianDropdownTemplate} style={{ minWidth: "200px" }} />
+                <Column header="Priority" body={priorityDropdownTemplate} style={{ minWidth: "120px" }} />
+                <Column header="Schedule" body={scheduleDateTemplate} style={{ minWidth: "180px" }} />
             </DataTable>
         </Dialog>
     );
