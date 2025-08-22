@@ -164,8 +164,8 @@ export const WorkOrderController = {
                 status,
                 // Do not overwrite original description unless provided explicitly
                 ...(typeof description !== 'undefined' && { description }),
-                // Technician note: append or set notes field
-                ...(typeof notes !== 'undefined' && { notes }),
+                // Always save notes if provided (even if empty string)
+                ...(notes !== undefined && { notes }),
                 started_at: status === "in_progress" ? started_at : workOrder.started_at,
                 completed_at: status === "completed" ? completed_at : null,
                 // persist repairable flag if provided
