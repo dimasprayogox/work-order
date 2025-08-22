@@ -84,6 +84,7 @@ export default function TechnicianWorkOrderPage() {
             const res = await fetch("/api/technician/work-orders");
             if (!res.ok) throw new Error((await res.json()).message || "Failed to fetch data.");
             const result = await res.json();
+            console.log("Work orders received:", result.data); // Debug log
             setWorkOrders(result.data || []);
         } catch (err) {
             showToast("error", "Error", err.message);

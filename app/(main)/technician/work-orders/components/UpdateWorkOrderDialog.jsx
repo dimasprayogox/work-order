@@ -50,7 +50,7 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
                 // Set default start/completion time to now if not already set
                 started_at: workOrder.started_at ? new Date(workOrder.started_at) : (nextStatus === 'in_progress' ? new Date() : null),
                 completed_at: workOrder.completed_at ? new Date(workOrder.completed_at) : (nextStatus === 'completed' ? new Date() : null),
-                // Preserve existing repairable value or default to true
+                // Initialize repairable from existing data or default to true
                 repairable: typeof workOrder.repairable === 'boolean' ? workOrder.repairable : true,
             });
             setFormErrors({}); // Reset errors on pending
@@ -157,8 +157,8 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
                 // Conditionally add dates to payload only if they exist
                 ...(formData.status === 'in_progress' && formData.started_at && { started_at: formData.started_at.toISOString() }),
                 ...(formData.status === 'completed' && formData.completed_at && { completed_at: formData.completed_at.toISOString() }),
-            // Include repairable status in the payload when completed
-            ...(formData.status === 'completed' && { repairable: formData.repairable }),
+                // Always include repairable status in the payload
+                repairable: formData.repairable,
             };
 
             const response = await fetch(`/api/technician/work-orders/${workOrder.id}`, {
@@ -168,6 +168,7 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
             });
 
             const result = await response.json();
+            console.log("Update response:", result); // Debug log
             if (!response.ok) {
                 throw new Error(result.message || "Failed to update work order.");
             }
