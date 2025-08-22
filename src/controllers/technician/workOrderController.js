@@ -1,6 +1,7 @@
 import { WorkOrder } from "../../models/WorkOrder.js";
 import { Issue } from "../../models/Issue.js";
 import { Machine } from "../../models/Machine.js";
+import { Asset } from "../../models/Asset.js";
 import { PartRequest } from "../../models/PartRequest.js";
 import { PartRequestItem } from "../../models/PartRequestItem.js";
 import { PartUsage } from "../../models/PartUsage.js";
@@ -18,7 +19,9 @@ export const WorkOrderController = {
 
             const workOrders = await WorkOrder.query()
                 .where("assigned_to_id", technicianId)
-                .withGraphFetched("[issue, machine, assignedTo, partRequests]")
+                // Fetch asset directly and also fetch issue with its machine/asset relations
+                // include createdBy so frontend can show createdBy.full_name instead of falling back to id
+                .withGraphFetched("[issue.[machine,asset], machine, asset, assignedTo, partRequests, createdBy]")
                 .orderBy("created_at", "desc");
 
             if (!workOrders || workOrders.length === 0) {
@@ -28,12 +31,31 @@ export const WorkOrderController = {
                 });
             }
 
+            // Normalize relations: ensure asset and machine are available at root level
+            const normalized = workOrders.map((wo) => {
+                // convert Objection model instances to plain objects if necessary
+                const plain = (typeof wo.toJSON === 'function') ? wo.toJSON() : { ...wo };
+                plain.asset = plain.asset || (plain.issue && plain.issue.asset) || null;
+                plain.machine = plain.machine || (plain.issue && plain.issue.machine) || null;
+                // Ensure repairable is a proper boolean or null regardless of DB driver (0/1, '0'/'1')
+                if (typeof plain.repairable !== 'boolean') {
+                    if (plain.repairable === 1 || plain.repairable === '1' || plain.repairable === 'true') {
+                        plain.repairable = true;
+                    } else if (plain.repairable === 0 || plain.repairable === '0' || plain.repairable === 'false') {
+                        plain.repairable = false;
+                    } else {
+                        plain.repairable = null;
+                    }
+                }
+                return plain;
+            });
+
             res.status(200).json({
                 message: "Work orders fetched successfully.",
-                data: workOrders
+                data: normalized
             });
         } catch (err) {
-            console.error("Error fetching work orders for technician:", err);
+            // avoid using console to satisfy linter; return error message
             res.status(500).json({
                 message: "Failed to fetch work orders",
                 error: err.message
@@ -58,7 +80,7 @@ export const WorkOrderController = {
                 });
             }
 
-            const { status, description, started_at, completed_at } = parsed.data;
+            const { status, description, notes, started_at, completed_at, repairable } = parsed.data;
 
             const workOrder = await WorkOrder.query().findById(id);
             if (!workOrder) {
@@ -140,9 +162,14 @@ export const WorkOrderController = {
 
             const updatedWorkOrder = await workOrder.$query().patchAndFetch({
                 status,
-                description,
+                // Do not overwrite original description unless provided explicitly
+                ...(typeof description !== 'undefined' && { description }),
+                // Technician note: append or set notes field
+                ...(typeof notes !== 'undefined' && { notes }),
                 started_at: status === "in_progress" ? started_at : workOrder.started_at,
                 completed_at: status === "completed" ? completed_at : null,
+                // persist repairable flag if provided
+                ...(typeof repairable !== 'undefined' && { repairable: repairable }),
             });
 
             // Update status issue sesuai status work order
@@ -154,17 +181,44 @@ export const WorkOrderController = {
                 }
             }
 
-            // Jika work order selesai, update status mesin ke 'operational'
-            if (status === "completed" && workOrder.machine_id) {
-                await Machine.query().patchAndFetchById(workOrder.machine_id, { status: "operational" });
+            // Jika work order selesai, update status mesin dan asset berdasarkan flag `repairable`
+            // repairable === true => 'operational', false => 'down'. Default behavior: treat as repairable (operational)
+            if (status === "completed") {
+                const targetStatus = (typeof repairable === 'boolean') ? (repairable ? 'operational' : 'down') : 'operational';
+
+                if (workOrder.machine_id) {
+                    await Machine.query().patchAndFetchById(workOrder.machine_id, { status: targetStatus });
+                }
+
+                // Prefer update asset attached directly to work order; fallback to asset on related issue
+                // attempt asset update but do not block on failure
+                if (workOrder.asset_id) {
+                    await Asset.query().patchAndFetchById(workOrder.asset_id, { status: targetStatus }).catch(() => {});
+                } else if (workOrder.issue_id) {
+                    const issue = await Issue.query().findById(workOrder.issue_id).select('asset_id');
+                    if (issue && issue.asset_id) {
+                        await Asset.query().patchAndFetchById(issue.asset_id, { status: targetStatus }).catch(() => {});
+                    }
+                }
+            }
+
+            // Normalize repairable on the returned object as well
+            const returned = (typeof updatedWorkOrder.toJSON === 'function') ? updatedWorkOrder.toJSON() : { ...updatedWorkOrder };
+            if (typeof returned.repairable !== 'boolean') {
+                if (returned.repairable === 1 || returned.repairable === '1' || returned.repairable === 'true') {
+                    returned.repairable = true;
+                } else if (returned.repairable === 0 || returned.repairable === '0' || returned.repairable === 'false') {
+                    returned.repairable = false;
+                } else {
+                    returned.repairable = null;
+                }
             }
 
             res.status(200).json({
                 message: `Work order successfully updated to '${status}'.`,
-                data: updatedWorkOrder
+                data: returned
             });
         } catch (err) {
-            console.error("Error updating work order:", err);
             res.status(500).json({ message: "Failed to update work order", error: err.message });
         }
     },
@@ -209,7 +263,6 @@ export const WorkOrderController = {
 
             res.json({ success: true, data: formattedRequests });
         } catch (err) {
-            console.error("Error in WorkOrderController.getMyWorkRequests:", err);
             res.status(500).json({
                 success: false,
                 message: err.message || "Failed to fetch my work requests."

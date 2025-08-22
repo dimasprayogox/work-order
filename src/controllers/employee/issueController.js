@@ -108,7 +108,7 @@ export const IssueController = {
             // Update machine or asset status to down/maintenance
             if (machine_id) {
                 await Machine.query().patchAndFetchById(machine_id, {
-                    status: "down",
+                    status: "maintenance",
                 });
             } else if (asset_id) {
                 await Asset.query().patchAndFetchById(asset_id, {
@@ -150,8 +150,16 @@ export const IssueController = {
 
     async getAll(req, res) {
         try {
+            // Only return issues reported by the authenticated user
+            if (!req.user || !req.user.userId) {
+                return res.status(401).json({ message: "Unauthorized: You must be logged in to view issues." });
+            }
+
+            const userId = req.user.userId;
+
             const issues = await Issue.query()
-                .withGraphFetched("[machine, asset, workOrder]")
+                .where('reported_by_id', userId)
+                .withGraphFetched("[machine, asset, workOrder, reportedBy]")
                 .orderBy("created_at", "desc");
                 
             // Transform MinIO URLs to use the current public URL

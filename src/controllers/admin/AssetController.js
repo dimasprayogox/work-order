@@ -29,11 +29,16 @@ export const AssetController = {
         return res.status(400).json({ success: false, message: 'Validation failed', errors: parsed.error.flatten().fieldErrors });
       }
 
-      const { asset_code, name, location, status, category_id, division_id, type } = parsed.data;
-      const now = new Date();
-      const newAsset = await Asset.query().insert({ id: uuidv4(), asset_code, name, location, status, category_id, division_id, type, created_at: now, updated_at: now });
+      const newAsset = await Asset.query().insert({
+        id: uuidv4(),
+        ...parsed.data,
+        created_at: new Date(),
+        updated_at: new Date()
+      });
 
-      res.status(201).json({ success: true, message: 'Asset created', data: newAsset });
+      const assetWithRelations = await Asset.query().findById(newAsset.id).withGraphFetched('[category, division]');
+
+      res.status(201).json({ success: true, message: 'Asset created', data: assetWithRelations });
     } catch (err) {
       res.status(500).json({ success: false, message: 'Failed to create asset', error: err.message });
     }
@@ -46,10 +51,20 @@ export const AssetController = {
         return res.status(400).json({ success: false, message: 'Validation failed', errors: parsed.error.flatten().fieldErrors });
       }
 
-      const { asset_code, name, location, status, category_id, division_id, type } = parsed.data;
-      const updated = await Asset.query().patchAndFetchById(req.params.id, { asset_code, name, location, status, category_id, division_id, type, updated_at: new Date() });
+      // Prepare update data - schema already handles null transformation
+      const updateData = { ...parsed.data, updated_at: new Date() };
 
-      if (!updated) return res.status(404).json({ success: false, message: 'Asset not found' });
+      // Use patch instead of patchAndFetchById to ensure null values are stored
+      const patchCount = await Asset.query()
+        .patch(updateData)
+        .where('id', req.params.id);
+
+      if (patchCount === 0) {
+        return res.status(404).json({ success: false, message: 'Asset not found' });
+      }
+
+      const updated = await Asset.query().findById(req.params.id).withGraphFetched('[category, division]');
+
       res.status(200).json({ success: true, message: 'Asset updated', data: updated });
     } catch (err) {
       res.status(500).json({ success: false, message: 'Failed to update asset', error: err.message });

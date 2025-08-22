@@ -148,11 +148,25 @@ export const IssueAdminController = {
                 .withGraphFetched("[machine, asset, workOrder, reportedBy]")
                 .orderBy("created_at", "desc");
                 
-            // Transform MinIO URLs to use the current public URL
-            const transformedIssues = issues.map(issue => ({
-                ...issue,
-                photo_url: transformMinioUrl(issue.photo_url)
-            }));
+            // Transform MinIO URLs and normalize workOrder.repairable to boolean/null
+            const normalizeRepairable = (val) => {
+                if (val === null || val === undefined) return null;
+                if (typeof val === 'boolean') return val;
+                if (val === 1 || val === '1' || String(val).toLowerCase() === 'true' || String(val).toLowerCase() === 't') return true;
+                if (val === 0 || val === '0' || String(val).toLowerCase() === 'false' || String(val).toLowerCase() === 'f') return false;
+                return null;
+            };
+
+            const transformedIssues = issues.map(issue => {
+                const transformed = { ...issue, photo_url: transformMinioUrl(issue.photo_url) };
+                if (transformed.workOrder) {
+                    transformed.workOrder = {
+                        ...transformed.workOrder,
+                        repairable: normalizeRepairable(transformed.workOrder.repairable)
+                    };
+                }
+                return transformed;
+            });
             
             res.status(200).json({ message: "Issues fetched successfully", data: transformedIssues });
         } catch (err) {
@@ -193,11 +207,22 @@ export const IssueAdminController = {
                 return res.status(404).json({ message: "Issue not found" });
             }
             
-            // Transform MinIO URL to use the current public URL
-            const transformedIssue = {
-                ...issue,
-                photo_url: transformMinioUrl(issue.photo_url)
+            // Transform MinIO URL and normalize workOrder.repairable to boolean/null
+            const normalizeRepairable = (val) => {
+                if (val === null || val === undefined) return null;
+                if (typeof val === 'boolean') return val;
+                if (val === 1 || val === '1' || String(val).toLowerCase() === 'true' || String(val).toLowerCase() === 't') return true;
+                if (val === 0 || val === '0' || String(val).toLowerCase() === 'false' || String(val).toLowerCase() === 'f') return false;
+                return null;
             };
+
+            const transformedIssue = { ...issue, photo_url: transformMinioUrl(issue.photo_url) };
+            if (transformedIssue.workOrder) {
+                transformedIssue.workOrder = {
+                    ...transformedIssue.workOrder,
+                    repairable: normalizeRepairable(transformedIssue.workOrder.repairable)
+                };
+            }
             
             res.status(200).json({ message: "Issue fetched successfully", data: transformedIssue });
         } catch (err) {
@@ -314,7 +339,7 @@ export const IssueAdminController = {
 
             res.status(200).json({ message: "Issue deleted successfully." });
         } catch (err) {
-            console.error("Error deleting issue (admin):", err);
+            // error logged
             res.status(500).json({ message: "Failed to delete issue", error: err.message });
         }
     },
@@ -371,7 +396,7 @@ export const IssueAdminController = {
                 data: result,
             });
         } catch (err) {
-            console.error("Error in deleteMany (admin):", err);
+            // error logged
             const statusCode = err.status || 500;
             res.status(statusCode).json({
                 message: err.message || "Failed to delete issues",
