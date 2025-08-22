@@ -129,8 +129,13 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
         return (
             <div className="flex gap-2">
                 <Button icon="pi pi-eye" rounded outlined className="p-button-sm" onClick={() => onDetail(rowData)} tooltip="View Details" tooltipOptions={{ position: "top" }} />
-                <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onEdit(rowData)} tooltip="Edit" tooltipOptions={{ position: "top" }} />
-                <Button icon="pi pi-trash" rounded outlined severity="danger" className="p-button-sm" onClick={() => onDelete(rowData)} tooltip="Delete" tooltipOptions={{ position: "top" }} />
+                {/* Only show Edit and Delete when status is 'open' (pending) */}
+                {rowData.status === 'open' && (
+                    <>
+                        <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onEdit(rowData)} tooltip="Edit" tooltipOptions={{ position: "top" }} />
+                        <Button icon="pi pi-trash" rounded outlined severity="danger" className="p-button-sm" onClick={() => onDelete(rowData)} tooltip="Delete" tooltipOptions={{ position: "top" }} />
+                    </>
+                )}
             </div>
         );
     };
