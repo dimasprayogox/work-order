@@ -18,7 +18,7 @@ export const MachineController = {
             // Build query to get machines
             let query = Machine.query()
                 .withGraphFetched('[category, division]')
-                .where('status', '!=', 'inactive')
+                .where('status', 'operational')
                 .orderBy('name', 'asc');
 
             // If user has a division, filter machines by that division and include unassigned machines (division_id IS NULL)
