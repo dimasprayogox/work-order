@@ -50,10 +50,8 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
                 // Set default start/completion time to now if not already set
                 started_at: workOrder.started_at ? new Date(workOrder.started_at) : (nextStatus === 'in_progress' ? new Date() : null),
                 completed_at: workOrder.completed_at ? new Date(workOrder.completed_at) : (nextStatus === 'completed' ? new Date() : null),
-                // Handle repairable field - convert number to boolean if needed
-                repairable: typeof workOrder.repairable === 'boolean' ? workOrder.repairable :
-                           workOrder.repairable === 1 ? true :
-                           workOrder.repairable === 0 ? false : true, // default to true
+                // Preserve existing repairable value or default to true
+                repairable: typeof workOrder.repairable === 'boolean' ? workOrder.repairable : true,
             });
             setFormErrors({}); // Reset errors on pending
         }
