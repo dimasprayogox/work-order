@@ -44,43 +44,54 @@ export const WorkOrderController = {
 
        // Filter berdasarkan divisi user
        if (userDivisionId) {
+         // Jika manager memiliki divisi, tampilkan work order sesuai divisinya
+         // DAN work order yang dibuat oleh user dari divisi yang sama
          query = query.where(function () {
+           // Work order dibuat oleh user dari divisi yang sama dengan manager ATAU user dengan divisi null
            this.whereExists(function () {
+             this.select("*")
+               .from("users")
+               .whereRaw("users.id = work_orders.created_by_id")
+               .andWhere(function() {
+                 this.where("users.division_id", userDivisionId)
+                     .orWhereNull("users.division_id");
+               });
+           })
+           // OR work order directly linked to machine in the division
+           .orWhereExists(function () {
              this.select("*")
                .from("machines")
                .whereRaw("machines.id = work_orders.machine_id")
                .andWhere("machines.division_id", userDivisionId);
            })
-             .orWhereExists(function () {
-               this.select("*")
-                 .from("assets")
-                 .whereRaw("assets.id = work_orders.asset_id")
-                 .andWhere("assets.division_id", userDivisionId);
-             })
-             .orWhereExists(function () {
-               this.select("*")
-                 .from("issues")
-                 .whereRaw("issues.id = work_orders.issue_id")
-                 .andWhere(function () {
-                   this.whereExists(function () {
-                     this.select("*")
-                       .from("machines")
-                       .whereRaw("machines.id = issues.machine_id")
-                       .andWhere("machines.division_id", userDivisionId);
-                   }).orWhereExists(function () {
-                     this.select("*")
-                       .from("assets")
-                       .whereRaw("assets.id = issues.asset_id")
-                       .andWhere("assets.division_id", userDivisionId);
-                   });
-                 });
-             });
+           // OR work order directly linked to asset in the division
+           .orWhereExists(function () {
+             this.select("*")
+               .from("assets")
+               .whereRaw("assets.id = work_orders.asset_id")
+               .andWhere("assets.division_id", userDivisionId);
+           })
+           // OR work order linked through issue to machine in the division
+           .orWhereExists(function () {
+             this.select("*")
+               .from("issues")
+               .leftJoin("machines", "issues.machine_id", "machines.id")
+               .whereRaw("issues.id = work_orders.issue_id")
+               .andWhere("machines.division_id", userDivisionId);
+           })
+           // OR work order linked through issue to asset in the division
+           .orWhereExists(function () {
+             this.select("*")
+               .from("issues")
+               .leftJoin("assets", "issues.asset_id", "assets.id")
+               .whereRaw("issues.id = work_orders.issue_id")
+               .andWhere("assets.division_id", userDivisionId);
+           });
          });
-       } else {
-         // Jika user tidak memiliki divisi, kembalikan array kosong
-         return res.json({ success: true, data: [] });
        }
-      if (type) {
+       // Jika user tidak memiliki divisi (null), tampilkan semua work order
+       
+       if (type) {
         if (type === "machine") {
           // Filter for work orders with machines (either direct machine_id or issue.machine_id)
           query = query.where(function () {
@@ -211,7 +222,7 @@ export const WorkOrderController = {
       const data = parsed.data;
       const newWOId = uuidv4();
 
-      const newWO = await WorkOrder.query().insert({
+      const newWorkOrder = await WorkOrder.query().insert({
         id: newWOId,
         ...data,
         status: "pending",
@@ -392,15 +403,82 @@ export const WorkOrderController = {
 
   async overdue(req, res) {
     try {
+      const userId = req.user.userId;
+      
+      // Ambil division_id user dari database
+      const userData = await db("users")
+        .leftJoin("divisions", "users.division_id", "divisions.id")
+        .where("users.id", userId)
+        .select(
+          "users.*",
+          "divisions.id as division_id",
+          "divisions.name as division_name"
+        )
+        .first();
+
+      const userDivisionId = userData?.division_id;
       const now = new Date().toISOString();
-      const overdue = await WorkOrder.query()
+      
+      let query = WorkOrder.query()
         .where("scheduled_date", "<", now)
-        .whereNot("status", "completed").withGraphFetched(`[
+        .whereNot("status", "completed")
+        .withGraphFetched(`[
           machine.[category], 
           asset.[category],
           assignedTo, 
           issue.[machine.[category], asset.[category]]
         ]`);
+
+      // Filter berdasarkan divisi user (sama seperti method index)
+      if (userDivisionId) {
+        // Jika manager memiliki divisi, tampilkan work order sesuai divisinya
+        // DAN work order yang dibuat oleh user dari divisi yang sama
+        query = query.where(function () {
+          // Work order dibuat oleh user dari divisi yang sama dengan manager ATAU user dengan divisi null
+          this.whereExists(function () {
+            this.select("*")
+              .from("users")
+              .whereRaw("users.id = work_orders.created_by_id")
+              .andWhere(function() {
+                this.where("users.division_id", userDivisionId)
+                    .orWhereNull("users.division_id");
+              });
+          })
+          // OR work order directly linked to machine in the division
+          .orWhereExists(function () {
+            this.select("*")
+              .from("machines")
+              .whereRaw("machines.id = work_orders.machine_id")
+              .andWhere("machines.division_id", userDivisionId);
+          })
+          // OR work order directly linked to asset in the division
+          .orWhereExists(function () {
+            this.select("*")
+              .from("assets")
+              .whereRaw("assets.id = work_orders.asset_id")
+              .andWhere("assets.division_id", userDivisionId);
+          })
+          // OR work order linked through issue to machine in the division
+          .orWhereExists(function () {
+            this.select("*")
+              .from("issues")
+              .leftJoin("machines", "issues.machine_id", "machines.id")
+              .whereRaw("issues.id = work_orders.issue_id")
+              .andWhere("machines.division_id", userDivisionId);
+          })
+          // OR work order linked through issue to asset in the division
+          .orWhereExists(function () {
+            this.select("*")
+              .from("issues")
+              .leftJoin("assets", "issues.asset_id", "assets.id")
+              .whereRaw("issues.id = work_orders.issue_id")
+              .andWhere("assets.division_id", userDivisionId);
+          });
+        });
+      }
+      // Jika user tidak memiliki divisi (null), tampilkan semua overdue work order
+
+      const overdue = await query;
 
       // Determine asset type and set appropriate data for each overdue work order
       for (const wo of overdue) {
