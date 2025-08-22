@@ -24,6 +24,7 @@ export default function SchedulePage() {
     const toast = useRef(null);
     const [schedules, setSchedules] = useState([]);
     const [machines, setMachines] = useState([]);
+    const [assets, setAssets] = useState([]);
     const [selectedSchedules, setSelectedSchedules] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState("");
@@ -33,6 +34,7 @@ export default function SchedulePage() {
     const [isGeneratingWO, setGeneratingWO] = useState(false);
     const [detailsDialogVisible, setDetailsDialogVisible] = useState(false);
     const [selectedSchedule, setSelectedSchedule] = useState(null);
+    const [generateConfirmOpen, setGenerateConfirmOpen] = useState(false);
 
     const fileInputRef = useRef(null);
     const [adjustDialog, setAdjustDialog] = useState(false);
@@ -84,12 +86,23 @@ export default function SchedulePage() {
         }
     }, [showToast]);
 
+    const fetchAssets = useCallback(async () => {
+        try {
+            const res = await fetch("/api/manager/assets", {
+                credentials: "include"
+            });
+            const body = await res.json();
+            setAssets(body.data || []);
+        } catch (err) {
+            showToast("error", "Error", "Gagal mengambil data mesin");
+        }
+    }, [showToast]);
+
     useEffect(() => {
         fetchSchedules();
         fetchMachines();
-    }, [fetchSchedules, fetchMachines]);
-
-
+        fetchAssets();
+    }, [fetchSchedules, fetchMachines, fetchAssets]);
 
     const handleEditSchedule = (rowData) => {
         setSelectedSchedule(rowData);
@@ -114,26 +127,44 @@ export default function SchedulePage() {
         setDeleteOpen(true);
     };
 
-    const handleGenerateWorkOrders = async () => {
-        setGeneratingWO(true);
-        try {
-            const res = await fetch("/api/manager/schedules/generate", {
-                method: "POST",
-                credentials: "include"
-            });
-            const body = await res.json();
+  const handleGenerateWorkOrders = async () => {
+      if (selectedSchedules.length === 0) {
+          showToast("warn", "Peringatan", "Pilih setidaknya satu jadwal untuk dibuatkan Work Order");
+          return;
+      }
+      setGenerateConfirmOpen(true);
+  };
 
-            if (!res.ok) throw new Error(body.message);
+  const confirmGenerateWorkOrders = async () => {
+      setGeneratingWO(true);
+      setGenerateConfirmOpen(false);
+      try {
+          const scheduleIds = selectedSchedules.map((schedule) => schedule.id);
 
-            const createdCount = body.data?.length || 0;
-            showToast("success", "Success", `${createdCount} Work Order berhasil dibuat dari jadwal yang jatuh tempo`);
-            fetchSchedules(); // Refresh schedules to update next due dates
-        } catch (err) {
-            showToast("error", "Error", err.message || "Gagal membuat Work Order");
-        } finally {
-            setGeneratingWO(false);
-        }
-    };
+          const res = await fetch("/api/manager/schedules/generate", {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json"
+              },
+              credentials: "include",
+              body: JSON.stringify({ ids: scheduleIds })
+          });
+
+          const body = await res.json();
+
+          if (!res.ok) throw new Error(body.message);
+
+          const createdCount = body.data?.length || 0;
+          showToast("success", "Success", `${createdCount} Work Order berhasil dibuat dari jadwal yang dipilih`);
+          fetchSchedules(); // Refresh schedules to update next due dates
+          setSelectedSchedules([]); // Clear selection after generation
+      } catch (err) {
+          showToast("error", "Error", err.message || "Gagal membuat Work Order");
+      } finally {
+          setGeneratingWO(false);
+      }
+  };
+
 
     const exportExcel = async () => {
         const workbook = new ExcelJS.Workbook();
@@ -334,7 +365,16 @@ export default function SchedulePage() {
                         }}
                     />
                     <Divider layout="vertical" />
-                    <Button size="small" label="Generate WO" icon="pi pi-cog" outlined severity="info" onClick={handleGenerateWorkOrders} loading={isGeneratingWO} disabled={isGeneratingWO} />
+                    <Button
+                        size="small"
+                        label={`Generate${selectedSchedules?.length > 0 ? ` ${selectedSchedules.length}` : ""} WO`}
+                        icon="pi pi-cog"
+                        outlined
+                        severity="info"
+                        onClick={handleGenerateWorkOrders}
+                        loading={isGeneratingWO}
+                        disabled={!selectedSchedules || selectedSchedules.length === 0}
+                    />
                     <Button size="small" label="Import" icon="pi pi-file-import" outlined onClick={() => fileInputRef.current?.click()} />
                     <Button size="small" label="Export" icon="pi pi-file-export" outlined onClick={exportExcel} />
                     <Button size="small" label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
@@ -371,6 +411,15 @@ export default function SchedulePage() {
                 />
             </div>
 
+            <ConfirmDialog
+                visible={generateConfirmOpen}
+                message={`Are you sure you want to create a Work Order for ${selectedSchedules.length} schedules?`}
+                icon="pi pi-exclamation-triangle"
+                header="Konfirmasi Generate Work Orders"
+                accept={confirmGenerateWorkOrders}
+                reject={() => setGenerateConfirmOpen(false)}
+            />
+
             <ScheduleFormDialog
                 visible={isFormOpen}
                 onHide={() => {
@@ -379,6 +428,7 @@ export default function SchedulePage() {
                 }}
                 schedule={selectedSchedule}
                 machines={machines}
+                assets={assets}
                 fetchSchedules={fetchSchedules}
                 showToast={showToast}
             />
