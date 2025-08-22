@@ -117,14 +117,20 @@ export const update = async (req, res) => {
       detailsData,
     });
 
+    // Cek apakah user_details sudah ada sebelum melakukan upsert
+    const existingDetail = await getUserDetailByUserId(userId);
+
     const updatedProfile = await updateUserProfile(
       userId,
       userData,
       detailsData
     );
 
-  // updatedProfile will include division_name thanks to the model change
-  res.json({ message: "Profil berhasil diperbarui", data: updatedProfile });
+    // Jika sebelumnya tidak ada detail, artinya kita membuatnya
+    const message = existingDetail ? "Profil berhasil diperbarui" : "Profil berhasil dibuat";
+
+    // updatedProfile will include division_name thanks to the model change
+    res.json({ message, data: updatedProfile });
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ message: "Email sudah digunakan." });

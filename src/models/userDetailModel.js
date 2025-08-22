@@ -56,9 +56,18 @@ export const updateUserProfile = async (userId, userData, detailsData) => {
       await trx("users").where({ id: userId }).update(userData);
     }
 
-    // 2. Update tabel 'user_details' jika ada data untuk diupdate
+    // 2. Jika ada detailsData, lakukan upsert pada tabel 'user_details'
     if (Object.keys(detailsData).length > 0) {
-      await trx("user_details").where({ user_id: userId }).update(detailsData);
+      // Cek apakah record user_details untuk user ini sudah ada
+      const existing = await trx("user_details").where({ user_id: userId }).first();
+
+      if (existing) {
+        // Jika ada, lakukan update
+        await trx("user_details").where({ user_id: userId }).update(detailsData);
+      } else {
+        // Jika belum ada, sisipkan record baru dengan user_id
+        await trx("user_details").insert({ ...detailsData, user_id: userId });
+      }
     }
   });
 
