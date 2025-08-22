@@ -37,16 +37,33 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
     const [hoveredImageId, setHoveredImageId] = useState(null);
     const [statusFilter, setStatusFilter] = useState("");
 
-    const statusBodyTemplate = (rowData) => {
+    const getStatusLabel = (status) => {
         const statusMap = {
-            open: { label: "Pending", color: "bg-yellow-100 text-yellow-800" },
-            in_progress: { label: "In Progress", color: "bg-blue-100 text-blue-800" },
-            resolved: { label: "Resolved", color: "bg-green-100 text-green-800" },
-            closed: { label: "Closed", color: "bg-gray-100 text-gray-800" }
+            open: "Pending",
+            in_progress: "In Progress",
+            resolved: "Resolved",
+            closed: "Closed"
+        };
+        return statusMap[status] || status;
+    };
+
+    const statusBodyTemplate = (rowData) => {
+        const statusConfig = {
+            open: { bgColor: "bg-yellow-100", textColor: "text-yellow-800", icon: "pi-clock" },
+            in_progress: { bgColor: "bg-cyan-100", textColor: "text-cyan-800", icon: "pi-spin pi-spinner" },
+            resolved: { bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check-circle" },
+            closed: { bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-times-circle" }
         };
 
-        const status = statusMap[rowData.status] || { label: rowData.status, color: "bg-gray-100 text-gray-800" };
-        return <Tag value={status.label} className={status.color} />;
+        const config = statusConfig[rowData.status] || { bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-question" };
+        return (
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                    <i className={`pi ${config.icon}`}></i>
+                    <span className="font-medium">{getStatusLabel(rowData.status)}</span>
+                </div>
+            </motion.div>
+        );
     };
 
     const photoBodyTemplate = (rowData) => {
@@ -252,19 +269,39 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
                             field="repairable"
                             header="Repairable"
                             body={(rowData) => {
-                                const repairable = rowData.workOrder?.repairable;
-                                if (repairable === undefined || repairable === null) {
-                                    return <span className="text-gray-400">N/A</span>;
+                                // Handle multiple possible shapes for repairable value
+                                let val = null;
+                                if (typeof rowData.repairable === 'boolean') {
+                                    val = rowData.repairable;
+                                } else if (rowData.repairable === 1 || rowData.repairable === '1') {
+                                    val = true;
+                                } else if (rowData.repairable === 0 || rowData.repairable === '0') {
+                                    val = false;
+                                } else if (typeof rowData.workOrder?.repairable === 'boolean') {
+                                    val = rowData.workOrder.repairable;
+                                } else if (rowData.workOrder?.repairable === 1 || rowData.workOrder?.repairable === '1') {
+                                    val = true;
+                                } else if (rowData.workOrder?.repairable === 0 || rowData.workOrder?.repairable === '0') {
+                                    val = false;
                                 }
+
+                                const config = val === true
+                                    ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check', label: 'Repairable' }
+                                    : val === false
+                                        ? { bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle', label: 'Not Repairable' }
+                                        : { bgColor: 'bg-gray-100', textColor: 'text-gray-600', icon: 'pi-minus', label: 'N/A' };
+
                                 return (
-                                    <Tag
-                                        value={repairable ? "Yes" : "No"}
-                                        className={repairable ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}
-                                    />
+                                    <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
+                                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                                            <i className={`pi ${config.icon}`}></i>
+                                            <span className="font-medium">{config.label}</span>
+                                        </div>
+                                    </motion.div>
                                 );
                             }}
                             sortable
-                            style={{ width: "100px" }}
+                            style={{ width: "140px", textAlign: 'center' }}
                         />
                         <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                         <Column field="status" header="Status" body={statusBodyTemplate} sortable />
