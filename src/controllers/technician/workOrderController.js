@@ -192,7 +192,17 @@ export const WorkOrderController = {
             const originalNotes = workOrder.notes;
             const originalRepairable = workOrder.repairable;
 
+            console.log('=== DEBUG UPDATE ===');
+            console.log('updateData before DB:', updateData);
+            console.log('original values:', { originalNotes, originalRepairable });
+            console.log('received payload:', { notes, repairable, status });
+
             const updatedWorkOrder = await workOrder.$query().patchAndFetch(updateData);
+            
+            console.log('after DB update:', {
+                notes: updatedWorkOrder.notes,
+                repairable: updatedWorkOrder.repairable
+            });
 
             // Update status issue sesuai status work order
             if (workOrder.issue_id) {
