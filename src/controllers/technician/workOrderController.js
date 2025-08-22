@@ -37,16 +37,21 @@ export const WorkOrderController = {
                 const plain = (typeof wo.toJSON === 'function') ? wo.toJSON() : { ...wo };
                 plain.asset = plain.asset || (plain.issue && plain.issue.asset) || null;
                 plain.machine = plain.machine || (plain.issue && plain.issue.machine) || null;
+                
                 // Ensure repairable is a proper boolean or null regardless of DB driver (0/1, '0'/'1')
-                if (typeof plain.repairable !== 'boolean') {
-                    if (plain.repairable === 1 || plain.repairable === '1' || plain.repairable === 'true') {
+                // This handles different database drivers (MySQL returns 1/0, PostgreSQL returns true/false)
+                if (plain.repairable !== null && plain.repairable !== undefined) {
+                    if (plain.repairable === 1 || plain.repairable === '1' || plain.repairable === 'true' || plain.repairable === true) {
                         plain.repairable = true;
-                    } else if (plain.repairable === 0 || plain.repairable === '0' || plain.repairable === 'false') {
+                    } else if (plain.repairable === 0 || plain.repairable === '0' || plain.repairable === 'false' || plain.repairable === false) {
                         plain.repairable = false;
                     } else {
                         plain.repairable = null;
                     }
+                } else {
+                    plain.repairable = null;
                 }
+                
                 return plain;
             });
 
@@ -150,8 +155,9 @@ export const WorkOrderController = {
                                             created_at: new Date()
                                         };
                                         await PartUsage.query().insert(partUsageData);
-                                    } catch (insertError) {
+                                    } catch {
                                         // Jangan stop proses, lanjutkan dengan item berikutnya
+                                        // Log error tapi lanjutkan eksekusi
                                     }
                                 }
                             }
@@ -204,14 +210,18 @@ export const WorkOrderController = {
 
             // Normalize repairable on the returned object as well
             const returned = (typeof updatedWorkOrder.toJSON === 'function') ? updatedWorkOrder.toJSON() : { ...updatedWorkOrder };
-            if (typeof returned.repairable !== 'boolean') {
-                if (returned.repairable === 1 || returned.repairable === '1' || returned.repairable === 'true') {
+            
+            // Ensure repairable is a proper boolean or null regardless of DB driver
+            if (returned.repairable !== null && returned.repairable !== undefined) {
+                if (returned.repairable === 1 || returned.repairable === '1' || returned.repairable === 'true' || returned.repairable === true) {
                     returned.repairable = true;
-                } else if (returned.repairable === 0 || returned.repairable === '0' || returned.repairable === 'false') {
+                } else if (returned.repairable === 0 || returned.repairable === '0' || returned.repairable === 'false' || returned.repairable === false) {
                     returned.repairable = false;
                 } else {
                     returned.repairable = null;
                 }
+            } else {
+                returned.repairable = null;
             }
 
             res.status(200).json({
