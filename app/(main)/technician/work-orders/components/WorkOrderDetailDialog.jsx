@@ -158,12 +158,28 @@ const WorkOrderDetailDialog = ({ visible, onHide, workOrder }) => {
                         </div>
                     )}
 
-                    {(workOrder.status === 'completed' || typeof workOrder.repairable === 'boolean') && (
+                    {(workOrder.status === 'completed' || typeof workOrder.repairable !== 'undefined' || workOrder.repairable === 1 || workOrder.repairable === 0) && (
                         <div className="field mb-3">
                             <label className="font-semibold text-gray-800 block mb-2">Repairable Status</label>
                             <div className="flex align-items-center gap-2">
                                 {(() => {
-                                    const val = (typeof workOrder.repairable === 'boolean') ? workOrder.repairable : (typeof workOrder.issue?.repairable === 'boolean' ? workOrder.issue.repairable : null);
+                                    // Handle both boolean and integer values from different environments
+                                    let val = null;
+                                    
+                                    if (typeof workOrder.repairable === 'boolean') {
+                                        val = workOrder.repairable;
+                                    } else if (workOrder.repairable === 1 || workOrder.repairable === '1') {
+                                        val = true;
+                                    } else if (workOrder.repairable === 0 || workOrder.repairable === '0') {
+                                        val = false;
+                                    } else if (typeof workOrder.issue?.repairable === 'boolean') {
+                                        val = workOrder.issue.repairable;
+                                    } else if (workOrder.issue?.repairable === 1 || workOrder.issue?.repairable === '1') {
+                                        val = true;
+                                    } else if (workOrder.issue?.repairable === 0 || workOrder.issue?.repairable === '0') {
+                                        val = false;
+                                    }
+                                    
                                     const config = val === true
                                         ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check', label: 'Repairable' }
                                         : val === false

@@ -50,8 +50,17 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
                 // Set default start/completion time to now if not already set
                 started_at: workOrder.started_at ? new Date(workOrder.started_at) : (nextStatus === 'in_progress' ? new Date() : null),
                 completed_at: workOrder.completed_at ? new Date(workOrder.completed_at) : (nextStatus === 'completed' ? new Date() : null),
-                // Initialize repairable from existing data or default to true
-                repairable: typeof workOrder.repairable === 'boolean' ? workOrder.repairable : true,
+                // Initialize repairable - handle both boolean and integer values from different environments
+                repairable: (() => {
+                    if (typeof workOrder.repairable === 'boolean') {
+                        return workOrder.repairable;
+                    } else if (workOrder.repairable === 1 || workOrder.repairable === '1') {
+                        return true;
+                    } else if (workOrder.repairable === 0 || workOrder.repairable === '0') {
+                        return false;
+                    }
+                    return true; // default to true
+                })(),
             });
             setFormErrors({}); // Reset errors on pending
         }
