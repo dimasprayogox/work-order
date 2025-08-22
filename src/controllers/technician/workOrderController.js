@@ -170,12 +170,12 @@ export const WorkOrderController = {
                 status,
                 // Do not overwrite original description unless provided explicitly
                 ...(typeof description !== 'undefined' && { description }),
-                // Always save notes if provided (even if empty string)
-                ...(notes !== undefined && { notes }),
+                // Always save notes if provided (including empty string)
+                ...(typeof notes !== 'undefined' && { notes }),
                 started_at: status === "in_progress" ? started_at : workOrder.started_at,
                 completed_at: status === "completed" ? completed_at : null,
                 // persist repairable flag if provided
-                ...(typeof repairable !== 'undefined' && { repairable: repairable }),
+                ...(typeof repairable !== 'undefined' && { repairable }),
             });
 
             // Update status issue sesuai status work order
@@ -226,7 +226,13 @@ export const WorkOrderController = {
 
             res.status(200).json({
                 message: `Work order successfully updated to '${status}'.`,
-                data: returned
+                data: returned,
+                debug: {
+                    received_notes: notes === undefined ? 'undefined' : notes,
+                    received_repairable: repairable === undefined ? 'undefined' : repairable,
+                    saved_notes: returned.notes,
+                    saved_repairable: returned.repairable
+                }
             });
         } catch (err) {
             res.status(500).json({ message: "Failed to update work order", error: err.message });
