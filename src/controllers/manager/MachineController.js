@@ -21,9 +21,13 @@ export const MachineController = {
       let query = Machine.query()
         .withGraphFetched("category")
         .orderBy("name", "asc");
-     if (userDivisionId) {
-        query = query.where("division_id", userDivisionId);
-        } else {
+
+      if (userDivisionId) {
+        // return machines that belong to user's division OR machines with null division (global)
+        query = query.where((builder) => {
+          builder.where("division_id", userDivisionId).orWhereNull("division_id");
+        });
+      } else {
         return res.json({ success: true, data: [] });
       }
 
