@@ -84,6 +84,7 @@ export const API_ENDPOINTS = {
     MANAGER_WORK_ORDER_BY_ID: (id) => `${API_URL}/manager/work-orders/${id}`,
     MANAGER_WORK_ORDERS_DELETE_MANY: `${API_URL}/manager/work-orders/delete-many`,
     MANAGER_MACHINES: `${API_URL}/manager/machines`,
+    MANAGER_ASSETS: `${API_URL}/manager/assets`,
     MANAGER_MAINTENANCE_SCHEDULES: `${API_URL}/manager/schedules`,
     MANAGER_MAINTENANCE_SCHEDULES_DELETE_MANY: `${API_URL}/manager/schedules/delete-many`,
     MANAGER_SCHEDULE_BY_ID: (id) => `${API_URL}/manager/schedules/${id}`,
