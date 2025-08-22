@@ -146,8 +146,21 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
     };
 
     const repairableBodyTemplate = (rowData) => {
-        // Only meaningful for completed work orders; but render a pill consistently
-        const val = (typeof rowData.repairable === 'boolean') ? rowData.repairable : (typeof rowData.issue?.repairable === 'boolean' ? rowData.issue.repairable : null);
+        // Handle different data types from backend (boolean, number, null)
+        let val = rowData.repairable;
+
+        // Convert number to boolean (MySQL TINYINT returns 0/1)
+        if (typeof val === 'number') {
+            val = val === 1 ? true : val === 0 ? false : null;
+        }
+
+        // If still not boolean, check from issue
+        if (typeof val !== 'boolean') {
+            val = rowData.issue?.repairable;
+            if (typeof val === 'number') {
+                val = val === 1 ? true : val === 0 ? false : null;
+            }
+        }
 
         const config = val === true
             ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check' , label: 'Repairable'}
@@ -209,6 +222,22 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
             <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onUpdate(rowData)} tooltip="Update" />
         </div>
     );
+
+    const notesBodyTemplate = (rowData) => {
+        const notes = rowData.notes;
+        if (!notes || notes === null || notes === '') {
+            return <span className="text-gray-400 italic">No notes</span>;
+        }
+
+        // Truncate long notes and show tooltip on hover
+        const truncatedNotes = notes.length > 50 ? notes.substring(0, 47) + '...' : notes;
+
+        return (
+            <span title={notes} className="text-sm">
+                {truncatedNotes}
+            </span>
+        );
+    };
 
     const machineOrAssetBodyTemplate = (rowData) => {
         // Helper to pick common name/code keys used in different responses
@@ -282,7 +311,7 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
                 <Column field="scheduled_date" header="Schedule" body={(rowData) => dateBodyTemplate(rowData.created_at)} sortable />
                 <Column field="started_at" header="Started At" body={(rowData) => dateBodyTemplate(rowData.started_at)} sortable />
                 <Column field="completed_at" header="Completed At" body={(rowData) => dateBodyTemplate(rowData.completed_at)} sortable />
-                <Column field="notes" header="Notes" style={{ maxWidth: "200px" }} />
+                <Column header="Notes" body={notesBodyTemplate} style={{ maxWidth: "200px" }} />
                 <Column header="Repairable" body={repairableBodyTemplate} style={{ width: '150px', textAlign: 'center' }} />
                 <Column header="Actions" body={actionBodyTemplate} style={{ width: "6rem", textAlign: "center" }} />
             </DataTable>
