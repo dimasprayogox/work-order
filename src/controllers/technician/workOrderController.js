@@ -166,17 +166,33 @@ export const WorkOrderController = {
                 }
             }
 
-            const updatedWorkOrder = await workOrder.$query().patchAndFetch({
+            // Prepare update data
+            const updateData = {
                 status,
-                // Do not overwrite original description unless provided explicitly
-                ...(typeof description !== 'undefined' && { description }),
-                // Always save notes if provided (including empty string)
-                ...(typeof notes !== 'undefined' && { notes }),
                 started_at: status === "in_progress" ? started_at : workOrder.started_at,
                 completed_at: status === "completed" ? completed_at : null,
-                // persist repairable flag if provided
-                ...(typeof repairable !== 'undefined' && { repairable }),
-            });
+            };
+
+            // Always include notes if provided (including empty string)
+            if (typeof notes !== 'undefined') {
+                updateData.notes = notes;
+            }
+
+            // Always include description if provided
+            if (typeof description !== 'undefined') {
+                updateData.description = description;
+            }
+
+            // Always include repairable if provided
+            if (typeof repairable !== 'undefined') {
+                updateData.repairable = repairable;
+            }
+
+            // Store original values for debugging
+            const originalNotes = workOrder.notes;
+            const originalRepairable = workOrder.repairable;
+
+            const updatedWorkOrder = await workOrder.$query().patchAndFetch(updateData);
 
             // Update status issue sesuai status work order
             if (workOrder.issue_id) {
@@ -228,8 +244,11 @@ export const WorkOrderController = {
                 message: `Work order successfully updated to '${status}'.`,
                 data: returned,
                 debug: {
+                    updateData_sent: updateData,
                     received_notes: notes === undefined ? 'undefined' : notes,
                     received_repairable: repairable === undefined ? 'undefined' : repairable,
+                    original_notes: originalNotes,
+                    original_repairable: originalRepairable,
                     saved_notes: returned.notes,
                     saved_repairable: returned.repairable
                 }
