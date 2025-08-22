@@ -187,9 +187,9 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
                                 {issue.machine?.name || issue.asset?.name || 'N/A'}
                             </span>
                             {(issue.machine?.machine_code || issue.asset?.asset_code) && (
-                                <Tag 
-                                    value={issue.machine?.machine_code || issue.asset?.asset_code} 
-                                    className="p-tag-secondary" 
+                                <Tag
+                                    value={issue.machine?.machine_code || issue.asset?.asset_code}
+                                    className="p-tag-secondary"
                                 />
                             )}
                         </div>
@@ -307,6 +307,25 @@ const IssueDetailDialog = ({ visible, onHide, issue }) => {
                             </div>
                         </div>
                     )}
+
+                    <div className="field mb-3">
+                        <label className="font-semibold text-gray-800 block mb-2">Repairable</label>
+                        <div>
+                            {(() => {
+                                const val = issue?.workOrder?.repairable;
+                                if (val === true) return <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-800"><i className="pi pi-check"></i> Repairable</span>;
+                                if (val === false) return <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-800"><i className="pi pi-times-circle"></i> Not Repairable</span>;
+                                return <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-100 text-yellow-800"><i className="pi pi-question"></i> -</span>;
+                            })()}
+                        </div>
+                    </div>
+
+                    <div className="field mb-3">
+                        <label className="font-semibold text-gray-800 block mb-2">Technician Note</label>
+                        <div className="p-2 bg-gray-50 border-round whitespace-pre-line">
+                            {issue?.workOrder?.notes || <span className="text-gray-400">-</span>}
+                        </div>
+                    </div>
                 </div>
             </div>
         </Dialog>

@@ -15,6 +15,7 @@ import autoTable from "jspdf-autotable";
 import WorkRequestTable from "./components/WorkRequestTable";
 import WorkRequestFormDialog from "./components/WorkRequestFormDialog";
 import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog";
+import WorkOrderDetailDialog from "./components/WorkOrderDetailDialog";
 
 // Dynamic imports
 const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
@@ -59,6 +60,8 @@ const WorkOrderPage = () => {
     const [searchText, setSearchText] = useState("");
     const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
     const [previewImageUrl, setPreviewImageUrl] = useState("");
+    const [isDetailOpen, setDetailOpen] = useState(false);
+    const [selectedWorkOrderForDetail, setSelectedWorkOrderForDetail] = useState(null);
 
     // Print and export states
     const [adjustDialog, setAdjustDialog] = useState(false);
@@ -266,12 +269,12 @@ const exportPdf = (config = null) => {
         const headers = ["No", "Title", "Description", "Machine/Asset", "Priority", "Status", "Created"];
 
         const data = workOrders.map((wo, index) => [
-            (index + 1).toString(), 
-            wo.title || "-", 
-            wo.description || "-", 
-            wo.machine?.name ? `Machine: ${wo.machine.name}` : wo.asset?.name ? `Asset: ${wo.asset.name}` : "-",  
+            (index + 1).toString(),
+            wo.title || "-",
+            wo.description || "-",
+            wo.machine?.name ? `Machine: ${wo.machine.name}` : wo.asset?.name ? `Asset: ${wo.asset.name}` : "-",
             priorityMapForExport[wo.priority] || wo.priority || "Medium",
-            statusMapForExport[wo.status] || wo.status || "-", 
+            statusMapForExport[wo.status] || wo.status || "-",
             wo.created_at ? new Date(wo.created_at).toLocaleDateString("id-ID") : "-"
         ]);
 
@@ -309,6 +312,11 @@ const exportPdf = (config = null) => {
     const handleImagePreview = (url) => {
         setPreviewImageUrl(url);
         setIsImagePreviewOpen(true);
+    };
+
+    const handleDetail = (workOrder) => {
+        setSelectedWorkOrderForDetail(workOrder);
+        setDetailOpen(true);
     };
 
     return (
@@ -352,21 +360,22 @@ const exportPdf = (config = null) => {
                         setFormOpen(true);
                     }}
                     onDelete={handleDelete}
+                    onDetail={handleDetail}
                     searchText={searchText}
                     onSearch={handleSearch}
                     onImagePreview={handleImagePreview}
                 />
 
                 {/* Dialog Components */}
-                <WorkRequestFormDialog 
-                    visible={isFormOpen} 
-                    onHide={() => setFormOpen(false)} 
-                    workOrder={selectedWorkOrder} 
-                    fetchWorkOrders={fetchWorkOrders} 
-                    machines={machines} 
+                <WorkRequestFormDialog
+                    visible={isFormOpen}
+                    onHide={() => setFormOpen(false)}
+                    workOrder={selectedWorkOrder}
+                    fetchWorkOrders={fetchWorkOrders}
+                    machines={machines}
                     assets={assets}
-                    fetchMachines={fetchMachines} 
-                    showToast={showToast} 
+                    fetchMachines={fetchMachines}
+                    showToast={showToast}
                 />
 
                 <ConfirmDeleteDialog
@@ -382,6 +391,15 @@ const exportPdf = (config = null) => {
                         setSelectedWorkOrders([]);
                     }}
                     showToast={showToast}
+                />
+
+                <WorkOrderDetailDialog
+                    visible={isDetailOpen}
+                    onHide={() => {
+                        setDetailOpen(false);
+                        setSelectedWorkOrderForDetail(null);
+                    }}
+                    workOrder={selectedWorkOrderForDetail}
                 />
 
                 <AdjustPrintMarginLaporan

@@ -19,7 +19,7 @@ const statusFilterOptions = [
     { label: "Completed", value: "completed" }
 ];
 
-const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, setSearchText, statusFilter, setStatusFilter }) => {
+const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, setSearchText, statusFilter, setStatusFilter }) => {
     const [filteredWorkOrders, setFilteredWorkOrders] = useState([]);
     const [filters, setFilters] = useState({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -145,6 +145,26 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, setSearchTe
         );
     };
 
+    const repairableBodyTemplate = (rowData) => {
+        // Only meaningful for completed work orders; but render a pill consistently
+        const val = (typeof rowData.repairable === 'boolean') ? rowData.repairable : (typeof rowData.issue?.repairable === 'boolean' ? rowData.issue.repairable : null);
+
+        const config = val === true
+            ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check' , label: 'Repairable'}
+            : val === false
+                ? { bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle', label: 'Not Repairable'}
+                : { bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', icon: 'pi-question', label: '-'};
+
+        return (
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                    <i className={`pi ${config.icon}`}></i>
+                    <span className="font-medium">{config.label}</span>
+                </div>
+            </motion.div>
+        );
+    };
+
     const dateBodyTemplate = (dateString) => {
         if (!dateString) return "N/A";
         return new Date(dateString).toLocaleString("id-ID", {
@@ -157,96 +177,95 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, setSearchTe
     };
 
     const photoBodyTemplate = (rowData) => {
-        if (rowData.photo_url) {
+        // WorkOrder may not have a direct photo_url but its related issue can
+        const src = rowData.photo_url || rowData.issue?.photo_url || null;
+        if (src) {
             return (
                 <Image
-                    src={rowData.photo_url}
-                    alt="Work Order Photo"
+                    src={src}
+                    alt={rowData.title || 'Work Order Photo'}
                     width="50"
                     height="50"
                     preview
                     className="border-round"
                     onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = "https://placehold.co/50x50/cccccc/000000?text=No+Image";
+                        // PrimeReact Image forwards the native event; guard for target
+                        const target = e?.target || e;
+                        if (target) {
+                            target.onerror = null;
+                            target.src = "https://placehold.co/50x50/cccccc/000000?text=No+Image";
+                        }
                     }}
                 />
             );
         }
+
         return <span className="text-gray-400">No photo</span>;
     };
 
-    const actionBodyTemplate = (rowData) => <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onUpdate(rowData)} />;
+    const actionBodyTemplate = (rowData) => (
+        <div className="flex gap-2 justify-content-center">
+            <Button icon="pi pi-eye" rounded outlined className="p-button-sm" onClick={() => onView && onView(rowData)} tooltip="View" />
+            <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onUpdate(rowData)} tooltip="Update" />
+        </div>
+    );
 
     const machineOrAssetBodyTemplate = (rowData) => {
-        if (rowData.machine) {
+        // Helper to pick common name/code keys used in different responses
+        const getName = (entity) => {
+            if (!entity) return null;
+            return entity.name || entity.title || entity.machine_name || entity.asset_name || entity.display_name || null;
+        };
+        const getCode = (entity) => {
+            if (!entity) return null;
+            return entity.machine_code || entity.asset_code || entity.code || null;
+        };
+
+        const machine = rowData.machine || rowData.issue?.machine || null;
+        const asset = rowData.asset || rowData.issue?.asset || null;
+
+        if (machine) {
             return (
                 <div>
                     <div className="font-medium flex align-items-center gap-2">
                         <i className="pi pi-cog text-blue-500"></i>
-                        {rowData.machine.name}
+                        {getName(machine) || 'Unnamed Machine'}
                     </div>
-                    {rowData.machine.machine_code && <div className="text-sm text-gray-500">{rowData.machine.machine_code}</div>}
-                    <div className="text-xs text-blue-600">Machine</div>
+                    {getCode(machine) && <div className="text-sm text-gray-500">{getCode(machine)}</div>}
+                    <div className="text-xs text-blue-600">Machine{rowData.issue && !rowData.machine ? ' (from Issue)' : ''}</div>
                 </div>
             );
         }
 
-        if (rowData.asset) {
+        if (asset) {
             return (
                 <div>
                     <div className="font-medium flex align-items-center gap-2">
                         <i className="pi pi-box text-green-500"></i>
-                        {rowData.asset.name}
+                        {getName(asset) || 'Unnamed Asset'}
                     </div>
-                    {rowData.asset.asset_code && <div className="text-sm text-gray-500">{rowData.asset.asset_code}</div>}
-                    <div className="text-xs text-green-600">Asset</div>
+                    {getCode(asset) && <div className="text-sm text-gray-500">{getCode(asset)}</div>}
+                    <div className="text-xs text-green-600">Asset{rowData.issue && !rowData.asset ? ' (from Issue)' : ''}</div>
                 </div>
             );
-        }
-
-        if (rowData.issue) {
-            if (rowData.issue.machine) {
-                return (
-                    <div>
-                        <div className="font-medium flex align-items-center gap-2">
-                            <i className="pi pi-cog text-blue-500"></i>
-                            {rowData.issue.machine.name}
-                        </div>
-                        {rowData.issue.machine.machine_code && <div className="text-sm text-gray-500">{rowData.issue.machine.machine_code}</div>}
-                        <div className="text-xs text-blue-600">Machine (from Issue)</div>
-                    </div>
-                );
-            }
-
-            if (rowData.issue.asset) {
-                return (
-                    <div>
-                        <div className="font-medium flex align-items-center gap-2">
-                            <i className="pi pi-box text-green-500"></i>
-                            {rowData.issue.asset.name}
-                        </div>
-                        {rowData.issue.asset.asset_code && <div className="text-sm text-gray-500">{rowData.issue.asset.asset_code}</div>}
-                        <div className="text-xs text-green-600">Asset (from Issue)</div>
-                    </div>
-                );
-            }
         }
 
         return <span className="text-gray-500">N/A</span>;
     };
 
-    
+
     const header = (
         <div className="flex flex-wrap align-items-center justify-content-between gap-3">
             <div className="flex align-items-center gap-3">
                 <span className="text-xl font-bold">Work Order List</span>
-                <Dropdown value={statusFilter} options={statusFilterOptions} onChange={onStatusFilterChange} placeholder="All Status" className="w-full md:w-auto" />
             </div>
-            <span className="p-input-icon-left">
-                <i className="pi pi-search" />
-                <InputText value={searchText} onChange={onGlobalFilterChange} placeholder="Search" className="w-full md:w-auto" />
-            </span>
+            <div className="flex align-items-center gap-3">
+                <Dropdown value={statusFilter} options={statusFilterOptions} onChange={onStatusFilterChange} placeholder="All Status" className="w-full md:w-auto" />
+                <span className="p-input-icon-left">
+                    <i className="pi pi-search" />
+                    <InputText value={searchText} onChange={onGlobalFilterChange} placeholder="Search" className="w-full md:w-auto" />
+                </span>
+            </div>
         </div>
     );
 
@@ -264,6 +283,7 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, setSearchTe
                 <Column field="started_at" header="Started At" body={(rowData) => dateBodyTemplate(rowData.started_at)} sortable />
                 <Column field="completed_at" header="Completed At" body={(rowData) => dateBodyTemplate(rowData.completed_at)} sortable />
                 <Column field="notes" header="Notes" style={{ maxWidth: "200px" }} />
+                <Column header="Repairable" body={repairableBodyTemplate} style={{ width: '150px', textAlign: 'center' }} />
                 <Column header="Actions" body={actionBodyTemplate} style={{ width: "6rem", textAlign: "center" }} />
             </DataTable>
         </div>

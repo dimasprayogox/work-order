@@ -66,23 +66,71 @@ const IssueTable = ({
         );
     };
 
+    const normalizeRepairable = (val) => {
+        if (val === null || val === undefined) return null;
+        if (typeof val === 'boolean') return val;
+        const s = String(val).toLowerCase();
+        if (s === '1' || s === 'true' || s === 't' ) return true;
+        if (s === '0' || s === 'false' || s === 'f') return false;
+        return null;
+    };
+
+    const repairableBodyTemplate = (rowData) => {
+        // Accept repairable from multiple possible shapes and coerce to boolean|null
+        const raw = rowData.workOrder?.repairable ?? rowData.repairable ?? rowData.work_order?.repairable;
+        const val = normalizeRepairable(raw);
+        const config = val === true
+            ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check', label: 'Repairable' }
+            : val === false
+                ? { bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle', label: 'Not Repairable' }
+                : { bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', icon: 'pi-question', label: '-' };
+
+        return (
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                    <i className={`pi ${config.icon}`}></i>
+                    <span className="font-medium text-sm">{config.label}</span>
+                </div>
+            </motion.div>
+        );
+    };
+
+    const workOrderNoteBodyTemplate = (rowData) => {
+        const note = rowData.workOrder?.notes || '';
+        if (!note) return <span className="text-gray-400">-</span>;
+        if (note.length > 80) return <span title={note}>{note.substring(0, 80)}...</span>;
+        return <span>{note}</span>;
+    };
+
     const machineOrAssetBodyTemplate = (rowData) => {
         if (rowData.machine) {
             return (
-                <div className="flex flex-column">
-                    <span className="font-medium">{rowData.machine.name}</span>
-                    <small className="text-gray-500">Machine</small>
+                <div>
+                    <div className="font-medium flex align-items-center gap-2">
+                        <i className="pi pi-cog text-blue-500"></i>
+                        {rowData.machine.name}
+                    </div>
+                    {rowData.machine.machine_code && (
+                        <div className="text-sm text-gray-500">{rowData.machine.machine_code}</div>
+                    )}
+                    <div className="text-xs text-blue-600">Machine</div>
                 </div>
             );
         } else if (rowData.asset) {
             return (
-                <div className="flex flex-column">
-                    <span className="font-medium">{rowData.asset.name}</span>
-                    <small className="text-gray-500">Asset</small>
+                <div>
+                    <div className="font-medium flex align-items-center gap-2">
+                        <i className="pi pi-box text-green-500"></i>
+                        {rowData.asset.name}
+                    </div>
+                    {rowData.asset.asset_code && (
+                        <div className="text-sm text-gray-500">{rowData.asset.asset_code}</div>
+                    )}
+                    <div className="text-xs text-green-600">Asset</div>
                 </div>
             );
         }
-        return '-';
+        return <span className="text-gray-500">N/A</span>;
     };
 
     const priorityBodyTemplate = (rowData) => {
@@ -219,7 +267,7 @@ const IssueTable = ({
             >
                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
                 <Column field="title" header="Title" style={{ width: "200px" }} sortable />
-                <Column field="target" header="Machine/Asset" body={machineOrAssetBodyTemplate} sortable />
+                <Column field="target" header="Machine/Asset" body={machineOrAssetBodyTemplate} style={{ minWidth: "180px" }} sortable />
                 <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                 <Column
                     field="description"
@@ -228,7 +276,9 @@ const IssueTable = ({
                     style={{ width: "250px" }}
                 />
                 <Column field="status" header="Status" body={statusBodyTemplate} sortable />
+                <Column header="Repairable" body={repairableBodyTemplate} style={{ width: '160px', textAlign: 'center' }} />
                 <Column field="photo_url" header="Photo" body={photoBodyTemplate} style={{ width: "80px" }} />
+                <Column header="Tech Note" body={workOrderNoteBodyTemplate} style={{ minWidth: '200px' }} />
                 <Column
                     field="created_at"
                     header="Created"

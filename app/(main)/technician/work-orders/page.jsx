@@ -22,6 +22,7 @@ import dynamic from "next/dynamic";
 
 import UpdateWorkOrderDialog from "./components/UpdateWorkOrderDialog";
 import WorkOrderTable from "./components/WorkOrderTable";
+import WorkOrderDetailDialog from "./components/WorkOrderDetailDialog";
 
 // Dynamic imports for print components
 const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
@@ -37,6 +38,8 @@ export default function TechnicianWorkOrderPage() {
 
     const [isUpdateDialogVisible, setUpdateDialogVisible] = useState(false);
     const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
+    const [isViewDialogVisible, setViewDialogVisible] = useState(false);
+    const [selectedWorkOrderForView, setSelectedWorkOrderForView] = useState(null);
     const [workOrders, setWorkOrders] = useState([]);
 
     // 👈 Perubahan: State untuk pratinjau gambar
@@ -236,6 +239,11 @@ export default function TechnicianWorkOrderPage() {
         setUpdateDialogVisible(true);
     };
 
+    const handleView = (workOrder) => {
+        setSelectedWorkOrderForView(workOrder);
+        setViewDialogVisible(true);
+    };
+
     const handleDialogHide = () => {
         setUpdateDialogVisible(false);
         // Reset selected work order after a short delay to avoid the error
@@ -263,9 +271,10 @@ export default function TechnicianWorkOrderPage() {
                     <Divider layout="vertical" />
                     <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={fetchWorkOrders} disabled={loading} />
                 </div>
-                <WorkOrderTable workOrders={workOrders} loading={loading} setSearchText={setSearchText} onUpdate={handleUpdate} searchText={searchText} statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
+                <WorkOrderTable workOrders={workOrders} loading={loading} setSearchText={setSearchText} onUpdate={handleUpdate} onView={handleView} searchText={searchText} statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
             </div>
             <UpdateWorkOrderDialog visible={isUpdateDialogVisible} onHide={handleDialogHide} workOrder={selectedWorkOrder} fetchWorkOrders={fetchWorkOrders} showToast={showToast} />
+            <WorkOrderDetailDialog visible={isViewDialogVisible} onHide={() => { setViewDialogVisible(false); setTimeout(()=>setSelectedWorkOrderForView(null), 100); }} workOrder={selectedWorkOrderForView} />
 
             <input type="file" ref={fileInputRef} style={{ display: "none" }} onChange={handleImport} accept=".xlsx,.xls" />
 

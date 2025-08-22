@@ -72,13 +72,20 @@ const AssetFormDialog = ({ visible, onHide, asset, categories, divisions, fetchA
 
         setLoading(true);
         try {
+            // Prepare form data with proper null handling
+            const formData = {
+                ...form,
+                category_id: form.category_id === "" || form.category_id === undefined ? null : form.category_id,
+                division_id: form.division_id === "" || form.division_id === undefined ? null : form.division_id
+            };
+
             const res = await fetch(
                 asset ? `/api/admin/assets/${asset.id}` : "/api/admin/assets",
                 {
                     method: asset ? "PATCH" : "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify(form)
+                    body: JSON.stringify(formData)
                 }
             );
             const data = await res.json();
