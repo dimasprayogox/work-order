@@ -207,73 +207,92 @@ export const ScheduleController = {
     }
   },
 
-  async generateDueWorkOrders(req, res) {
-    try {
-      const now = new Date().toISOString();
+async generateDueWorkOrders(req, res) {
+  try {
+    const { ids } = req.body;
 
-      const dueSchedules = await Schedule.query()
-        .where("next_due_date", "<=", now)
-        .where("is_active", 1)
-        .withGraphFetched("[machine, asset]");
-
-      const createdWOs = [];
-
-      for (const schedule of dueSchedules) {
-        const existingWO = await WorkOrder.query()
-          .where("title", schedule.title)
-          .where(function () {
-            if (schedule.type === "machine") {
-              this.where("machine_id", schedule.machine_id);
-            } else {
-              this.where("asset_id", schedule.asset_id);
-            }
-          })
-          .where("scheduled_date", schedule.next_due_date)
-          .first();
-
-        if (existingWO) continue;
-
-        const newWO = await WorkOrder.query().insert({
-          id: uuidv4(),
-          title: schedule.title,
-          description: `Scheduled maintenance: ${schedule.title}`,
-          machine_id: schedule.type === "machine" ? schedule.machine_id : null,
-          asset_id: schedule.type === "asset" ? schedule.asset_id : null,
-          created_by_id: schedule.created_by_id,
-          priority: "medium",
-          scheduled_date: schedule.next_due_date,
-          status: "pending",
-        });
-
-        const nextDate = new Date(schedule.next_due_date);
-        if (schedule.frequency === "monthly") {
-          nextDate.setMonth(nextDate.getMonth() + 1);
-        } else if (schedule.frequency === "weekly") {
-          nextDate.setDate(nextDate.getDate() + 7);
-        } else if (schedule.frequency === "daily") {
-          nextDate.setDate(nextDate.getDate() + 1);
-        } else if (schedule.frequency === "yearly") {
-          nextDate.setFullYear(nextDate.getFullYear() + 1);
-        }
-
-        await Schedule.query().patchAndFetchById(schedule.id, {
-          next_due_date: formatDateTime(nextDate),
-        });
-
-        createdWOs.push(newWO);
-      }
-
-      res.json({
-        success: true,
-        message: "Work Orders generated",
-        data: createdWOs,
-      });
-    } catch (err) {
-      console.error("Error generating due work orders:", err);
-      res.status(500).json({
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
         success: false,
-        message: "Internal server error while generating due work orders.",
+        message: "Invalid input: 'ids' must be a non-empty array of schedule IDs.",
       });
     }
-  },
+
+    const now = new Date().toISOString();
+
+    // Get only the specified schedules that are due and active
+    const dueSchedules = await Schedule.query()
+      .whereIn("id", ids)
+      .where("next_due_date", "<=", now)
+      .where("is_active", 1)
+      .withGraphFetched("[machine, asset]");
+
+    if (dueSchedules.length === 0) {
+      return res.json({
+        success: true,
+        message: "No due schedules found for the provided IDs",
+        data: []
+      });
+    }
+
+    const createdWOs = [];
+
+    for (const schedule of dueSchedules) {
+      const existingWO = await WorkOrder.query()
+        .where("title", schedule.title)
+        .where(function () {
+          if (schedule.type === "machine") {
+            this.where("machine_id", schedule.machine_id);
+          } else {
+            this.where("asset_id", schedule.asset_id);
+          }
+        })
+        .where("scheduled_date", schedule.next_due_date)
+        .first();
+
+      if (existingWO) continue;
+
+      const newWO = await WorkOrder.query().insert({
+        id: uuidv4(),
+        title: schedule.title,
+        description: `Scheduled maintenance: ${schedule.title}`,
+        machine_id: schedule.type === "machine" ? schedule.machine_id : null,
+        asset_id: schedule.type === "asset" ? schedule.asset_id : null,
+        created_by_id: schedule.created_by_id,
+        priority: "medium",
+        scheduled_date: schedule.next_due_date,
+        status: "pending",
+      });
+
+      const nextDate = new Date(schedule.next_due_date);
+      if (schedule.frequency === "monthly") {
+        nextDate.setMonth(nextDate.getMonth() + 1);
+      } else if (schedule.frequency === "weekly") {
+        nextDate.setDate(nextDate.getDate() + 7);
+      } else if (schedule.frequency === "daily") {
+        nextDate.setDate(nextDate.getDate() + 1);
+      } else if (schedule.frequency === "yearly") {
+        nextDate.setFullYear(nextDate.getFullYear() + 1);
+      }
+
+      await Schedule.query().patchAndFetchById(schedule.id, {
+        next_due_date: formatDateTime(nextDate),
+      });
+
+      createdWOs.push(newWO);
+    }
+
+    res.json({
+      success: true,
+      message: `Generated ${createdWOs.length} work orders from ${dueSchedules.length} due schedules`,
+      data: createdWOs,
+    });
+  } catch (err) {
+    console.error("Error generating due work orders:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while generating due work orders.",
+    });
+  }
+},
 };
