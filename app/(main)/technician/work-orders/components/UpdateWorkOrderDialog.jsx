@@ -164,11 +164,11 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
                 status: formData.status,
                 // Always send notes, even if empty string
                 notes: formData.notes || "",
-                // Always send repairable value
-                repairable: Boolean(formData.repairable),
                 // Conditionally add dates to payload only if they exist
                 ...(formData.status === 'in_progress' && formData.started_at && { started_at: formData.started_at.toISOString() }),
                 ...(formData.status === 'completed' && formData.completed_at && { completed_at: formData.completed_at.toISOString() }),
+                // Only send repairable when status is 'completed'
+                ...(formData.status === 'completed' && { repairable: Boolean(formData.repairable) }),
             };
 
             console.log("Update payload:", payload); // Debug log
