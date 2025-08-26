@@ -7,6 +7,9 @@ import { InputText } from "primereact/inputtext";
 import { useState, useEffect, useCallback } from "react";
 import { FilterMatchMode } from "primereact/api";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
+import { Tag } from "primereact/tag";
+import { motion } from "framer-motion";
+import { Tooltip } from "primereact/tooltip";
 
 const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSelectionChange = () => {}, onSearch, searchText }) => {
     const [filters, setFilters] = useState({
@@ -70,6 +73,77 @@ const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSel
         </div>
     );
 
+    const locationBodyTemplate = (rowData) => (
+        <motion.span whileHover={{ x: 5 }} transition={{ type: "spring", stiffness: 300 }} className="font-medium text-blue-600 cursor-pointer">
+            {rowData.location}
+        </motion.span>
+    );
+
+    const stockBodyTemplate = (rowData) => {
+        const isLowStock = rowData.quantity_in_stock <= rowData.min_stock;
+        return <span className={isLowStock ? "text-red-500 font-bold" : ""}>{rowData.quantity_in_stock}</span>;
+    };
+
+    const machineOrAssetBodyTemplate = (rowData) => {
+        // First check work order direct relations
+        if (rowData.machine) {
+            return (
+                <div>
+                    <div className="font-medium flex align-items-center gap-2">
+                        <i className="pi pi-cog text-blue-500"></i>
+                        {rowData.machine.name}
+                    </div>
+                    {rowData.machine.machine_code && <div className="text-sm text-gray-500">{rowData.machine.machine_code}</div>}
+                    <div className="text-xs text-blue-600">Machine</div>
+                </div>
+            );
+        }
+
+        if (rowData.asset) {
+            return (
+                <div>
+                    <div className="font-medium flex align-items-center gap-2">
+                        <i className="pi pi-box text-green-500"></i>
+                        {rowData.asset.name}
+                    </div>
+                    {rowData.asset.asset_code && <div className="text-sm text-gray-500">{rowData.asset.asset_code}</div>}
+                    <div className="text-xs text-green-600">Asset</div>
+                </div>
+            );
+        }
+
+        // Then check issue relations
+        if (rowData.issue) {
+            if (rowData.issue.machine) {
+                return (
+                    <div>
+                        <div className="font-medium flex align-items-center gap-2">
+                            <i className="pi pi-cog text-blue-500"></i>
+                            {rowData.issue.machine.name}
+                        </div>
+                        {rowData.issue.machine.machine_code && <div className="text-sm text-gray-500">{rowData.issue.machine.machine_code}</div>}
+                        <div className="text-xs text-blue-600">Machine (from Issue)</div>
+                    </div>
+                );
+            }
+
+            if (rowData.issue.asset) {
+                return (
+                    <div>
+                        <div className="font-medium flex align-items-center gap-2">
+                            <i className="pi pi-box text-green-500"></i>
+                            {rowData.issue.asset.name}
+                        </div>
+                        {rowData.issue.asset.asset_code && <div className="text-sm text-gray-500">{rowData.issue.asset.asset_code}</div>}
+                        <div className="text-xs text-green-600">Asset (from Issue)</div>
+                    </div>
+                );
+            }
+        }
+
+        return <span className="text-gray-500">N/A</span>;
+    };
+
     const header = (
         <div className="flex flex-wrap align-items-center justify-content-between gap-2">
             <span className="text-xl font-bold">Parts Inventory</span>
@@ -99,7 +173,7 @@ const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSel
                 loading={loading}
                 emptyMessage="No parts found."
                 filters={filters}
-                globalFilterFields={["name", "part_number", "location"]}
+                globalFilterFields={["name", "part_number", "location", "asset.name", "machine.name", "description"]}
                 className="border-round-lg"
                 rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
@@ -109,11 +183,35 @@ const PartTable = ({ parts, loading, onEdit, onDelete, selectedParts = [], onSel
                 selectionMode="multiple"
             >
                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
-                <Column field="name" header="Part Name" style={{ width: "200px" }} sortable />
-                <Column field="part_number" header="Part Number" sortable />
-                <Column field="quantity_in_stock" header="Stock Quantity" sortable />
-                <Column field="min_stock" header="Min Stock" sortable />
-                <Column field="location" header="Location" sortable />
+                <Column field="name" header="Part Name" style={{ minWidth: "180px" }} sortable />
+                <Column field="part_number" header="Part Number" style={{ width: "150px" }} sortable body={(rowData) => <Tag value={rowData.part_number} className="bg-gray-100 text-gray-800 font-medium" />} />
+                <Column field="target" header="Machine/Asset" body={machineOrAssetBodyTemplate} style={{ minWidth: "180px" }} sortable sortField="machine.name" />
+                <Column field="quantity_in_stock" header="Stock" body={stockBodyTemplate} style={{ width: "80px" }} sortable />
+                <Column field="min_stock" header="Min Stock" style={{ width: "80px" }} sortable />
+                <Column field="location" header="Location" body={locationBodyTemplate} style={{ width: "120px" }} sortable />
+                <Column
+                    field="description"
+                    header="Description"
+                    sortable
+                    body={(rowData) => (
+                        <>
+                            <Tooltip target={`.description-tooltip-${rowData.id}`} position="bottom" />
+                            <span
+                                className={`description-tooltip-${rowData.id}`}
+                                data-pr-tooltip={rowData.description}
+                                style={{
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    display: "block",
+                                    maxWidth: "200px"
+                                }}
+                            >
+                                {rowData.description}
+                            </span>
+                        </>
+                    )}
+                />
                 <Column header="Actions" body={actionBodyTemplate} style={{ minWidth: "8rem" }} />
             </DataTable>
         </div>
