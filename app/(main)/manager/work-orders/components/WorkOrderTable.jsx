@@ -127,7 +127,7 @@ const WorkOrderTable = ({ workOrders, selectedWorkOrders, setSelectedWorkOrders,
     const statusBodyTemplate = (rowData) => {
         const statusMap = {
             pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800" },
-            in_progress: { label: "In_Progress", color: "bg-blue-100 text-blue-800" },
+            in_progress: { label: "In Progress", color: "bg-blue-100 text-blue-800" },
             completed: { label: "Completed", color: "bg-green-100 text-green-800" }
         };
         const status = statusMap[rowData.status] || { label: rowData.status, color: "bg-gray-100 text-gray-800" };
