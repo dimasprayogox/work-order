@@ -35,6 +35,8 @@ export const API_ENDPOINTS = {
     LOGISTICS_TOP_USED_PARTS: `${API_URL}/logistics/part-usage/top-used-parts`,
     LOGISTICS_USAGE_LOG: `${API_URL}/logistics/part-usage/usage-log`,
     LOGISTICS_PARTS_BY_ID: (id) => `${API_URL}/logistics/parts/${id}`,
+    LOGISTICS_MACHINES: `${API_URL}/logistics/machines`,
+    LOGISTICS_ASSETS: `${API_URL}/logistics/assets`,
 
     // --- Admin Endpoints ---
     ADMIN_DASHBOARD_OVERVIEW: `${API_URL}/admin/dashboard/overview`,
