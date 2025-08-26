@@ -10,12 +10,12 @@ export default function WorkOrderDetailDialog({ visible, onHide, workOrder }) {
 
     const getStatusConfig = (status) => {
         const statusMap = {
-            open: { label: "Pending", color: "bg-yellow-100 text-yellow-800", icon: "pi-clock" },
-            in_progress: { label: "In Progress", color: "bg-blue-100 text-blue-800", icon: "pi-spin pi-spinner" },
-            resolved: { label: "Resolved", color: "bg-green-100 text-green-800", icon: "pi-check-circle" },
-            closed: { label: "Closed", color: "bg-gray-100 text-gray-800", icon: "pi-times-circle" }
+            open: { label: "Pending", bgColor: "bg-yellow-100", textColor: "text-yellow-800", icon: "pi-clock" },
+            in_progress: { label: "In Progress", bgColor: "bg-cyan-100", textColor: "text-cyan-800", icon: "pi-spin pi-spinner" },
+            resolved: { label: "Resolved", bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check-circle" },
+            closed: { label: "Closed", bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-times-circle" }
         };
-        return statusMap[status] || { label: status, color: "bg-gray-100 text-gray-800", icon: "pi-question" };
+        return statusMap[status] || { label: status, bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-question" };
     };
 
     const getPriorityConfig = (priority) => {
@@ -45,7 +45,7 @@ export default function WorkOrderDetailDialog({ visible, onHide, workOrder }) {
                         <h4 className="font-bold text-xl mb-2 text-primary">{workOrder.title}</h4>
                     </div>
                     <div className="col-4 text-right">
-                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${statusConfig.color} inline-flex`}>
+                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${statusConfig.bgColor} ${statusConfig.textColor} inline-flex`}>
                             <i className={`pi ${statusConfig.icon}`}></i>
                             <span className="font-medium">{statusConfig.label}</span>
                         </div>
@@ -117,14 +117,38 @@ export default function WorkOrderDetailDialog({ visible, onHide, workOrder }) {
                 <div className="grid mb-3">
                     <div className="col-6">
                         <label className="font-semibold text-sm text-gray-700 mb-1 block">Repairable</label>
-                        {workOrder.workOrder?.repairable !== undefined && workOrder.workOrder?.repairable !== null ? (
-                            <Tag
-                                value={workOrder.workOrder.repairable ? "Yes" : "No"}
-                                className={workOrder.workOrder.repairable ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}
-                            />
-                        ) : (
-                            <span className="text-gray-400">Not specified</span>
-                        )}
+                        {(() => {
+                            // Determine repairable value from possible locations and types
+                            let val = null;
+                            if (typeof workOrder.repairable === 'boolean') {
+                                val = workOrder.repairable;
+                            } else if (workOrder.repairable === 1 || workOrder.repairable === '1') {
+                                val = true;
+                            } else if (workOrder.repairable === 0 || workOrder.repairable === '0') {
+                                val = false;
+                            } else if (typeof workOrder.workOrder?.repairable === 'boolean') {
+                                val = workOrder.workOrder.repairable;
+                            } else if (workOrder.workOrder?.repairable === 1 || workOrder.workOrder?.repairable === '1') {
+                                val = true;
+                            } else if (workOrder.workOrder?.repairable === 0 || workOrder.workOrder?.repairable === '0') {
+                                val = false;
+                            } else if (typeof workOrder.issue?.repairable === 'boolean') {
+                                val = workOrder.issue.repairable;
+                            }
+
+                            const config = val === true
+                                ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check', label: 'Repairable' }
+                                : val === false
+                                    ? { bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle', label: 'Not Repairable' }
+                                    : { bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', icon: 'pi-question', label: 'Not Specified' };
+
+                            return (
+                                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
+                                    <i className={`pi ${config.icon}`}></i>
+                                    <span className="font-medium">{config.label}</span>
+                                </div>
+                            );
+                        })()}
                     </div>
                     {workOrder.machine && (
                         <div className="col-6">

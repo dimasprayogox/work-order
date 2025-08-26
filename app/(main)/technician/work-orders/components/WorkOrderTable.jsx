@@ -146,14 +146,29 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
     };
 
     const repairableBodyTemplate = (rowData) => {
-        // Only meaningful for completed work orders; but render a pill consistently
-        const val = (typeof rowData.repairable === 'boolean') ? rowData.repairable : (typeof rowData.issue?.repairable === 'boolean' ? rowData.issue.repairable : null);
+        // Show repairable status for all work orders that have this information
+        // Handle both boolean and integer values from different environments
+        let val = null;
+        
+        if (typeof rowData.repairable === 'boolean') {
+            val = rowData.repairable;
+        } else if (rowData.repairable === 1 || rowData.repairable === '1') {
+            val = true;
+        } else if (rowData.repairable === 0 || rowData.repairable === '0') {
+            val = false;
+        } else if (typeof rowData.issue?.repairable === 'boolean') {
+            val = rowData.issue.repairable;
+        } else if (rowData.issue?.repairable === 1 || rowData.issue?.repairable === '1') {
+            val = true;
+        } else if (rowData.issue?.repairable === 0 || rowData.issue?.repairable === '0') {
+            val = false;
+        }
 
         const config = val === true
             ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check' , label: 'Repairable'}
             : val === false
                 ? { bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle', label: 'Not Repairable'}
-                : { bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', icon: 'pi-question', label: '-'};
+                : { bgColor: 'bg-gray-100', textColor: 'text-gray-600', icon: 'pi-minus', label: 'N/A'};
 
         return (
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>

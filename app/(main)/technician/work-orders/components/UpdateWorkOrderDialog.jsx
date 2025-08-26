@@ -50,6 +50,17 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
                 // Set default start/completion time to now if not already set
                 started_at: workOrder.started_at ? new Date(workOrder.started_at) : (nextStatus === 'in_progress' ? new Date() : null),
                 completed_at: workOrder.completed_at ? new Date(workOrder.completed_at) : (nextStatus === 'completed' ? new Date() : null),
+                // Initialize repairable - handle both boolean and integer values from different environments
+                repairable: (() => {
+                    if (typeof workOrder.repairable === 'boolean') {
+                        return workOrder.repairable;
+                    } else if (workOrder.repairable === 1 || workOrder.repairable === '1') {
+                        return true;
+                    } else if (workOrder.repairable === 0 || workOrder.repairable === '0') {
+                        return false;
+                    }
+                    return true; // default to true
+                })(),
             });
             setFormErrors({}); // Reset errors on pending
         }
@@ -64,9 +75,10 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
         if (formData.status === 'completed' && !formData.completed_at) {
             errors.completed_at = "Completion date is required for 'Completed' status.";
         }
-        if (formData.status === 'completed' && !formData.notes) {
-            errors.notes = "Please add a technician note when completing a work order.";
-        }
+        // Note: Removed required notes validation - technician can save without notes
+        // if (formData.status === 'completed' && !formData.notes) {
+        //     errors.notes = "Please add a technician note when completing a work order.";
+        // }
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -150,14 +162,16 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
         try {
             const payload = {
                 status: formData.status,
-                // send technician note, not edit original description by default
-                notes: formData.notes,
+                // Always send notes, even if empty string
+                notes: formData.notes || "",
                 // Conditionally add dates to payload only if they exist
                 ...(formData.status === 'in_progress' && formData.started_at && { started_at: formData.started_at.toISOString() }),
                 ...(formData.status === 'completed' && formData.completed_at && { completed_at: formData.completed_at.toISOString() }),
-            // Include repairable status in the payload when completed
-            ...(formData.status === 'completed' && { repairable: formData.repairable }),
+                // Only send repairable when status is 'completed'
+                ...(formData.status === 'completed' && { repairable: Boolean(formData.repairable) }),
             };
+
+            console.log("Update payload:", payload); // Debug log
 
             const response = await fetch(`/api/technician/work-orders/${workOrder.id}`, {
                 method: "PATCH",
@@ -166,6 +180,7 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
             });
 
             const result = await response.json();
+            console.log("Update response:", result); // Debug log
             if (!response.ok) {
                 throw new Error(result.message || "Failed to update work order.");
             }
