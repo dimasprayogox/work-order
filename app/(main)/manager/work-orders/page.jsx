@@ -303,7 +303,13 @@ export default function WorkOrderPage() {
             <div className="card">
                 <h3 className="mb-4">Work Orders</h3>
                 <div className="flex flex-row gap-2 mb-4">
-                    <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
+                    <Button
+                        size="small"
+                        label="Back"
+                        icon="pi pi-arrow-left"
+                        outlined
+                        disabled
+                    />
                     <Button size="small" label="New" icon="pi pi-plus" outlined severity="success" disabled />
                     <Divider layout="vertical" />
                     <Button size="small" label="Assign Selected" icon="pi pi-users" outlined onClick={handleBulkAssign} disabled={selectedWorkOrders.length === 0} />

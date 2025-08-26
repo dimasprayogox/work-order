@@ -352,7 +352,13 @@ export default function SchedulePage() {
             <div className="card">
                 <h3 className="mb-4">Schedules Maintenance</h3>
                 <div className="flex flex-row gap-2 mb-4">
-                    {/* <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled /> */}
+                    <Button
+                        size="small"
+                        label="Back"
+                        icon="pi pi-arrow-left"
+                        outlined
+                        disabled
+                    />
                     <Button
                         size="small"
                         label="New"
