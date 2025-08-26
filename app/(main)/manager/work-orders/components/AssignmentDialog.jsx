@@ -30,14 +30,13 @@ const AssignmentDialog = ({
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
 
-    const [tempDate, setTempDate] = useState(null);
-        const calendarRef = useRef(null);
+    const calendarRef = useRef(null);
 
     const isReassignment = workOrder?.assigned_to_id;
 
     useEffect(() => {
         if (workOrder && visible) {
-            const  scheduleDate = workOrder.scheduled_date ? new Date(workOrder.scheduled_date) : null;
+            const scheduleDate = workOrder.scheduled_date ? new Date(workOrder.scheduled_date) : null;
             setForm({
                 assigned_to_id: workOrder.assigned_to_id || "",
                 priority: workOrder.priority || "medium",
@@ -45,7 +44,6 @@ const AssignmentDialog = ({
                 notes: workOrder.notes || "",
                 reason: ""
             });
-            setTempDate(null);
         } else {
             setForm({
                 assigned_to_id: "",
@@ -54,7 +52,6 @@ const AssignmentDialog = ({
                 notes: "",
                 reason: ""
             });
-            setTempDate(null);
         }
         setSubmitted(false);
     }, [workOrder, visible]);
@@ -186,18 +183,7 @@ const AssignmentDialog = ({
 
     if (!workOrder) return null;
 
-     const handleApplyDate = () => {
-            handleChange("next_due_date", tempDate);
-            calendarRef.current?.hide();
-        };
-    
-       const calendarFooterTemplate = () => (
-           <div>
-               <div className="flex justify-start w-full gap-2">
-                        <Button label="Submit" icon="pi pi-check" onClick={handleApplyDate} />
-               </div>
-           </div>
-       );
+    const calendarFooterTemplate = () => null;
 
     return (
         <Dialog header={isReassignment ? "Reassign Work Order" : "Assign Work Order"} visible={visible} style={{ width: "50rem" }} breakpoints={{ "960px": "75vw", "641px": "90vw" }} onHide={onHide} modal className="p-fluid" footer={footerContent}>
@@ -323,20 +309,20 @@ const AssignmentDialog = ({
                     <label htmlFor="scheduled_date" className="font-medium">
                         Scheduled Date
                     </label>
-                    <Calendar
-                        id="next_due_date"
-                        ref={calendarRef}
-                        value={tempDate}
-                        onChange={(e) => setTempDate(e.value)}
-                        showTime
-                        hourFormat="24"
-                        placeholder="Select due date"
-                        dateFormat="dd/mm/yy"
-                        showButtonBar
-                        footerTemplate={calendarFooterTemplate}
-                        className={classNames({ "p-invalid": submitted && !form.next_due_date })}
-                    />
-                    {submitted && !form.next_due_date && <small className="p-error">Next due date is required</small>}
+                        <Calendar
+                            id="scheduled_date"
+                            ref={calendarRef}
+                            value={form.scheduled_date}
+                            onChange={(e) => handleChange("scheduled_date", e.value)}
+                            showTime
+                            hourFormat="24"
+                            placeholder="Select due date"
+                            dateFormat="dd/mm/yy"
+                            showButtonBar
+                            footerTemplate={calendarFooterTemplate}
+                            className={classNames({ "p-invalid": submitted && !form.scheduled_date })}
+                        />
+                        {submitted && !form.scheduled_date && <small className="p-error">Scheduled date is required</small>}
                 </div>
 
                 {/* Reason (for reassignment) */}
