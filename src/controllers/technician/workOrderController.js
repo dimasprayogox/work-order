@@ -37,16 +37,21 @@ export const WorkOrderController = {
                 const plain = (typeof wo.toJSON === 'function') ? wo.toJSON() : { ...wo };
                 plain.asset = plain.asset || (plain.issue && plain.issue.asset) || null;
                 plain.machine = plain.machine || (plain.issue && plain.issue.machine) || null;
+                
                 // Ensure repairable is a proper boolean or null regardless of DB driver (0/1, '0'/'1')
-                if (typeof plain.repairable !== 'boolean') {
-                    if (plain.repairable === 1 || plain.repairable === '1' || plain.repairable === 'true') {
+                // This handles different database drivers (MySQL returns 1/0, PostgreSQL returns true/false)
+                if (plain.repairable !== null && plain.repairable !== undefined) {
+                    if (plain.repairable === 1 || plain.repairable === '1' || plain.repairable === 'true' || plain.repairable === true) {
                         plain.repairable = true;
-                    } else if (plain.repairable === 0 || plain.repairable === '0' || plain.repairable === 'false') {
+                    } else if (plain.repairable === 0 || plain.repairable === '0' || plain.repairable === 'false' || plain.repairable === false) {
                         plain.repairable = false;
                     } else {
                         plain.repairable = null;
                     }
+                } else {
+                    plain.repairable = null;
                 }
+                
                 return plain;
             });
 
@@ -150,8 +155,9 @@ export const WorkOrderController = {
                                             created_at: new Date()
                                         };
                                         await PartUsage.query().insert(partUsageData);
-                                    } catch (insertError) {
+                                    } catch {
                                         // Jangan stop proses, lanjutkan dengan item berikutnya
+                                        // Log error tapi lanjutkan eksekusi
                                     }
                                 }
                             }
@@ -160,16 +166,42 @@ export const WorkOrderController = {
                 }
             }
 
-            const updatedWorkOrder = await workOrder.$query().patchAndFetch({
+            // Prepare update data
+            const updateData = {
                 status,
-                // Do not overwrite original description unless provided explicitly
-                ...(typeof description !== 'undefined' && { description }),
-                // Technician note: append or set notes field
-                ...(typeof notes !== 'undefined' && { notes }),
                 started_at: status === "in_progress" ? started_at : workOrder.started_at,
                 completed_at: status === "completed" ? completed_at : null,
-                // persist repairable flag if provided
-                ...(typeof repairable !== 'undefined' && { repairable: repairable }),
+            };
+
+            // Always include notes if provided (including empty string)
+            if (typeof notes !== 'undefined') {
+                updateData.notes = notes;
+            }
+
+            // Always include description if provided
+            if (typeof description !== 'undefined') {
+                updateData.description = description;
+            }
+
+            // Always include repairable if provided
+            if (typeof repairable !== 'undefined') {
+                updateData.repairable = repairable;
+            }
+
+            // Store original values for debugging
+            const originalNotes = workOrder.notes;
+            const originalRepairable = workOrder.repairable;
+
+            console.log('=== DEBUG UPDATE ===');
+            console.log('updateData before DB:', updateData);
+            console.log('original values:', { originalNotes, originalRepairable });
+            console.log('received payload:', { notes, repairable, status });
+
+            const updatedWorkOrder = await workOrder.$query().patchAndFetch(updateData);
+            
+            console.log('after DB update:', {
+                notes: updatedWorkOrder.notes,
+                repairable: updatedWorkOrder.repairable
             });
 
             // Update status issue sesuai status work order
@@ -204,19 +236,32 @@ export const WorkOrderController = {
 
             // Normalize repairable on the returned object as well
             const returned = (typeof updatedWorkOrder.toJSON === 'function') ? updatedWorkOrder.toJSON() : { ...updatedWorkOrder };
-            if (typeof returned.repairable !== 'boolean') {
-                if (returned.repairable === 1 || returned.repairable === '1' || returned.repairable === 'true') {
+            
+            // Ensure repairable is a proper boolean or null regardless of DB driver
+            if (returned.repairable !== null && returned.repairable !== undefined) {
+                if (returned.repairable === 1 || returned.repairable === '1' || returned.repairable === 'true' || returned.repairable === true) {
                     returned.repairable = true;
-                } else if (returned.repairable === 0 || returned.repairable === '0' || returned.repairable === 'false') {
+                } else if (returned.repairable === 0 || returned.repairable === '0' || returned.repairable === 'false' || returned.repairable === false) {
                     returned.repairable = false;
                 } else {
                     returned.repairable = null;
                 }
+            } else {
+                returned.repairable = null;
             }
 
             res.status(200).json({
                 message: `Work order successfully updated to '${status}'.`,
-                data: returned
+                data: returned,
+                debug: {
+                    updateData_sent: updateData,
+                    received_notes: notes === undefined ? 'undefined' : notes,
+                    received_repairable: repairable === undefined ? 'undefined' : repairable,
+                    original_notes: originalNotes,
+                    original_repairable: originalRepairable,
+                    saved_notes: returned.notes,
+                    saved_repairable: returned.repairable
+                }
             });
         } catch (err) {
             res.status(500).json({ message: "Failed to update work order", error: err.message });

@@ -20,7 +20,7 @@ export const AssetController = {
             // Build query to get assets
             let query = Asset.query()
                 .withGraphFetched('[category, division]')
-                .where('status', '!=', 'inactive')
+                .where('status', 'operational')
                 .orderBy('name', 'asc');
 
             // If user has a division, filter assets by that division and include unassigned assets (division_id IS NULL)

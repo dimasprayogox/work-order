@@ -23,13 +23,16 @@ export const AssetController = {
         .orderBy("name", "asc");
 
       if (userDivisionId) {
-        query = query.where("division_id", userDivisionId);
+        // return assets that belong to user's division OR assets with null division (global)
+        query = query.where((builder) => {
+          builder.where("division_id", userDivisionId).orWhereNull("division_id");
+        });
       } else {
         return res.json({ success: true, data: [] });
       }
 
-      const machines = await query;
-      res.json({ success: true, data: machines });
+      const assets = await query;
+      res.json({ success: true, data: assets });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
     }
