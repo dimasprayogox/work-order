@@ -45,6 +45,8 @@ import logisticsDashboardRoutes from './routes/logistic/dashboard.routes.js';
 import partRoutes from './routes/logistic/part.routes.js';
 import partRequestRoutes from './routes/logistic/part-request.routes.js';
 import partUsageRoutes from './routes/logistic/part-usage.routes.js';
+import logisticsMachineRoutes from './routes/logistic/machine.routes.js';
+import logisticsAssetRoutes from './routes/logistic/asset.routes.js';
 
 //manager
 import managerDashboardRoutes from './routes/manager/dashboard.routes.js';
@@ -136,6 +138,8 @@ app.use('/api/logistics/dashboard', logisticsDashboardRoutes);
 app.use('/api/logistics/parts', partRoutes);
 app.use('/api/logistics/part-requests', partRequestRoutes);
 app.use('/api/logistics/part-usage', partUsageRoutes);
+app.use('/api/logistics/machines', logisticsMachineRoutes);
+app.use('/api/logistics/assets', logisticsAssetRoutes);
 
 //manager
 app.use('/api/manager/dashboard', managerDashboardRoutes);
