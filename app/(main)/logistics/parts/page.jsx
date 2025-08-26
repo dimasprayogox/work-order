@@ -31,6 +31,8 @@ const PartPage = () => {
     const [loading, setLoading] = useState(false);
     const [selectedPart, setSelectedPart] = useState(null);
     const [selectedParts, setSelectedParts] = useState([]);
+    const [assets, setAssets] = useState([]);
+    const [machines, setMachines] = useState([]);
     const [isFormOpen, setFormOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
     const [searchText, setSearchText] = useState("");
@@ -50,37 +52,65 @@ const PartPage = () => {
         marginBottom: 10
     });
 
-    const columnOptions = [
-        { header: "No", key: "no", visible: true },
-        { header: "Part Number", key: "part_number", visible: true },
-        { header: "Name", key: "name", visible: true },
-        { header: "Description", key: "description", visible: true },
-        { header: "Quantity Stock", key: "quantity_in_stock", visible: true },
-        { header: "Minimum Stock", key: "min_stock", visible: true },
-        { header: "Location", key: "location", visible: true }
-    ];
+    const [columnOptions] = useState([
+        { field: "name", header: "Name", visible: true },
+        { field: "part_number", header: "Part Number", visible: true },
+        { field: "description", header: "Description", visible: true },
+        { field: "quantity_in_stock", header: "Quantity", visible: true },
+        { field: "min_stock", header: "Min Stock", visible: true },
+        { field: "location", header: "Location", visible: true },
+        { field: "asset.name", header: "Asset", visible: true },
+        { field: "machine.name", header: "Machine", visible: true },
+        { field: "created_at", header: "Created Date", visible: true },
+        { field: "updated_at", header: "Updated Date", visible: true }
+    ]);
 
     const showToast = useCallback((sev, sum, det) => {
         toast.current?.show({ severity: sev, summary: sum, detail: det });
     }, []);
 
-    const fetchParts = useCallback(async () => {
-        setLoading(true);
-        try {
-            const res = await fetch("/api/logistics/parts");
-            if (!res.ok) throw new Error((await res.json()).message || "Failed to fetch parts.");
-            const result = await res.json();
-            setParts(result.data || []);
-        } catch (err) {
-            showToast("error", "Error", err.message);
-        } finally {
-            setLoading(false);
-        }
-    }, [showToast]);
+      const fetchParts = useCallback(async () => {
+          setLoading(true);
+          try {
+              // Menggunakan API route handler yang baru
+              const res = await fetch("/api/logistics/parts", {
+                  credentials: "include"
+              });
+              const body = await res.json();
+              setParts(body.data || []);
+          } catch (err) {
+              showToast("error", "Error", "Gagal mengambil data parts");
+          } finally {
+              setLoading(false);
+          }
+      }, [showToast]);
 
-    useEffect(() => {
-        fetchParts();
-    }, [fetchParts]);
+      const fetchAssets = useCallback(async () => {
+          try {
+              const res = await fetch("/api/logistics/assets", { credentials: "include" });
+              const json = await res.json();
+              setAssets(json.data || []);
+          } catch (err) {
+              // ignore
+          }
+      }, []);
+
+      const fetchMachines = useCallback(async () => {
+          try {
+              const res = await fetch("/api/logistics/machines", { credentials: "include" });
+              const json = await res.json();
+              setMachines(json.data || []);
+          } catch (err) {
+              // ignore
+          }
+      }, []);
+
+      useEffect(() => {
+          fetchParts();
+          fetchAssets();
+          fetchMachines();
+      }, [fetchParts, fetchAssets, fetchMachines]);
+
 
     const handleRefresh = () => {
         fetchParts();
@@ -105,6 +135,121 @@ const PartPage = () => {
         setDeleteOpen(true);
     };
 
+    // --- Export to Excel ---
+    const exportExcel = async () => {
+        if (!parts.length) {
+            showToast("warn", "Warning", "Tidak ada data untuk diekspor");
+            return;
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("logistics Parts");
+
+        // Add headers
+        const headers = columnOptions.filter((col) => col.visible).map((col) => col.header);
+
+        worksheet.addRow(headers);
+
+        // Add data
+        parts.forEach((part) => {
+            const rowData = columnOptions
+                .filter((col) => col.visible)
+                .map((col) => {
+                    if (col.field === "created_at" || col.field === "updated_at") {
+                        return formatDate(part[col.field]);
+                    } else if (col.field === "asset.name") {
+                        return part.asset?.name || "";
+                    } else if (col.field === "machine.name") {
+                        return part.machine?.name || "";
+                    } else {
+                        return part[col.field] || "";
+                    }
+                });
+
+            worksheet.addRow(rowData);
+        });
+
+        // Style headers
+        worksheet.getRow(1).eachCell((cell) => {
+            cell.font = { bold: true };
+            cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFE0E0E0" }
+            };
+        });
+
+        // Auto-fit columns
+        worksheet.columns.forEach((column) => {
+            column.width = 20;
+        });
+
+        // Generate Excel file
+        const buffer = await workbook.xlsx.writeBuffer();
+        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        showToast("success", "Success", "Data berhasil diekspor ke Excel");
+    };
+
+    // --- Export to PDF --- (Fixed: Now matches MachineCategoryPage implementation)
+    const exportPdf = (config = null) => {
+        if (!parts.length) {
+            showToast("warn", "Warning", "Tidak ada data untuk cetak");
+            return;
+        }
+
+        const currentConfig = config || printConfig;
+
+        const doc = new jsPDF({
+            orientation: currentConfig.orientation,
+            unit: currentConfig.unit,
+            format: currentConfig.format
+        });
+
+        const visibleColumns = columnOptions.filter((col) => col.visible);
+
+        const headers = visibleColumns.map((col) => col.header);
+        const data = parts.map((part) => {
+            return visibleColumns.map((col) => {
+                if (col.field === "created_at" || col.field === "updated_at") {
+                    return formatDate(part[col.field]);
+                } else if (col.field === "asset.name") {
+                    return part.asset?.name || "";
+                } else if (col.field === "machine.name") {
+                    return part.machine?.name || "";
+                } else {
+                    return part[col.field] || "";
+                }
+            });
+        });
+
+        doc.text("logistics Parts Report", currentConfig.marginLeft, currentConfig.marginTop);
+
+        autoTable(doc, {
+            startY: currentConfig.marginTop + 10,
+            head: [headers],
+            body: data,
+            margin: {
+                left: currentConfig.marginLeft,
+                right: currentConfig.marginRight,
+                top: currentConfig.marginTop + 10,
+                bottom: currentConfig.marginBottom
+            },
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [71, 85, 105] }
+        });
+
+        const pdfBlob = doc.output("blob");
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        setPdfUrl(pdfUrl);
+        setJsPdfPreviewOpen(true);
+    };
+
+    // --- Adjust Print Margins --- (Fixed: Now matches MachineCategoryPage implementation)
+    const handleAdjust = (newConfig) => {
+        setPrintConfig(newConfig);
+        exportPdf(newConfig);
+    };
+
     const handleImport = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -122,7 +267,7 @@ const PartPage = () => {
 
                 const rowData = {};
                 row.eachCell((cell, colNumber) => {
-                    const headers = ["name", "part_number", "description", "quantity_in_stock", "min_stock", "location"];
+                    const headers = ["name", "part_number", "description", "quantity_in_stock", "min_stock", "location", "asset", "machine"];
                     if (headers[colNumber - 1]) {
                         rowData[headers[colNumber - 1]] = cell.value;
                     }
@@ -133,8 +278,42 @@ const PartPage = () => {
                 }
             });
 
-            for (const item of data) {
-                // Using the new API route handler
+            // Resolve asset/machine names to IDs before sending to API
+            const unresolved = { assets: new Set(), machines: new Set() };
+            const payloads = data.map((item) => {
+                const payload = { ...item };
+                // Normalize keys expected by backend
+                if (payload.asset) {
+                    const match = assets.find((a) => String(a.name).trim().toLowerCase() === String(payload.asset).trim().toLowerCase());
+                    if (match) {
+                        payload.asset_id = match.id;
+                    } else {
+                        unresolved.assets.add(payload.asset);
+                    }
+                    delete payload.asset;
+                }
+
+                if (payload.machine) {
+                    const match = machines.find((m) => String(m.name).trim().toLowerCase() === String(payload.machine).trim().toLowerCase());
+                    if (match) {
+                        payload.machine_id = match.id;
+                    } else {
+                        unresolved.machines.add(payload.machine);
+                    }
+                    delete payload.machine;
+                }
+
+                return payload;
+            });
+
+            if (unresolved.assets.size > 0 || unresolved.machines.size > 0) {
+                const messages = [];
+                if (unresolved.assets.size > 0) messages.push(`Unresolved assets: ${[...unresolved.assets].join(", ")}`);
+                if (unresolved.machines.size > 0) messages.push(`Unresolved machines: ${[...unresolved.machines].join(", ")}`);
+                throw new Error(`Import gagal. ${messages.join(" | ")}`);
+            }
+
+            for (const item of payloads) {
                 const res = await fetch("/api/logistics/parts", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -142,122 +321,17 @@ const PartPage = () => {
                     body: JSON.stringify(item)
                 });
                 const body = await res.json();
-                if (!res.ok) throw new Error(body.message || "Import failed");
+                if (!res.ok) throw new Error(body.message || "Import gagal");
             }
 
-            showToast("success", "Import Success", `${data.length} parts imported successfully`);
+            showToast("success", "Import Sukses", `${data.length} data berhasil diimpor`);
             fetchParts();
         } catch (err) {
-            showToast("error", "Import Failed", err.message);
+            showToast("error", "Import Gagal", err.message);
         }
 
         // Reset file input
         e.target.value = "";
-    };
-
-    //export excel
-    const exportExcel = async () => {
-        if (!parts.length) {
-            showToast("warn", "No Data", "There are no parts to export");
-            return;
-        }
-
-        try {
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet("Parts");
-
-            // Add headers
-            const headers = columnOptions.filter((col) => col.visible).map((col) => col.header);
-            worksheet.addRow(headers);
-
-            // Add data with numbering
-            parts.forEach((part, index) => {
-                const rowData = [
-                    index + 1, // Numbering
-                    part.part_number || "-",
-                    part.name || "-",
-                    part.description || "-",
-                    part.quantity_in_stock || 0,
-                    part.min_stock || 0,
-                    part.location || "-"
-                ];
-                worksheet.addRow(rowData);
-            });
-
-            // Style headers
-            worksheet.getRow(1).eachCell((cell) => {
-                cell.font = { bold: true };
-                cell.fill = {
-                    type: "pattern",
-                    pattern: "solid",
-                    fgColor: { argb: "FFE0E0E0" }
-                };
-                cell.alignment = { vertical: "middle", horizontal: "center" };
-            });
-
-            // Auto-fit columns
-            worksheet.columns.forEach((column, index) => {
-                const header = headers[index];
-                // Set column width based on header length
-                column.width = Math.max(header.length * 1.5, 10);
-                // Set number format for numeric columns
-                if (index === 0 || index === 4 || index === 5) {
-                    column.numFmt = "0";
-                }
-            });
-
-            // Generate Excel file
-            const buffer = await workbook.xlsx.writeBuffer();
-            saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-            showToast("success", "Success", "Data exported to Excel successfully");
-        } catch (error) {
-            showToast("error", "Error", `Failed to export: ${error.message}`);
-        }
-    };
-    // --- Export to PDF ---
-    const exportPdf = (config = null) => {
-        const currentConfig = config || printConfig;
-
-        if (parts.length === 0) {
-            showToast("warn", "No Data", "There are no parts to print");
-            return;
-        }
-
-        const doc = new jsPDF({
-            orientation: currentConfig.orientation,
-            unit: currentConfig.unit,
-            format: currentConfig.format
-        });
-
-        const headers = ["No", "Part Number", "Name", "Description", "Quantity Stock", "Minimun Stock", "Location"];
-
-        const data = parts.map((part, index) => [(index + 1).toString(), part.part_number || "-", part.name || "-", part.description || "-", part.quantity_in_stock?.toString() || "0", part.min_stock?.toString() || "0", part.location || "-"]);
-
-        doc.text("Parts Report", currentConfig.marginLeft, currentConfig.marginTop);
-
-        autoTable(doc, {
-            startY: currentConfig.marginTop + 10,
-            head: [headers],
-            body: data,
-            margin: {
-                left: currentConfig.marginLeft,
-                right: currentConfig.marginRight,
-                top: currentConfig.marginTop + 10,
-                bottom: currentConfig.marginBottom
-            }
-        });
-
-        const pdfBlob = doc.output("blob");
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        setPdfUrl(pdfUrl);
-        setJsPdfPreviewOpen(true);
-    };
-
-
-    // --- Adjust Print Margins ---
-    const handleAdjust = (newConfig) => {
-        setPrintConfig(newConfig);
-        exportPdf(newConfig);
     };
 
     return (
@@ -295,7 +369,7 @@ const PartPage = () => {
                 />
 
                 {/* Dialogs */}
-                <PartFormDialog visible={isFormOpen} onHide={() => setFormOpen(false)} part={selectedPart} fetchParts={fetchParts} showToast={showToast} />
+                <PartFormDialog visible={isFormOpen} onHide={() => setFormOpen(false)} part={selectedPart} fetchParts={fetchParts} showToast={showToast} assets={assets} machines={machines} />
 
                 <ConfirmDeleteDialog
                     visible={isDeleteOpen}
