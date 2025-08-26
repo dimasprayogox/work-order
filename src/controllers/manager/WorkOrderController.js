@@ -836,10 +836,16 @@ export const WorkOrderController = {
         });
       }
 
-      const updatedWorkOrder = await WorkOrder.query().patchAndFetchById(id, {
+      // Use knex directly to ensure DB fields are explicitly set to NULL
+      await db('work_orders').where('id', id).update({
         assigned_to_id: null,
-        status: "pending",
-      }).withGraphFetched(`[
+        status: 'pending',
+        scheduled_date: null,
+        notes: null,
+        updated_at: db.fn.now()
+      });
+
+      const updatedWorkOrder = await WorkOrder.query().findById(id).withGraphFetched(`[
           machine.[category], 
           asset.[category],
           issue.[machine.[category], asset.[category]]
