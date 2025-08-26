@@ -1,187 +1,182 @@
 import { Part } from "../../models/Part.js";
 import { v4 as uuidv4 } from "uuid";
-import { createPartSchema, updatePartSchema } from "../../schemas/logistic/partSchema.js";
+import {
+  createPartSchemaWithXor,
+  updatePartSchema,
+} from "../../schemas/logistic/partSchema.js";
 
-
-async function findUsedPartDetails(partIds) {
-    const usedParts = await Part.relatedQuery("usages")
-        .for(partIds)
-        .select("part_id")
-        .distinct();
-
-    if (usedParts.length === 0) return null;
-
-    const usedPartIds = usedParts.map((up) => up.part_id);
-    return Part.query().findByIds(usedPartIds).select("id", "name", "part_number");
-}
 
 export const PartController = {
-  async index(req, res) {
-    const parts = await Part.query();
-    res.json({ success: true, data: parts });
-  },
+    async index(req, res) {
+        try {
+            const parts = await Part.query().withGraphFetched('[asset, machine]');
+            res.json({ success: true, data: parts });
+        } catch (err) {
+            res.status(500).json({
+                success: false,
+                message: "Failed to fetch parts",
+                error:
+                    process.env.NODE_ENV === "development" ? err.message : undefined,
+            });
+        }
+    }, 
 
-  async store(req, res) {
-    const parsed = createPartSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res
-        .status(400)
-        .json({ success: false, errors: parsed.error.flatten().fieldErrors });
-    }
-    const newPart = await Part.query().insert({ id: uuidv4(), ...parsed.data });
-    res
-      .status(201)
-      .json({ success: true, message: "Part created", data: newPart });
-  },
+    async store(req, res) {
+        try {
+            const parsed = createPartSchemaWithXor.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({
+                    success: false,
+                    errors: parsed.error.flatten().fieldErrors,
+                });
+            }
 
-  async update(req, res) {
-    try {
-      const { id } = req.params;
+            // Normalize: ensure only one of asset_id or machine_id is set
+            const payload = { ...parsed.data };
+            if (payload.asset_id) payload.machine_id = null;
+            if (payload.machine_id) payload.asset_id = null;
 
-      const parsed = updatePartSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res
-          .status(400)
-          .json({ success: false, errors: parsed.error.flatten().fieldErrors });
-      }
+            const created = await Part.query().insert({
+                id: uuidv4(),
+                ...payload,
+            });
 
-      const updatedPart = await Part.query().patchAndFetchById(id, {
-        ...parsed.data,
-        updated_at: new Date(),
-      });
+            const newPart = await Part.query().findById(created.id).withGraphFetched('[asset, machine]');
 
-      if (!updatedPart) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            message: "Part dengan ID tersebut tidak ditemukan.",
-          });
-      }
+            res.status(201).json({
+                success: true,
+                message: "Part created successfully",
+                data: newPart,
+            });
+        } catch (err) {
+            res.status(500).json({
+                success: false,
+                message: "Failed to create part",
+                error:
+                    process.env.NODE_ENV === "development" ? err.message : undefined,
+            });
+        }
+    },
 
-      return res.json({
-        success: true,
-        message: "Part berhasil diupdate",
-        data: updatedPart,
-      });
-    } catch (error) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Terjadi kesalahan pada server." });
-    }
-  },
+    async update(req, res) {
+        try {
+            const parsed = updatePartSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({
+                    success: false,
+                    errors: parsed.error.flatten().fieldErrors,
+                });
+            }
 
-  async show(req, res) {
-    const part = await Part.query().findById(req.params.id);
-    if (!part) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Part not found" });
-    }
-    res.json({ success: true, data: part });
-  },
+            // Normalize payload for update
+            const payload = { ...parsed.data };
+            if (Object.prototype.hasOwnProperty.call(payload, 'asset_id') && payload.asset_id) payload.machine_id = null;
+            if (Object.prototype.hasOwnProperty.call(payload, 'machine_id') && payload.machine_id) payload.asset_id = null;
 
-  async destroy(req, res) {
-    try {
-      const { id } = req.params;
+            const updatedPart = await Part.query().patchAndFetchById(req.params.id, {
+                ...payload,
+                updated_at: new Date(),
+            });
 
-      // 1. CARI part terlebih dahulu
-      const part = await Part.query().findById(id);
-      if (!part) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Part tidak ditemukan" });
-      }
+            if (!updatedPart) {
+                return res
+                    .status(404)
+                    .json({ success: false, message: "Part not found" });
+            }
 
-      // 2. CEK apakah part sedang digunakan SEBELUM menghapus
-      const usageCount = await part.$relatedQuery("usages").resultSize();
-      if (usageCount > 0) {
-        return res.status(400).json({
-          success: false,
-          message: `Part "${part.name}" tidak dapat dihapus karena masih digunakan.`,
-          error: "Part has existing dependencies.",
-        });
-      }
+            res.json({
+                success: true,
+                message: "Part updated successfully",
+                data: updatedPart,
+            });
+        } catch (err) {
+            res.status(500).json({
+                success: false,
+                message: "Failed to update part",
+                error:
+                    process.env.NODE_ENV === "development" ? err.message : undefined,
+            });
+        }
+    },
 
-      // 3. JIKA AMAN, BARU LAKUKAN PENGHAPUSAN
-      await Part.query().deleteById(id);
+    async show(req, res) {
+        try {
+            const part = await Part.query().findById(req.params.id).withGraphFetched('[asset, machine]');
+            if (!part) {
+                return res
+                    .status(404)
+                    .json({ success: false, message: "Part not found" });
+            }
+            res.json({ success: true, data: part });
+        } catch (err) {
+            res.status(500).json({
+                success: false,
+                message: "Failed to fetch part",
+                error:
+                    process.env.NODE_ENV === "development" ? err.message : undefined,
+            });
+        }
+    },
 
-      res.json({
-        success: true,
-        message: "Part berhasil dihapus",
-        data: { id: id },
-      });
-    } catch (error) {
-      console.error("Error in destroy:", error);
-      res
-        .status(500)
-        .json({ success: false, message: "Terjadi kesalahan pada server." });
-    }
-  },
-  async deleteMany(req, res) {
-    try {
-      const { ids } = req.body;
+    async destroy(req, res) {
+        try {
+            const deleted = await Part.query().deleteById(req.params.id);
+            if (!deleted) {
+                return res
+                    .status(404)
+                    .json({ success: false, message: "Part not found" });
+            }
+            res.json({
+                success: true,
+                message: "Part deleted successfully",
+                data: { id: req.params.id },
+            });
+        } catch (err) {
+            res.status(500).json({
+                success: false,
+                message: "Failed to delete part",
+                error:
+                    process.env.NODE_ENV === "development" ? err.message : undefined,
+            });
+        }
+    },
 
-      if (!ids || !Array.isArray(ids) || ids.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Input tidak valid: 'ids' harus berupa array yang tidak kosong.",
-        });
-      }
+    async deleteMany(req, res) {
+        try {
+            const { ids } = req.body;
 
-      const conflictingParts = await findUsedPartDetails(ids);
+            if (!ids || !Array.isArray(ids) || ids.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Invalid input: 'ids' must be a non-empty array of part IDs.",
+                });
+            }
 
-      if (conflictingParts) {
-        const partNames = conflictingParts.map((p) => p.name).join(", ");
+            const deletedCount = await Part.query().delete().whereIn("id", ids);
 
-        return res.status(400).json({
-          success: false,
-          message: `Operasi dibatalkan. Part berikut masih digunakan: ${partNames}.`,
-          data: { conflictingParts },
-        });
-      }
+            if (deletedCount === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "No parts found with the provided IDs.",
+                });
+            }
 
-      const deletedCount = await Part.query().delete().whereIn("id", ids);
-
-      if (deletedCount === 0) {
-        return res.status(404).json({
-          success: false,
-          message: "Tidak ada part yang ditemukan dengan ID yang diberikan.",
-        });
-      }
-
-      res.json({
-        success: true,
-        message: `Berhasil menghapus ${deletedCount} part`,
-        data: { deletedCount, deletedIds: ids },
-      });
-    } catch (err) {
-      console.error("Error dalam deleteMany:", err);
-
-      if (
-        err.nativeError &&
-        err.nativeError.code === "ER_ROW_IS_REFERENCED_2"
-      ) {
-        const conflictingParts = await findUsedPartDetails(req.body.ids);
-        return res.status(400).json({
-          success: false,
-          message:
-            "Gagal menghapus. Beberapa part masih terikat dengan data lain (misal: work order).",
-          error: "Foreign key constraint violation",
-          data: {
-            conflictingParts:
-              conflictingParts ||
-              "Gagal mengidentifikasi part spesifik saat error terjadi.",
-          },
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: "Terjadi kesalahan pada server saat mencoba menghapus part.",
-        error: process.env.NODE_ENV === "development" ? err.message : undefined,
-      });
-    }
-  },
+            res.json({
+                success: true,
+                message: `Successfully deleted ${deletedCount} parts`,
+                data: {
+                    deletedCount,
+                    deletedIds: ids,
+                },
+            });
+        } catch (err) {
+            res.status(500).json({
+                success: false,
+                message: "Failed to delete parts",
+                error:
+                    process.env.NODE_ENV === "development" ? err.message : undefined,
+            });
+        }
+    },
 };
