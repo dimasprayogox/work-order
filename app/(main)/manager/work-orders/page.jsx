@@ -152,6 +152,12 @@ export default function WorkOrderPage() {
             showToast("success", "Berhasil", body.message);
             fetchWorkOrders();
             fetchStats();
+            // Optimistically clear scheduled_date and notes in local state so UI shows nullable values
+            setWorkOrders(prev => prev.map(wo => wo.id === workOrder.id ? { ...wo, assigned_to_id: null, assignedTo: null, scheduled_date: null, notes: null } : wo));
+            // Clear any selected work order and close both possible assign dialogs so forms reset
+            setSelectedWorkOrder(null);
+            setAssignDialogOpen(false);
+            setAssignDialogVisible(false);
         } catch (err) {
             showToast("error", "Error", err.message);
         }
