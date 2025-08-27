@@ -20,6 +20,7 @@ export const MachineController = {
     
       let query = Machine.query()
         .withGraphFetched("category")
+        .where("status", "operational")
         .orderBy("name", "asc");
 
       if (userDivisionId) {

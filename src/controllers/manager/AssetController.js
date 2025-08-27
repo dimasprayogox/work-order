@@ -20,6 +20,7 @@ export const AssetController = {
 
       let query = Asset.query()
         .withGraphFetched("category")
+        .where("status", "operational")
         .orderBy("name", "asc");
 
       if (userDivisionId) {

@@ -34,28 +34,34 @@ export const ScheduleController = {
         return res.json({ success: true, data: [] });
       }
 
+      // Return schedules that are related to machines/assets in the user's division
+      // or related to global machines/assets (division_id IS NULL). Also always
+      // include schedules created by the requesting user so they can see their
+      // own schedules regardless of the asset/machine division linkage.
       const schedules = await Schedule.query()
         .withGraphFetched("[machine, asset, createdBy]")
         .where((builder) => {
           builder
             .whereExists(
-              Schedule.relatedQuery("machine").where(
-                "division_id",
-                userDivisionId
-              )
+              Schedule.relatedQuery("machine").where(function () {
+                this.where(function () {
+                  this.where("division_id", userDivisionId).orWhereNull("division_id");
+                }).andWhere("status", "operational");
+              })
             )
             .orWhereExists(
-              Schedule.relatedQuery("asset").where(
-                "division_id",
-                userDivisionId
-              )
-            );
+              Schedule.relatedQuery("asset").where(function () {
+                this.where(function () {
+                  this.where("division_id", userDivisionId).orWhereNull("division_id");
+                }).andWhere("status", "operational");
+              })
+            )
+            .orWhere("created_by_id", userId);
         })
         .orderBy("created_at", "desc");
 
       res.json({ success: true, data: schedules });
     } catch (err) {
-      console.error("Error fetching schedules:", err); 
       res.status(500).json({ success: false, message: err.message });
     }
   },
@@ -75,7 +81,6 @@ export const ScheduleController = {
 
       res.json({ success: true, data: schedule });
     } catch (err) {
-      console.error("Error fetching single schedule:", err);
       res.status(500).json({ success: false, message: err.message });
     }
   },
@@ -121,8 +126,7 @@ export const ScheduleController = {
       });
 
       res.status(201).json({ success: true, data: schedule });
-    } catch (err) {
-      console.error("Error creating schedule:", err);
+    } catch {
       res.status(500).json({
         success: false,
         message: "Internal server error while creating schedule.",
@@ -143,8 +147,7 @@ export const ScheduleController = {
       const updated = await Schedule.query().patchAndFetchById(id, parsed.data);
 
       res.json({ success: true, data: updated });
-    } catch (err) {
-      console.error("Error updating schedule:", err);
+    } catch {
       res.status(500).json({
         success: false,
         message: "Internal server error while updating schedule.",
@@ -157,8 +160,7 @@ export const ScheduleController = {
       const { id } = req.params;
       await Schedule.query().deleteById(id);
       res.json({ success: true, message: "Schedule deleted" });
-    } catch (err) {
-      console.error("Error deleting schedule:", err);
+    } catch {
       res.status(500).json({
         success: false,
         message: "Terjadi kesalahan server internal saat menghapus jadwal.",
@@ -198,7 +200,6 @@ export const ScheduleController = {
         data: { deletedCount: deleteCount },
       });
     } catch (err) {
-      console.error("Error in deleteMany schedules:", err);
       res.status(500).json({
         success: false,
         message: "Terjadi kesalahan server internal saat menghapus jadwal.",
@@ -287,12 +288,11 @@ async generateDueWorkOrders(req, res) {
       message: `Generated ${createdWOs.length} work orders from ${dueSchedules.length} due schedules`,
       data: createdWOs,
     });
-  } catch (err) {
-    console.error("Error generating due work orders:", err);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error while generating due work orders.",
-    });
-  }
+    } catch {
+      res.status(500).json({
+        success: false,
+        message: "Internal server error while generating due work orders.",
+      });
+    }
 },
 };
