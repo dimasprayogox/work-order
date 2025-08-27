@@ -69,12 +69,14 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
         <div className="flex flex-wrap align-items-center justify-content-between gap-3">
             <div className="flex align-items-center gap-3">
                 <span className="text-xl font-bold">Parts Request List</span>
-                <Dropdown placeholder="Filter Status" value={statusFilter} options={statusOptions} onChange={(e) => setStatusFilter(e.value)} className="w-10rem" />
             </div>
-            <span className="p-input-icon-left w-full md:w-auto">
-                <i className="pi pi-search" />
-                <InputText value={searchText} onChange={(e) => onGlobalFilterChange(e.target.value)} placeholder="Search" className="w-full" />
-            </span>
+            <div className="flex align-items-center gap-3">
+                <Dropdown placeholder="Filter Status" value={statusFilter} options={statusOptions} onChange={(e) => setStatusFilter(e.value)} className="w-10rem" />
+                <span className="p-input-icon-left w-full md:w-auto">
+                    <i className="pi pi-search" />
+                    <InputText value={searchText} onChange={(e) => onGlobalFilterChange(e.target.value)} placeholder="Search" className="w-full" />
+                </span>
+            </div>
         </div>
     );
 
