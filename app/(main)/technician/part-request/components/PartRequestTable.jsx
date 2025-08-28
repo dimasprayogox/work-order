@@ -107,25 +107,16 @@ const PartRequestTable = ({ partRequests, loading, onDetail, onDelete, setSelect
     };
 
     const statusBodyTemplate = (rowData) => {
-        const statusConfig = {
-            pending: { color: "#f97316", bgColor: "bg-orange-100", textColor: "text-orange-800", icon: "pi-clock" },
-            approved: { color: "#06b6d4", bgColor: "bg-cyan-100", textColor: "text-cyan-800", icon: "pi-spin pi-spinner" },
-            fulfilled: { color: "#10b981", bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check-circle" },
-            rejected: { color: "#ef4444", bgColor: "bg-red-100", textColor: "text-red-800", icon: "pi-times-circle" }
+        const statusMap = {
+            pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800" },
+            approved: { label: "Approved", color: "bg-blue-100 text-blue-800" },
+            fulfilled: { label: "Fulfilled", color: "bg-green-100 text-green-800" },
+            rejected: { label: "Rejected", color: "bg-red-100 text-red-800"}
         };
-
-        const config = statusConfig[rowData.status] || { bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-question" };
-
-        return (
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
-                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
-                    <i className={`pi ${config.icon}`}></i>
-                    <span className="font-medium">{getStatusLabel(rowData.status)}</span>
-                </div>
-            </motion.div>
-        );
+        const status = statusMap[rowData.status] || { label: rowData.status, color: "bg-gray-100 text-gray-800" };
+        return <Tag value={status.label} className={status.color} style={{ minWidth: "75px", display: "inline-flex", justifyContent: "center" }} />;
     };
-
+    
     const safeDateBodyTemplate = (rowData, fieldPath) => {
         try {
             const value = fieldPath.split(".").reduce((obj, key) => obj?.[key], rowData);
@@ -150,15 +141,80 @@ const PartRequestTable = ({ partRequests, loading, onDetail, onDelete, setSelect
         </div>
     );
 
-    const itemsTemplate = (rowData) => (
-        <ul className="list-disc pl-4">
-            {rowData.items?.map((item) => (
-                <li key={item.id}>
-                    {item.part?.name} ({item.quantity_requested}){item.quantity_approved != null && ` → Approved: ${item.quantity_approved}`}
-                </li>
-            )) || <li>No items</li>}
-        </ul>
-    );
+    const itemsTemplate = (rowData) => {
+        // Mengambil array 'items' langsung dari rowData
+        const { items } = rowData;
+
+        // Menampilkan pesan jika tidak ada item yang diminta
+        if (!items || items.length === 0) {
+            return <span className="text-sm text-gray-500">No parts requested</span>;
+        }
+
+        return (
+            <div className="flex flex-column align-items-start gap-1">
+                {items.map((item) => {
+                    // Pastikan item dan data part di dalamnya ada sebelum ditampilkan
+                    if (item && item.part) {
+                        return (
+                            <div key={item.id} className="flex align-items-center gap-2 text-xs p-1 bg-gray-100 border-round">
+                                <i className="pi pi-wrench text-gray-600"></i>
+
+                                {/* Menampilkan nama part */}
+                                <span className="font-medium">{item.part.name || "Unknown Part"}</span>
+
+                                {/* Menampilkan kuantitas yang diminta */}
+                                <span className="text-gray-500">(x{item.quantity_requested})</span>
+
+                                {/* Menampilkan kuantitas yang disetujui HANYA JIKA ada nilainya */}
+                                {item.quantity_approved != null && <span className="font-semibold text-green-600">→ Approved: {item.quantity_approved}</span>}
+                            </div>
+                        );
+                    }
+                    // Jangan tampilkan apa pun jika data item/part tidak lengkap
+                    return null;
+                })}
+            </div>
+        );
+    };
+
+     const partRequestBodyTemplate = (rowData) => {
+         const { partRequests } = rowData;
+
+         // Cek jika tidak ada part request sama sekali
+         if (!partRequests || partRequests.length === 0) {
+             return <span className="text-sm text-gray-500">No parts requested</span>;
+         }
+
+         // Mengumpulkan semua 'items' dari semua 'partRequests' menjadi satu array
+         const allItems = partRequests.flatMap((request) => request.items || []);
+
+         // Cek jika setelah digabungkan ternyata tidak ada item sama sekali
+         if (allItems.length === 0) {
+             return <span className="text-sm text-gray-500">No parts requested</span>;
+         }
+
+         return (
+             <div className="flex flex-column align-items-start gap-1">
+                 {allItems.map((item) => {
+                     // Pastikan item dan part di dalamnya ada sebelum dirender
+                     if (item && item.part) {
+                         return (
+                             <div key={item.id} className="flex align-items-center gap-2 text-xs p-1 bg-gray-100 border-round">
+                                 <i className="pi pi-wrench text-gray-600"></i>
+
+                                 {/* Menampilkan nama part */}
+                                 <span className="font-medium">{item.part.name || "Unknown Part"}</span>
+
+                                 {/* Menampilkan kuantitas (prioritaskan yg disetujui, fallback ke yg diminta) */}
+                                 <span className="text-gray-500">(x{item.quantity_approved ?? item.quantity_requested})</span>
+                             </div>
+                         );
+                     }
+                     return null; // Jangan render apapun jika data item/part tidak lengkap
+                 })}
+             </div>
+         );
+     };
 
     const header = (
         <div className="flex flex-wrap align-items-center justify-content-between gap-3">
@@ -225,7 +281,7 @@ const PartRequestTable = ({ partRequests, loading, onDetail, onDelete, setSelect
             <Column field="workOrder.priority" header="Priority" body={(rowData) => <Tag value={rowData.workOrder?.priority} />} sortable />
             <Column field="status" header="Status" body={statusBodyTemplate} sortable filter filterField="status" />
             <Column header="Scheduled" body={(rowData) => safeDateBodyTemplate(rowData, "workOrder.scheduled_date")} sortable />
-            <Column header="Items" body={itemsTemplate} style={{ minWidth: "200px" }} />
+            <Column header="Items" body={itemsTemplate} style={{ minWidth: "250px" }} />
             <Column header="Actions" body={actionBodyTemplate} style={{ textAlign: "center", width: "120px" }} />
         </DataTable>
     );

@@ -392,7 +392,6 @@ const WorkRequestFormDialog = ({
                         onClear={() => handleFileChange({ files: [] })}
                         onRemove={() => handleFileChange({ files: [] })}
                         chooseLabel="Choose Photo"
-                        uploadLabel="Upload (Not used here)"
                         cancelLabel="Clear"
                         customUpload={true}
                         emptyTemplate={<p className="m-0">Drag and drop photo here or click to browse</p>}

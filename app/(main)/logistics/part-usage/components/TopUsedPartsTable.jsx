@@ -2,6 +2,8 @@
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { ProgressSpinner } from "primereact/progressspinner";
+import { Tag } from "primereact/tag";
+import { motion } from "framer-motion";
 
 const TopUsedPartsTable = ({ data, loading, error }) => {
     const rowNumberTemplate = (_, { rowIndex }) => {
@@ -26,12 +28,18 @@ const TopUsedPartsTable = ({ data, loading, error }) => {
         );
     }
 
+    const locationBodyTemplate = (rowData) => (
+        <motion.span whileHover={{ x: 5 }} transition={{ type: "spring", stiffness: 300 }} className="font-medium text-blue-600 cursor-pointer">
+            {rowData.part?.location}
+        </motion.span>
+    );
+
     return (
         <DataTable value={data} paginator rows={5} stripedRows className="p-datatable-sm" paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink" emptyMessage="No part usage data found" scrollable scrollHeight="flex">
             <Column header="No" body={rowNumberTemplate} style={{ width: "5%", textAlign: "center" }} />
-            <Column field="part.part_number" header="Part Code" sortable style={{ width: "20%" }} body={(rowData) => rowData.part?.part_number || "-"} />
+            <Column field="part.part_number" header="Part Number" style={{ width: "150px" }} sortable body={(rowData) => <Tag value={rowData.part?.part_number} className="bg-gray-100 text-gray-800 font-medium" />} />
             <Column field="part.name" header="Part Name" sortable style={{ width: "25%" }} body={(rowData) => rowData.part?.name || "Unknown Part"} />
-            <Column field="part.location" header="Location" sortable style={{ width: "10%" }} body={(rowData) => rowData.part?.location || "-"} />
+            <Column field="part.location" header="Location" body={locationBodyTemplate} style={{ width: "200px" }} sortable />
             <Column field="total_used" header="Used" sortable body={(rowData) => rowData.total_used?.toLocaleString("en-US") || 0} style={{ width: "15%" }} />
         </DataTable>
     );

@@ -10,6 +10,7 @@ import { Dropdown } from "primereact/dropdown";
 import { Image } from "primereact/image";
 import { Tag } from "primereact/tag";
 import { motion } from "framer-motion";
+import { Tooltip } from "primereact/tooltip";
 
 const statusFilterOptions = [
     { label: "All Statuses", value: null },
@@ -89,34 +90,46 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
         const severity = severityMap[priority.toLowerCase()] || "info";
         return <Tag value={displayValue} severity={severity} />;
     };
+   const partRequestBodyTemplate = (rowData) => {
+       const { partRequests } = rowData;
 
-    const partRequestStatusBodyTemplate = (rowData) => {
-        const partRequests = rowData.partRequests;
+       // 1. Filter partRequests untuk hanya mengambil yang statusnya 'fulfilled'
+       const fulfilledRequests = partRequests?.filter((request) => request.status === "fulfilled");
 
-        if (!partRequests || partRequests.length === 0) {
-            return (
-                <div className="flex flex-column align-items-center gap-2 text-center">
-                    <span className="text-sm text-gray-500">Belum ada request part</span>
-                </div>
-            );
+        if (!fulfilledRequests || fulfilledRequests.length === 0) {
+            return <span className="text-sm text-gray-500">No part request</span>;
         }
 
-        const statusSeverityMap = {
-            pending: "warning",
-            approved: "info",
-            fulfilled: "success",
-            rejected: "danger"
-        };
+       // 3. Mengumpulkan semua 'items' dari request yang sudah difilter
+       const allItems = fulfilledRequests.flatMap((request) => request.items || []);
 
-        return (
-            <div className="flex flex-column align-items-start gap-1">
-                {partRequests.map((req) => (
-                    <Tag key={req.id} value={req.status.charAt(0).toUpperCase() + req.status.slice(1)} severity={statusSeverityMap[req.status.toLowerCase()] || "info"} className="text-xs" />
-                ))}
-            </div>
-        );
-    };
+       // 4. Jika tidak ada item sama sekali setelah digabungkan, jangan tampilkan apapun
+       if (allItems.length === 0) {
+           return null;
+       }
 
+       return (
+           <div className="flex flex-column align-items-start gap-1">
+               {allItems.map((item) => {
+                   // Pastikan item dan part di dalamnya ada sebelum dirender
+                   if (item && item.part) {
+                       return (
+                           <div key={item.id} className="flex align-items-center gap-2 text-xs p-1 bg-gray-100 border-round">
+                               <i className="pi pi-wrench text-gray-600"></i>
+
+                               {/* Menampilkan nama part */}
+                               <span className="font-medium">{item.part.name || "Unknown Part"}</span>
+
+                               {/* Menampilkan kuantitas (prioritaskan yg disetujui, fallback ke yg diminta) */}
+                               <span className="text-gray-500">(x{item.quantity_approved ?? item.quantity_requested})</span>
+                           </div>
+                       );
+                   }
+                   return null; // Jangan render apapun jika data item/part tidak lengkap
+               })}
+           </div>
+       );
+   };
     const getStatusLabel = (status) => {
         const statusMap = {
             pending: "Pending",
@@ -128,67 +141,50 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
     };
 
     const statusBodyTemplate = (rowData) => {
-        const statusConfig = {
-            pending: { bgColor: "bg-orange-100", textColor: "text-orange-800", icon: "pi-clock" },
-            in_progress: { bgColor: "bg-cyan-100", textColor: "text-cyan-800", icon: "pi-spin pi-spinner" },
-            completed: { bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check-circle" },
-            rejected: { bgColor: "bg-red-100", textColor: "text-red-800", icon: "pi-times-circle" }
+        const statusMap = {
+            pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800" },
+            in_progress: { label: "In Progress", color: "bg-blue-100 text-blue-800" },
+            completed: { label: "Completed", color: "bg-green-100 text-green-800" },
+            rejected: { label: "Rejected", color: "bg-red-100 text-red-800" }
         };
-        const config = statusConfig[rowData.status] || { bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-question" };
-        return (
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
-                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
-                    <i className={`pi ${config.icon}`}></i>
-                    <span className="font-medium">{getStatusLabel(rowData.status)}</span>
-                </div>
-            </motion.div>
-        );
+        const status = statusMap[rowData.status] || { label: rowData.status, color: "bg-gray-100 text-gray-800" };
+        return <Tag value={status.label} className={status.color} style={{ minWidth: "75px", display: "inline-flex", justifyContent: "center" }} />;
     };
 
     const repairableBodyTemplate = (rowData) => {
         // Show repairable status for all work orders that have this information
         // Handle both boolean and integer values from different environments
         let val = null;
-        
-        if (typeof rowData.repairable === 'boolean') {
+
+        if (typeof rowData.repairable === "boolean") {
             val = rowData.repairable;
-        } else if (rowData.repairable === 1 || rowData.repairable === '1') {
+        } else if (rowData.repairable === 1 || rowData.repairable === "1") {
             val = true;
-        } else if (rowData.repairable === 0 || rowData.repairable === '0') {
+        } else if (rowData.repairable === 0 || rowData.repairable === "0") {
             val = false;
-        } else if (typeof rowData.issue?.repairable === 'boolean') {
+        } else if (typeof rowData.issue?.repairable === "boolean") {
             val = rowData.issue.repairable;
-        } else if (rowData.issue?.repairable === 1 || rowData.issue?.repairable === '1') {
+        } else if (rowData.issue?.repairable === 1 || rowData.issue?.repairable === "1") {
             val = true;
-        } else if (rowData.issue?.repairable === 0 || rowData.issue?.repairable === '0') {
+        } else if (rowData.issue?.repairable === 0 || rowData.issue?.repairable === "0") {
             val = false;
         }
 
-        const config = val === true
-            ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check' , label: 'Repairable'}
-            : val === false
-                ? { bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle', label: 'Not Repairable'}
-                : { bgColor: 'bg-gray-100', textColor: 'text-gray-600', icon: 'pi-minus', label: 'N/A'};
+        const config =
+            val === true
+                ? { bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check", label: "Repairable" }
+                : val === false
+                ? { bgColor: "bg-red-100", textColor: "text-red-800", icon: "pi-times-circle", label: "Not Repairable" }
+                : { bgColor: "bg-gray-100", textColor: "text-gray-600", icon: "pi-minus", label: "N/A" };
 
         return (
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
                 <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
                     <i className={`pi ${config.icon}`}></i>
                     <span className="font-medium">{config.label}</span>
                 </div>
             </motion.div>
         );
-    };
-
-    const dateBodyTemplate = (dateString) => {
-        if (!dateString) return "N/A";
-        return new Date(dateString).toLocaleString("id-ID", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit"
-        });
     };
 
     const photoBodyTemplate = (rowData) => {
@@ -198,7 +194,7 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
             return (
                 <Image
                     src={src}
-                    alt={rowData.title || 'Work Order Photo'}
+                    alt={rowData.title || "Work Order Photo"}
                     width="50"
                     height="50"
                     preview
@@ -244,10 +240,10 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
                 <div>
                     <div className="font-medium flex align-items-center gap-2">
                         <i className="pi pi-cog text-blue-500"></i>
-                        {getName(machine) || 'Unnamed Machine'}
+                        {getName(machine) || "Unnamed Machine"}
                     </div>
                     {getCode(machine) && <div className="text-sm text-gray-500">{getCode(machine)}</div>}
-                    <div className="text-xs text-blue-600">Machine{rowData.issue && !rowData.machine ? ' (from Issue)' : ''}</div>
+                    <div className="text-xs text-blue-600">Machine{rowData.issue && !rowData.machine ? " (from Issue)" : ""}</div>
                 </div>
             );
         }
@@ -257,10 +253,10 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
                 <div>
                     <div className="font-medium flex align-items-center gap-2">
                         <i className="pi pi-box text-green-500"></i>
-                        {getName(asset) || 'Unnamed Asset'}
+                        {getName(asset) || "Unnamed Asset"}
                     </div>
                     {getCode(asset) && <div className="text-sm text-gray-500">{getCode(asset)}</div>}
-                    <div className="text-xs text-green-600">Asset{rowData.issue && !rowData.asset ? ' (from Issue)' : ''}</div>
+                    <div className="text-xs text-green-600">Asset{rowData.issue && !rowData.asset ? " (from Issue)" : ""}</div>
                 </div>
             );
         }
@@ -268,6 +264,44 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
         return <span className="text-gray-500">N/A</span>;
     };
 
+    const titleBodyTemplate = (rowData) => (
+        <motion.span whileHover={{ x: 5 }} transition={{ type: "spring", stiffness: 300 }} className="font-medium text-blue-600 cursor-pointer">
+            {rowData.title}
+        </motion.span>
+    );
+
+    const dateBodyTemplate = (field) => (rowData) => {
+        if (!rowData[field]) return "N/A";
+        return new Date(rowData[field]).toLocaleDateString("en-US", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+        });
+    };
+
+    const scheduledDateBodyTemplate = (rowData) => {
+        if (!rowData.scheduled_date) return "N/A";
+
+        const scheduleDate = new Date(rowData.scheduled_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const isOverdue = scheduleDate < today && rowData.status !== "completed";
+        const isToday = scheduleDate.toDateString() === today.toDateString();
+
+        return (
+            <div className={`flex align-items-center gap-1 ${isOverdue ? "text-red-500" : isToday ? "text-blue-500" : ""}`}>
+                <i className={`pi ${isOverdue ? "pi-exclamation-triangle" : isToday ? "pi-clock" : "pi-calendar"}`}></i>
+                <span className={isOverdue ? "font-semibold" : ""}>
+                    {scheduleDate.toLocaleDateString("en-US", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric"
+                    })}
+                </span>
+            </div>
+        );
+    };
 
     const header = (
         <div className="flex flex-wrap align-items-center justify-content-between gap-3">
@@ -286,19 +320,75 @@ const WorkOrderTable = ({ workOrders, loading, searchText, onUpdate, onView, set
 
     return (
         <div>
-            <DataTable value={filteredWorkOrders} loading={loading} dataKey="id" paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]} header={header} emptyMessage="No work orders found.">
-                <Column header="Photo" body={photoBodyTemplate} />
-                <Column field="title" header="Title" sortable />
+            <DataTable
+                value={filteredWorkOrders}
+                loading={loading}
+                dataKey="id"
+                paginator
+                rows={10}
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                header={header}
+                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                currentPageReportTemplate="Displays {first} to {last} of {totalRecords} Work Orders"
+                emptyMessage="No work orders found."
+            >
+                <Column field="title" header="Title" sortable body={titleBodyTemplate} style={{ minWidth: "10rem" }} />
                 <Column field="target" header="Machine/Asset" body={machineOrAssetBodyTemplate} style={{ minWidth: "180px" }} sortable />
-                <Column field="description" header="Description" style={{ minWidth: "200px" }} />
+                <Column header="Photo" body={photoBodyTemplate} />
+                <Column
+                    field="description"
+                    header="Description"
+                    sortable
+                    body={(rowData) => (
+                        <>
+                            <Tooltip target={`.description-tooltip-${rowData.id}`} position="bottom" />
+                            <span
+                                className={`description-tooltip-${rowData.id}`}
+                                data-pr-tooltip={rowData.description}
+                                style={{
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    display: "block",
+                                    maxWidth: "200px"
+                                }}
+                            >
+                                {rowData.description}
+                            </span>
+                        </>
+                    )}
+                />
                 <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                 <Column field="status" header="Status" body={statusBodyTemplate} sortable />
-                <Column header="Part Request" body={partRequestStatusBodyTemplate} style={{ width: "180px" }} />
-                <Column field="scheduled_date" header="Schedule" body={(rowData) => dateBodyTemplate(rowData.created_at)} sortable />
-                <Column field="started_at" header="Started At" body={(rowData) => dateBodyTemplate(rowData.started_at)} sortable />
-                <Column field="completed_at" header="Completed At" body={(rowData) => dateBodyTemplate(rowData.completed_at)} sortable />
-                <Column field="notes" header="Notes" style={{ maxWidth: "200px" }} />
-                <Column header="Repairable" body={repairableBodyTemplate} style={{ width: '150px', textAlign: 'center' }} />
+
+                <Column header="Requested Parts" body={partRequestBodyTemplate} style={{ minWidth: "200px" }} />
+                <Column header="Schedule" body={scheduledDateBodyTemplate} style={{ minWidth: "145px" }} sortable sortField="scheduled_date" />
+                <Column field="started_at" header="Started" body={dateBodyTemplate("started_at")} style={{ minWidth: "120px" }} sortable />
+                <Column field="completed_at" header="Completed" body={dateBodyTemplate("completed_at")} style={{ minWidth: "120px" }} sortable />
+                <Column
+                    field="notes"
+                    header="Notes"
+                    sortable
+                    body={(rowData) => (
+                        <>
+                            <Tooltip target={`.notes-tooltip-${rowData.id}`} position="bottom" />
+                            <span
+                                className={`notes-tooltip-${rowData.id}`}
+                                data-pr-tooltip={rowData.notes}
+                                style={{
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    display: "block",
+                                    maxWidth: "200px"
+                                }}
+                            >
+                                {rowData.notes}
+                            </span>
+                        </>
+                    )}
+                />
+                <Column header="Repairable" body={repairableBodyTemplate} style={{ width: "150px", textAlign: "center" }} />
                 <Column header="Actions" body={actionBodyTemplate} style={{ width: "6rem", textAlign: "center" }} />
             </DataTable>
         </div>

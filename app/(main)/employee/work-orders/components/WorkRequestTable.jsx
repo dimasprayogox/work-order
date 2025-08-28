@@ -48,23 +48,15 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
     };
 
     const statusBodyTemplate = (rowData) => {
-        const statusConfig = {
-            open: { bgColor: "bg-yellow-100", textColor: "text-yellow-800", icon: "pi-clock" },
-            in_progress: { bgColor: "bg-cyan-100", textColor: "text-cyan-800", icon: "pi-spin pi-spinner" },
-            resolved: { bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check-circle" },
-            closed: { bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-times-circle" }
+            const statusMap = {
+                open: { label: "Pending", color: "bg-yellow-100 text-yellow-800" },
+                in_progress: { label: "In Progress", color: "bg-blue-100 text-blue-800" },
+                resolved: { label: "Completed", color: "bg-green-100 text-green-800" }
+            };
+            const status = statusMap[rowData.status] || { label: rowData.status, color: "bg-gray-100 text-gray-800" };
+            return <Tag value={status.label} className={status.color} style={{ minWidth: "75px", display: "inline-flex", justifyContent: "center" }} />;
         };
 
-        const config = statusConfig[rowData.status] || { bgColor: "bg-gray-100", textColor: "text-gray-800", icon: "pi-question" };
-        return (
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
-                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
-                    <i className={`pi ${config.icon}`}></i>
-                    <span className="font-medium">{getStatusLabel(rowData.status)}</span>
-                </div>
-            </motion.div>
-        );
-    };
 
     const photoBodyTemplate = (rowData) => {
         if (rowData.photo_url) {
@@ -86,9 +78,25 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
         return <span className="text-gray-400">No photo</span>;
     };
 
-    const dateBodyTemplate = (rowData) => {
-        return rowData.created_at ? new Date(rowData.created_at).toLocaleString("id-ID") : "N/A";
-    };
+   const dateBodyTemplate = (rowData) => {
+       // Ambil nilai tanggal dari field 'created_at' di rowData
+       const dateValue = rowData.created_at;
+
+       if (!dateValue) return "N/A"; // Cek jika nilainya ada
+
+       const date = new Date(dateValue);
+
+       // Tambahkan pengecekan jika tanggalnya tetap tidak valid setelah di-parse
+       if (isNaN(date)) {
+           return "Invalid Date";
+       }
+
+       return date.toLocaleDateString("en-US", {
+           day: "2-digit",
+           month: "short",
+           year: "numeric"
+       });
+   };
 
     const priorityBodyTemplate = (rowData) => {
         const priorityMap = {
@@ -124,6 +132,67 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
         setCurrentFirst(e.first);
         setCurrentRows(e.rows);
     };
+
+    const machineOrAssetBodyTemplate = (rowData) => {
+        // First check work order direct relations
+        if (rowData.machine) {
+            return (
+                <div>
+                    <div className="font-medium flex align-items-center gap-2">
+                        <i className="pi pi-cog text-blue-500"></i>
+                        {rowData.machine.name}
+                    </div>
+                    {rowData.machine.machine_code && <div className="text-sm text-gray-500">{rowData.machine.machine_code}</div>}
+                    <div className="text-xs text-blue-600">Machine</div>
+                </div>
+            );
+        }
+
+        if (rowData.asset) {
+            return (
+                <div>
+                    <div className="font-medium flex align-items-center gap-2">
+                        <i className="pi pi-box text-green-500"></i>
+                        {rowData.asset.name}
+                    </div>
+                    {rowData.asset.asset_code && <div className="text-sm text-gray-500">{rowData.asset.asset_code}</div>}
+                    <div className="text-xs text-green-600">Asset</div>
+                </div>
+            );
+        }
+
+        // Then check issue relations
+        if (rowData.issue) {
+            if (rowData.issue.machine) {
+                return (
+                    <div>
+                        <div className="font-medium flex align-items-center gap-2">
+                            <i className="pi pi-cog text-blue-500"></i>
+                            {rowData.issue.machine.name}
+                        </div>
+                        {rowData.issue.machine.machine_code && <div className="text-sm text-gray-500">{rowData.issue.machine.machine_code}</div>}
+                        <div className="text-xs text-blue-600">Machine (from Issue)</div>
+                    </div>
+                );
+            }
+
+            if (rowData.issue.asset) {
+                return (
+                    <div>
+                        <div className="font-medium flex align-items-center gap-2">
+                            <i className="pi pi-box text-green-500"></i>
+                            {rowData.issue.asset.name}
+                        </div>
+                        {rowData.issue.asset.asset_code && <div className="text-sm text-gray-500">{rowData.issue.asset.asset_code}</div>}
+                        <div className="text-xs text-green-600">Asset (from Issue)</div>
+                    </div>
+                );
+            }
+        }
+
+        return <span className="text-gray-500">N/A</span>;
+    };
+
 
     const actionBodyTemplate = (rowData) => {
         return (
@@ -221,28 +290,9 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
                                 </>
                             )}
                         />
-                        <Column
-                            field="machine.name"
-                            header="Machine/Asset"
-                            body={(rowData) => {
-                                if (rowData.machine?.name) {
-                                    return <Tag value={`Machine: ${rowData.machine.name}`} className="bg-blue-100 text-blue-800 font-medium" />;
-                                } else if (rowData.asset?.name) {
-                                    return <Tag value={`Asset: ${rowData.asset.name}`} className="bg-green-100 text-green-800 font-medium" />;
-                                }
-                                return <span className="text-gray-400">N/A</span>;
-                            }}
-                        />
-                        <Column
-                            field="reportedBy.full_name"
-                            header="Reported By"
-                            body={(rowData) => {
-                                const reportedBy = rowData.reportedBy || rowData.reported_by;
-                                return reportedBy?.full_name || "Unknown User";
-                            }}
-                            sortable
-                            style={{ width: "150px" }}
-                        />
+                        
+                         <Column field="target" header="Machine/Asset" body={machineOrAssetBodyTemplate} style={{ minWidth: "180px" }} sortable sortField="machine.name" />
+                                       
                         <Column
                             field="note"
                             header="Note"
@@ -276,28 +326,29 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
                             body={(rowData) => {
                                 // Handle multiple possible shapes for repairable value
                                 let val = null;
-                                if (typeof rowData.repairable === 'boolean') {
+                                if (typeof rowData.repairable === "boolean") {
                                     val = rowData.repairable;
-                                } else if (rowData.repairable === 1 || rowData.repairable === '1') {
+                                } else if (rowData.repairable === 1 || rowData.repairable === "1") {
                                     val = true;
-                                } else if (rowData.repairable === 0 || rowData.repairable === '0') {
+                                } else if (rowData.repairable === 0 || rowData.repairable === "0") {
                                     val = false;
-                                } else if (typeof rowData.workOrder?.repairable === 'boolean') {
+                                } else if (typeof rowData.workOrder?.repairable === "boolean") {
                                     val = rowData.workOrder.repairable;
-                                } else if (rowData.workOrder?.repairable === 1 || rowData.workOrder?.repairable === '1') {
+                                } else if (rowData.workOrder?.repairable === 1 || rowData.workOrder?.repairable === "1") {
                                     val = true;
-                                } else if (rowData.workOrder?.repairable === 0 || rowData.workOrder?.repairable === '0') {
+                                } else if (rowData.workOrder?.repairable === 0 || rowData.workOrder?.repairable === "0") {
                                     val = false;
                                 }
 
-                                const config = val === true
-                                    ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check', label: 'Repairable' }
-                                    : val === false
-                                        ? { bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle', label: 'Not Repairable' }
-                                        : { bgColor: 'bg-gray-100', textColor: 'text-gray-600', icon: 'pi-minus', label: 'N/A' };
+                                const config =
+                                    val === true
+                                        ? { bgColor: "bg-green-100", textColor: "text-green-800", icon: "pi-check", label: "Repairable" }
+                                        : val === false
+                                        ? { bgColor: "bg-red-100", textColor: "text-red-800", icon: "pi-times-circle", label: "Not Repairable" }
+                                        : { bgColor: "bg-gray-100", textColor: "text-gray-600", icon: "pi-minus", label: "N/A" };
 
                                 return (
-                                    <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
+                                    <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
                                         <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
                                             <i className={`pi ${config.icon}`}></i>
                                             <span className="font-medium">{config.label}</span>
@@ -306,12 +357,12 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
                                 );
                             }}
                             sortable
-                            style={{ width: "140px", textAlign: 'center' }}
+                            style={{ width: "140px", textAlign: "center" }}
                         />
                         <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                         <Column field="status" header="Status" body={statusBodyTemplate} sortable />
                         <Column header="Photo" body={photoBodyTemplate} />
-                        <Column field="created_at" header="Created" body={dateBodyTemplate} sortable />
+                        <Column field="created_at" header="Created" body={dateBodyTemplate} sortable style={{ minWidth: "120px" }}  />
                         <Column header="Actions" body={actionBodyTemplate} style={{ width: "150px" }} />
                     </DataTable>
 

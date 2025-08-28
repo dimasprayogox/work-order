@@ -4,6 +4,7 @@ import { Dialog } from "primereact/dialog";
 import { Divider } from "primereact/divider";
 import { Tag } from "primereact/tag";
 import { Image } from "primereact/image";
+import { Avatar } from "primereact/avatar";
 
 export default function WorkOrderDetailDialog({ visible, onHide, workOrder }) {
     if (!workOrder) return null;
@@ -20,11 +21,11 @@ export default function WorkOrderDetailDialog({ visible, onHide, workOrder }) {
 
     const getPriorityConfig = (priority) => {
         const priorityMap = {
-            high: { label: "High", color: "bg-red-100 text-red-800" },
-            medium: { label: "Medium", color: "bg-orange-100 text-orange-800" },
-            low: { label: "Low", color: "bg-yellow-100 text-yellow-800" }
+            high: { label: "High", color: "bg-red-100 text-red-800 border-red-300", icon: "pi-exclamation-triangle" },
+            medium: { label: "Medium", color: "bg-orange-100 text-orange-800 border-orange-300", icon: "pi-info-circle" },
+            low: { label: "Low", color: "bg-yellow-100 text-yellow-800 border-yellow-300", icon: "pi-arrow-down" }
         };
-        return priorityMap[priority] || { label: priority || "Medium", color: "bg-gray-100 text-gray-800" };
+        return priorityMap[priority] || { label: priority || "Medium", color: "bg-gray-100 text-gray-800 border-gray-300", icon: "pi-question" };
     };
 
     const statusConfig = getStatusConfig(workOrder.status);
@@ -32,141 +33,117 @@ export default function WorkOrderDetailDialog({ visible, onHide, workOrder }) {
 
     return (
         <Dialog
-            header="Work Order Details"
+            header={
+                <div className="flex align-items-center gap-2">
+                    <i className="pi pi-ticket text-primary"></i>
+                    <span className="font-semibold text-xl">Work Order Details</span>
+                </div>
+            }
             visible={visible}
-            style={{ width: "min(90vw, 600px)" }}
+            style={{ width: "min(90vw, 700px)" }}
             modal
             onHide={onHide}
+            className="modern-dialog"
         >
             <div className="p-fluid">
-                {/* Title and Status */}
-                <div className="grid mb-3">
+                {/* Header Section */}
+                <div className="grid mb-4">
                     <div className="col-8">
-                        <h4 className="font-bold text-xl mb-2 text-primary">{workOrder.title}</h4>
+                        <h3 className="font-bold text-2xl mb-2 text-900">{workOrder.title}</h3>
+                        <p className="text-900 leading-6 m-0">{workOrder.description || "No description provided"}</p>
                     </div>
-                    <div className="col-4 text-right">
-                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${statusConfig.bgColor} ${statusConfig.textColor} inline-flex`}>
+                    <div className="col-4 flex justify-content-end gap-2">
+                        <div className={`flex align-items-center gap-2 px-3 py-2 rounded-lg ${statusConfig.bgColor} ${statusConfig.textColor} border-1 border-200`}>
                             <i className={`pi ${statusConfig.icon}`}></i>
-                            <span className="font-medium">{statusConfig.label}</span>
+                            <span className="font-semibold">{statusConfig.label}</span>
+                        </div>
+                        <div className={`flex align-items-center gap-2 px-3 py-2 rounded-lg ${priorityConfig.color} border-1`}>
+                            <i className={`pi ${priorityConfig.icon}`}></i>
+                            <span className="font-semibold">{priorityConfig.label}</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Description */}
-                <div className="mb-3">
-                    <label className="font-semibold text-sm text-gray-700 mb-1 block">Description</label>
-                    <p className="text-gray-900 p-3 bg-gray-50 border-round">{workOrder.description || "No description provided"}</p>
+                <Divider className="my-4" />
+
+                {/* Equipment and Reported By - Equal Height Cards */}
+                <div className="grid mb-6">
+                    {/* Equipment Card */}
+                    <div className="col-12 md:col-6">
+                        <div className="flex align-items-center gap-2 mb-3">
+                            <i className="pi pi-cog text-primary"></i>
+                            <h5 className="font-semibold text-lg m-0 text-700">Equipment</h5>
+                        </div>
+                        <div className="p-3 border-round-lg border-1 border-200 bg-surface-50 h-full">
+                            {workOrder.machine?.name ? (
+                                <div className="flex align-items-center gap-3">
+                                    <Avatar icon="pi pi-desktop" className="bg-blue-100 text-blue-800" size="large" />
+                                    <div>
+                                        <p className="font-semibold text-900 m-0">{workOrder.machine.name}</p>
+                                        <p className="text-sm text-600 m-0">Machine • {workOrder.machine.machine_code || "No Code"}</p>
+                                    </div>
+                                </div>
+                            ) : workOrder.asset?.name ? (
+                                <div className="flex align-items-center gap-3">
+                                    <Avatar icon="pi pi-box" className="bg-green-100 text-green-800" size="large" />
+                                    <div>
+                                        <p className="font-semibold text-900 m-0">{workOrder.asset.name}</p>
+                                        <p className="text-sm text-600 m-0">Asset • {workOrder.asset.asset_code || "No Code"}</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex align-items-center gap-3">
+                                    <Avatar icon="pi pi-question" className="bg-gray-100 text-gray-600" size="large" />
+                                    <span className="text-600">No equipment assigned</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Reported By Card */}
+                    <div className="col-12 md:col-6">
+                        <div className="flex align-items-center gap-2 mb-3">
+                            <i className="pi pi-user text-primary"></i>
+                            <h5 className="font-semibold text-lg m-0 text-700">Reported By</h5>
+                        </div>
+                        <div className="p-3 border-round-lg border-1 border-200 bg-surface-50 h-full">
+                            <div className="flex align-items-center gap-3">
+                                <Avatar icon="pi pi-user" className="bg-primary-100 text-primary-800" size="large" shape="circle" />
+                                <div>
+                                    <p className="font-semibold text-900 m-0">{workOrder.reportedBy?.full_name || workOrder.reported_by?.full_name || "Unknown User"}</p>
+                                    {(workOrder.reportedBy?.email || workOrder.reported_by?.email) && <p className="text-sm text-600 m-0">{workOrder.reportedBy?.email || workOrder.reported_by?.email}</p>}
+                                    <p className="text-xs text-500 mt-1">Reported on {workOrder.created_at ? new Date(workOrder.created_at).toLocaleString() : "N/A"}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Machine/Asset Information */}
-                <div className="grid mb-3">
-                    <div className="col-6">
-                        <label className="font-semibold text-sm text-gray-700 mb-1 block">Machine/Asset</label>
-                        {workOrder.machine?.name ? (
-                            <Tag value={`Machine: ${workOrder.machine.name}`} className="bg-blue-100 text-blue-800 font-medium w-full" />
-                        ) : workOrder.asset?.name ? (
-                            <Tag value={`Asset: ${workOrder.asset.name}`} className="bg-green-100 text-green-800 font-medium w-full" />
-                        ) : (
-                            <span className="text-gray-400">N/A</span>
-                        )}
-                    </div>
-                    <div className="col-6">
-                        <label className="font-semibold text-sm text-gray-700 mb-1 block">Priority</label>
-                        <Tag value={priorityConfig.label} className={`${priorityConfig.color} font-medium w-full`} />
-                    </div>
-                </div>
-
-                {/* Reported By Information */}
-                <div className="grid mb-3">
-                    <div className="col-6">
-                        <label className="font-semibold text-sm text-gray-700 mb-1 block">Reported By</label>
-                        <p className="text-gray-900">
-                            {workOrder.reportedBy?.full_name || workOrder.reported_by?.full_name || "Unknown User"}
-                        </p>
-                        {(workOrder.reportedBy?.email || workOrder.reported_by?.email) && (
-                            <p className="text-sm text-gray-500">
-                                {workOrder.reportedBy?.email || workOrder.reported_by?.email}
-                            </p>
-                        )}
-                    </div>
-                    <div className="col-6">
-                        <label className="font-semibold text-sm text-gray-700 mb-1 block">Reported Date</label>
-                        <p className="text-gray-900">
-                            {workOrder.created_at ? new Date(workOrder.created_at).toLocaleString("en-US", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit"
-                            }) : "N/A"}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Note/Additional Information */}
+                {/* Note Section */}
                 {(workOrder.note || workOrder.workOrder?.notes) && (
-                    <div className="mb-3">
-                        <label className="font-semibold text-sm text-gray-700 mb-1 block">Note</label>
-                        <p className="text-gray-900 p-3 bg-blue-50 border-round border-left-3 border-blue-500">
-                            {workOrder.note || workOrder.workOrder?.notes}
-                        </p>
+                    <div className="mb-4 mt-2">
+                        <div className="flex align-items-center gap-2 mb-3">
+                            <i className="pi pi-comment text-primary"></i>
+                            <h5 className="font-semibold text-lg m-0 text-700">Notes</h5>
+                        </div>
+                        <div className="p-3 bg-blue-50 border-round-lg border-left-3 border-blue-500">
+                            <p className="text-900 m-0">
+                                <i className="pi pi-quote-left text-blue-500 mr-2"></i>
+                                {workOrder.note || workOrder.workOrder?.notes}
+                            </p>
+                        </div>
                     </div>
                 )}
 
-                {/* Repairable Status */}
-                <div className="grid mb-3">
-                    <div className="col-6">
-                        <label className="font-semibold text-sm text-gray-700 mb-1 block">Repairable</label>
-                        {(() => {
-                            // Determine repairable value from possible locations and types
-                            let val = null;
-                            if (typeof workOrder.repairable === 'boolean') {
-                                val = workOrder.repairable;
-                            } else if (workOrder.repairable === 1 || workOrder.repairable === '1') {
-                                val = true;
-                            } else if (workOrder.repairable === 0 || workOrder.repairable === '0') {
-                                val = false;
-                            } else if (typeof workOrder.workOrder?.repairable === 'boolean') {
-                                val = workOrder.workOrder.repairable;
-                            } else if (workOrder.workOrder?.repairable === 1 || workOrder.workOrder?.repairable === '1') {
-                                val = true;
-                            } else if (workOrder.workOrder?.repairable === 0 || workOrder.workOrder?.repairable === '0') {
-                                val = false;
-                            } else if (typeof workOrder.issue?.repairable === 'boolean') {
-                                val = workOrder.issue.repairable;
-                            }
-
-                            const config = val === true
-                                ? { bgColor: 'bg-green-100', textColor: 'text-green-800', icon: 'pi-check', label: 'Repairable' }
-                                : val === false
-                                    ? { bgColor: 'bg-red-100', textColor: 'text-red-800', icon: 'pi-times-circle', label: 'Not Repairable' }
-                                    : { bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', icon: 'pi-question', label: 'Not Specified' };
-
-                            return (
-                                <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.textColor}`}>
-                                    <i className={`pi ${config.icon}`}></i>
-                                    <span className="font-medium">{config.label}</span>
-                                </div>
-                            );
-                        })()}
-                    </div>
-                    {workOrder.machine && (
-                        <div className="col-6">
-                            <label className="font-semibold text-sm text-gray-700 mb-1 block">Machine Status</label>
-                            <Tag
-                                value={workOrder.machine.status || "Unknown"}
-                                className="bg-gray-100 text-gray-800"
-                            />
-                        </div>
-                    )}
-                </div>
-
-                {/* Photo */}
+                {/* Photo Section */}
                 {workOrder.photo_url && (
                     <>
-                        <Divider />
-                        <div className="mb-3">
-                            <label className="font-semibold text-sm text-gray-700 mb-2 block">Photo</label>
+                        <Divider className="my-4" />
+                        <div className="mb-4">
+                            <div className="flex align-items-center gap-2 mb-3">
+                                <i className="pi pi-image text-primary"></i>
+                                <h5 className="font-semibold text-lg m-0 text-700">Attached Photo</h5>
+                            </div>
                             <div className="text-center">
                                 <Image
                                     src={workOrder.photo_url}
@@ -180,26 +157,6 @@ export default function WorkOrderDetailDialog({ visible, onHide, workOrder }) {
                                         e.target.src = "https://placehold.co/300x200/cccccc/000000?text=Image+Not+Found";
                                     }}
                                 />
-                            </div>
-                        </div>
-                    </>
-                )}
-
-                {/* Work Order Information */}
-                {workOrder.workOrder && (
-                    <>
-                        <Divider />
-                        <div className="mb-3">
-                            <label className="font-semibold text-sm text-gray-700 mb-2 block">Work Order Information</label>
-                            <div className="grid">
-                                <div className="col-6">
-                                    <p className="text-sm text-gray-600 mb-1">Work Order Status:</p>
-                                    <Tag value={workOrder.workOrder.status || "N/A"} className="bg-cyan-100 text-cyan-800" />
-                                </div>
-                                <div className="col-6">
-                                    <p className="text-sm text-gray-600 mb-1">Work Order Priority:</p>
-                                    <Tag value={workOrder.workOrder.priority || "Medium"} className="bg-orange-100 text-orange-800" />
-                                </div>
                             </div>
                         </div>
                     </>

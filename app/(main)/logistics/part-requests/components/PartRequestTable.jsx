@@ -7,6 +7,7 @@ import { InputText } from "primereact/inputtext";
 import { useState, useEffect } from "react";
 import { FilterMatchMode } from "primereact/api";
 import StatusBadge from "../../dashboard/components/status/StatusBadge";
+import { Tooltip } from "primereact/tooltip";
 
 const statusOptions = [
     { label: "All Status", value: "" },
@@ -39,15 +40,42 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
 
     const requestedByTemplate = (rowData) => rowData.requestedBy?.full_name || "-";
 
-    const itemsTemplate = (rowData) => (
-        <ul className="list-disc pl-4">
-            {rowData.items.map((item) => (
-                <li key={item.id}>
-                    {item.part?.name} ({item.quantity_requested}){item.quantity_approved != null && ` → Approved: ${item.quantity_approved}`}
-                </li>
-            ))}
-        </ul>
-    );
+    const itemsTemplate = (rowData) => {
+        // Mengambil array 'items' langsung dari rowData
+        const { items } = rowData;
+
+        // Menampilkan pesan jika tidak ada item yang diminta
+        if (!items || items.length === 0) {
+            return <span className="text-sm text-gray-500">No parts requested</span>;
+        }
+
+        return (
+            <div className="flex flex-column align-items-start gap-1">
+                {items.map((item) => {
+                    // Pastikan item dan data part di dalamnya ada sebelum ditampilkan
+                    if (item && item.part) {
+                        return (
+                            <div key={item.id} className="flex align-items-center gap-2 text-xs p-1 bg-gray-100 border-round">
+                                <i className="pi pi-wrench text-gray-600"></i>
+
+                                {/* Menampilkan nama part */}
+                                <span className="font-medium">{item.part.name || "Unknown Part"}</span>
+
+                                {/* Menampilkan kuantitas yang diminta */}
+                                <span className="text-gray-500">(x{item.quantity_requested})</span>
+
+                                {/* Menampilkan kuantitas yang disetujui HANYA JIKA ada nilainya */}
+                                {item.quantity_approved != null && <span className="font-semibold text-green-600">→ Approved: {item.quantity_approved}</span>}
+                            </div>
+                        );
+                    }
+                    // Jangan tampilkan apa pun jika data item/part tidak lengkap
+                    return null;
+                })}
+            </div>
+        );
+    };
+
 
     const statusTemplate = (rowData) => {
         if (rowData.status === "false") {
@@ -98,8 +126,30 @@ const PartRequestTable = ({ requests, loading, onUpdateStatus, onSearch, searchT
             header={header}
         >
             <Column header="Technician" body={requestedByTemplate} sortable sortField="requestedBy.name" style={{ width: "15%", minWidth: "150px" }} />
-            <Column field="note" header="Notes" sortable style={{ width: "20%", minWidth: "200px" }} />
             <Column header="Items" body={itemsTemplate} style={{ width: "35%", minWidth: "300px" }} />
+            <Column
+                field="note"
+                header="Notes"
+                sortable
+                body={(rowData) => (
+                    <>
+                        <Tooltip target={`.note-tooltip-${rowData.id}`} position="bottom" />
+                        <span
+                            className={`note-tooltip-${rowData.id}`}
+                            data-pr-tooltip={rowData.note}
+                            style={{
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                display: "block",
+                                maxWidth: "200px"
+                            }}
+                        >
+                            {rowData.note}
+                        </span>
+                    </>
+                )}
+            />
             <Column header="Status" body={statusTemplate} sortable sortField="status" bodyClassName={(rowData) => (rowData.status === "false" ? "font-bold" : "")} style={{ width: "15%", minWidth: "120px" }} />
             <Column header="Actions" body={actionTemplate} style={{ width: "10%", minWidth: "80px" }} />
         </DataTable>

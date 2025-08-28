@@ -6,6 +6,8 @@ import { Column } from "primereact/column";
 import { useEffect, useState, useRef } from "react";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { Toast } from "primereact/toast";
+import { Tag } from "primereact/tag";
+import { motion } from "framer-motion";
 
 const TopUsedParts = () => {
     const [partsData, setPartsData] = useState([]);
@@ -87,6 +89,13 @@ const TopUsedParts = () => {
         );
     }
 
+
+    const locationBodyTemplate = (rowData) => (
+        <motion.span whileHover={{ x: 5 }} transition={{ type: "spring", stiffness: 300 }} className="font-medium text-blue-600 cursor-pointer">
+            {rowData.location}
+        </motion.span>
+    );
+
     return (
         <div className="col-12 md:col-12">
             <Toast ref={toast} />
@@ -104,10 +113,11 @@ const TopUsedParts = () => {
                     scrollHeight="flex"
                 >
                     <Column header="No" body={rowNumberTemplate} style={{ width: "5%", textAlign: "center" }} />
-                    <Column field="part_number" header="Kode Part" sortable style={{ width: "20%" }} />
-                    <Column field="name" header="Nama Part" sortable style={{ width: "25%" }} />
-                    <Column field="total_used" header="Digunakan" sortable body={(rowData) => rowData.total_used.toLocaleString("id-ID")} style={{ width: "15%" }} />
-                    <Column field="location" header="Lokasi" sortable style={{ width: "10%" }} />
+                    <Column field="part_number" header="Part Number" style={{ width: "150px" }} sortable body={(rowData) => <Tag value={rowData.part_number} className="bg-gray-100 text-gray-800 font-medium" />} />
+
+                    <Column field="name" header="Part Name" sortable style={{ width: "25%" }} />
+                    <Column field="total_used" header="Total Used" sortable body={(rowData) => rowData.total_used.toLocaleString("id-ID")} />
+                    <Column field="location" header="Location" body={locationBodyTemplate} style={{ width: "200px" }} sortable />
                 </DataTable>
             </div>
         </div>

@@ -206,7 +206,7 @@ export default function UpdateWorkOrderDialog({ visible, onHide, workOrder, fetc
     const renderFooter = isEditable ? (
         <div className="flex justify-content-end gap-2">
             <Button label="Cancel" icon="pi pi-times" outlined onClick={onHide} />
-            <Button label="Update" icon="pi pi-check" onClick={handleSubmit} loading={loading} />
+            <Button label="Update" icon="pi pi-check" onClick={handleSubmit} loading={loading} type="button" />
         </div>
     ) : null;
 

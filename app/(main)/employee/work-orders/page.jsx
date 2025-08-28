@@ -252,10 +252,10 @@ const WorkOrderPage = () => {
         }
     };
 
-const exportPdf = (config = null) => {
+    const exportPdf = (config = null) => {
         const currentConfig = config || printConfig;
 
-       if (!workOrders.length) {
+        if (!workOrders.length) {
             showToast("warn", "No Data", "There are no work orders to print");
             return;
         }
@@ -345,7 +345,7 @@ const exportPdf = (config = null) => {
                     <Button label="Export" icon="pi pi-file-export" outlined onClick={exportExcel} />
                     <Button label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
                     <Divider layout="vertical" />
-                    <Button label={`Delete (${selectedWorkOrders.length})`} icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedWorkOrders.length === 0} />
+                    <Button label={`Delete${selectedWorkOrders.length > 0 ? ` (${selectedWorkOrders.length})` : ""}`} icon="pi pi-trash" outlined severity="danger" onClick={handleDeleteSelected} disabled={selectedWorkOrders.length === 0} />
                     <Divider layout="vertical" />
                     <Button label="Refresh" icon="pi pi-refresh" outlined onClick={handleRefresh} />
                 </div>
@@ -367,16 +367,7 @@ const exportPdf = (config = null) => {
                 />
 
                 {/* Dialog Components */}
-                <WorkRequestFormDialog
-                    visible={isFormOpen}
-                    onHide={() => setFormOpen(false)}
-                    workOrder={selectedWorkOrder}
-                    fetchWorkOrders={fetchWorkOrders}
-                    machines={machines}
-                    assets={assets}
-                    fetchMachines={fetchMachines}
-                    showToast={showToast}
-                />
+                <WorkRequestFormDialog visible={isFormOpen} onHide={() => setFormOpen(false)} workOrder={selectedWorkOrder} fetchWorkOrders={fetchWorkOrders} machines={machines} assets={assets} fetchMachines={fetchMachines} showToast={showToast} />
 
                 <ConfirmDeleteDialog
                     visible={isDeleteOpen}

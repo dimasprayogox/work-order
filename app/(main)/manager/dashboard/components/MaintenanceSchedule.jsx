@@ -128,11 +128,11 @@ const MaintenanceSchedule = ({ workOrders, maintenanceSchedules }) => {
                 </div>
             </div>
 
-            <div className="col-12 md:col-4 ">
+            <div className="col-12 md:col-4">
                 <div className="card">
-                    <h5 className="font-bold mb-4">Upcoming Tasks </h5>
-                    <div className="grid">
-                        {upcomingEvents.map((event, index) => (
+                    <h5 className="font-bold mb-4">Upcoming Tasks</h5>
+                    <div className="grid" style={{ maxHeight: "400px", overflowY: "auto" }}>
+                        {upcomingEvents.slice(0, 4).map((event, index) => (
                             <div key={`upcoming-${event.type}-${event.id}`} className="col-12">
                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.1 }} className="border-round border-1 surface-border p-3 mb-2">
                                     <div className="flex justify-content-between align-items-start">
@@ -163,6 +163,7 @@ const MaintenanceSchedule = ({ workOrders, maintenanceSchedules }) => {
                     </div>
                 </div>
             </div>
+
             <div className="col-12">
                 <div className="card">
                     <h5 className="font-bold mb-4">Schedule for {formatDate(selectedDate)}</h5>
