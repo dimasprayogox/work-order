@@ -207,7 +207,7 @@ const PartRequestPage = () => {
 
             <div className="card">
                 <h3 className="mb-4">Manajemen Parts Request</h3>
-                <div className="flex flex-row gap-2 mb-4 justify-content-between">
+                <div className="flex flex-row gap-2 mb-4">
                     <Button label="Back" icon="pi pi-arrow-left" outlined onClick={() => router.push("/dashboard")} />
                     <Button label="New" icon="pi pi-plus" outlined severity="success" disabled />
                     <Divider layout="vertical" />
