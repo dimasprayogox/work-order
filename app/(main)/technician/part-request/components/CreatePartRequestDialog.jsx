@@ -26,8 +26,10 @@ export default function CreatePartRequestDialog({ visible, onHide, workOrder, fe
             const woResult = await woRes.json();
             if (!woRes.ok) throw new Error(woResult.message || "Failed to load work orders.");
             const woData = Array.isArray(woResult) ? woResult : woResult.data || [];
+            // Exclude work orders with status 'completed' (case-insensitive)
+            const visibleWorkOrders = woData.filter((wo) => !(wo && wo.status && String(wo.status).toLowerCase() === "completed"));
             setWorkOrders(
-                woData.map((wo) => ({
+                visibleWorkOrders.map((wo) => ({
                     label: wo.title,
                     value: wo.id,
                     // try to get machine id from multiple possible shapes returned by backend
