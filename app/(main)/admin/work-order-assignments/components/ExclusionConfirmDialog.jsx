@@ -16,27 +16,30 @@ const ExclusionConfirmDialog = ({
     const getReasonBadge = (reason) => {
         if (reason === 'Completed') {
             return (
-                <span className="px-2 py-1 text-xs font-semibold border-round text-white" style={{
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
+                <span className="px-2 py-1 text-xs font-semibold border-round" style={{
+                    background: '#f0fdf4',
+                    color: '#166534',
+                    border: '1px solid #bbf7d0'
                 }}>
                     ✓ Completed
                 </span>
             );
         } else if (reason === 'Already assigned') {
             return (
-                <span className="px-2 py-1 text-xs font-semibold border-round text-white" style={{
-                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                    boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
+                <span className="px-2 py-1 text-xs font-semibold border-round" style={{
+                    background: '#fffbeb',
+                    color: '#92400e',
+                    border: '1px solid #fed7aa'
                 }}>
                     👤 Already Assigned
                 </span>
             );
         }
         return (
-            <span className="px-2 py-1 text-xs font-semibold border-round text-white" style={{
-                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+            <span className="px-2 py-1 text-xs font-semibold border-round" style={{
+                background: '#fef2f2',
+                color: '#991b1b',
+                border: '1px solid #fecaca'
             }}>
                 ❌ Excluded
             </span>
@@ -46,34 +49,61 @@ const ExclusionConfirmDialog = ({
     return (
         <Dialog
             header={
-                <div className="flex align-items-center gap-3" style={{ padding: '12px 16px', background: 'linear-gradient(90deg,#3b82f6,#06b6d4)', borderRadius: '8px 8px 0 0' }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 8, background: 'linear-gradient(135deg,#0ea5e9,#3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <i className="pi pi-users text-white" style={{ fontSize: 18 }}></i>
+                <div className="flex align-items-center gap-3" style={{
+                    padding: '16px 20px',
+                    background: '#ffffff',
+                    borderRadius: '12px 12px 0 0',
+                    borderBottom: '1px solid #e5e7eb'
+                }}>
+                    <div style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 8,
+                        background: '#f8fafc',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1px solid #e2e8f0'
+                    }}>
+                        <i className="pi pi-users text-blue-600" style={{ fontSize: 18 }}></i>
                     </div>
                     <div>
-                        <div className="text-lg font-semibold text-white">Exclude invalid selections</div>
-                        <div className="text-sm text-white-alpha-80">{excludedCount} item(s) will be removed from bulk assign</div>
+                        <div className="text-lg font-semibold text-gray-800">Exclude invalid selections</div>
+                        <div className="text-sm text-gray-600">{excludedCount} item(s) will be removed from bulk assign</div>
                     </div>
                 </div>
             }
             visible={visible}
             onHide={onHide}
             className="p-shadow-6"
-            style={{ width: '640px', borderRadius: 8 }}
+            style={{ width: '640px', borderRadius: 12, border: '1px solid #e5e7eb' }}
             breakpoints={{ '640px': '95vw' }}
             footer={
-                <div className="flex justify-content-end gap-2">
+                <div className="flex justify-content-end gap-2" style={{
+                    padding: '16px 20px',
+                    background: '#fafafa',
+                    borderTop: '1px solid #e5e7eb'
+                }}>
                     <Button
                         label="Cancel"
                         icon="pi pi-times"
                         outlined
                         onClick={onHide}
+                        style={{
+                            border: '2px solid #d1d5db',
+                            color: '#374151',
+                            background: '#ffffff'
+                        }}
                     />
                     <Button
                         label="Continue"
                         icon="pi pi-check"
                         severity="success"
                         onClick={onContinue}
+                        style={{
+                            background: '#22c55e',
+                            border: 'none'
+                        }}
                     />
                 </div>
             }
