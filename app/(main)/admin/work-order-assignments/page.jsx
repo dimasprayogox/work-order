@@ -4,15 +4,14 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Toast } from "primereact/toast";
 import { Button } from "primereact/button";
-import { Dialog } from "primereact/dialog";
-import { Divider } from "primereact/divider";
 import { Dropdown } from "primereact/dropdown";
 import { Card } from "primereact/card";
-import { Chip } from "primereact/chip";
+import { Divider } from "primereact/divider";
 
 import WorkOrderAssignmentTable from "./components/WorkOrderAssignmentTable";
 import AssignmentDialog from "./components/AssignmentDialog";
 import BulkAssignmentDialog from "./components/BulkAssignmentDialog";
+import ExclusionConfirmDialog from "./components/ExclusionConfirmDialog";
 
 const WorkOrderAssignmentPage = () => {
     const toast = useRef(null);
@@ -27,6 +26,11 @@ const WorkOrderAssignmentPage = () => {
 
     const [isAssignDialogOpen, setAssignDialogOpen] = useState(false);
     const [isBulkAssignDialogOpen, setBulkAssignDialogOpen] = useState(false);
+    const [excludeDialogVisible, setExcludeDialogVisible] = useState(false);
+    const [pendingValidSelections, setPendingValidSelections] = useState([]);
+    // store richer excluded item info: { label, reason }
+    const [excludedItems, setExcludedItems] = useState([]);
+    const [excludedCount, setExcludedCount] = useState(0);
 
     // Filter states
     const [filters, setFilters] = useState({
@@ -140,10 +144,47 @@ const WorkOrderAssignmentPage = () => {
 
     // Handle bulk assignment
     const handleBulkAssign = () => {
-        if (selectedWorkOrders.length === 0) {
+        if (!selectedWorkOrders || selectedWorkOrders.length === 0) {
             showToast("warn", "Warning", "Pilih work order terlebih dahulu");
             return;
         }
+
+        // Keep only work orders that are not completed and are unassigned
+        const valid = selectedWorkOrders.filter(wo => {
+            const status = wo.status || wo.work_order?.status;
+            const assignedId = wo.assigned_to_id ?? wo.work_order?.assigned_to_id ?? wo.assignedTo?.id;
+            return status !== 'completed' && !assignedId;
+        });
+
+        if (valid.length === 0) {
+            showToast("warn", "Warning", "Selected work orders are either completed or already assigned. Tidak ada yang bisa ditugaskan.");
+            return;
+        }
+
+        if (valid.length < selectedWorkOrders.length) {
+            const excluded = selectedWorkOrders.filter(wo => {
+                const status = wo.status || wo.work_order?.status;
+                const assignedId = wo.assigned_to_id ?? wo.work_order?.assigned_to_id ?? wo.assignedTo?.id;
+                return status === 'completed' || !!assignedId;
+            });
+
+            setPendingValidSelections(valid);
+            setExcludedCount(excluded.length);
+            // keep a short preview with reason (completed or assigned)
+            setExcludedItems(excluded.slice(0, 5).map(e => {
+                const status = e.status || e.work_order?.status;
+                const assignedId = e.assigned_to_id ?? e.work_order?.assigned_to_id ?? e.assignedTo?.id;
+                return {
+                    label: e.title || e.work_order?.title || `WO:${e.id || e.work_order_id}`,
+                    reason: status === 'completed' ? 'Completed' : (assignedId ? 'Already assigned' : 'Excluded')
+                };
+            }));
+            setExcludeDialogVisible(true);
+            return;
+        }
+
+        // Proceed only with eligible (unassigned & not completed) items
+        setSelectedWorkOrders(valid);
         setBulkAssignDialogOpen(true);
     };
 
@@ -361,6 +402,19 @@ const WorkOrderAssignmentPage = () => {
                         setSelectedWorkOrders([]);
                     }}
                     showToast={showToast}
+                />
+
+                {/* Exclusion Confirmation Dialog */}
+                <ExclusionConfirmDialog
+                    visible={excludeDialogVisible}
+                    onHide={() => setExcludeDialogVisible(false)}
+                    excludedItems={excludedItems}
+                    excludedCount={excludedCount}
+                    onContinue={() => {
+                        setSelectedWorkOrders(pendingValidSelections);
+                        setExcludeDialogVisible(false);
+                        setBulkAssignDialogOpen(true);
+                    }}
                 />
             </div>
         </div>
