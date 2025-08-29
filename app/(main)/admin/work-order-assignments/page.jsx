@@ -235,127 +235,281 @@ const WorkOrderAssignmentPage = () => {
             <Toast ref={toast} position="top-right" />
 
             <div className="card">
-                <div className="flex justify-content-between items-start mb-4">
+                {/* Page Header */}
+                <div className="flex justify-content-between align-items-center mb-5"
+                     style={{
+                         background: '#ffffff',
+                         borderRadius: '16px',
+                         padding: '24px',
+                         border: '1px solid #e5e7eb',
+                         boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                     }}>
                     <div>
-                        <h3 className="text-2xl font-semibold">Work Order Assignment</h3>
-                        <p className="text-sm text-gray-500">Manage work order assignments to technicians.</p>
+                        <h1 className="text-3xl font-bold mb-2 text-gray-800">Work Order Assignment</h1>
+                        <p className="text-lg text-gray-600">Manage work order assignments to technicians efficiently</p>
+                    </div>
+                    <div style={{
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '16px',
+                        background: '#f8fafc',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1px solid #e2e8f0'
+                    }}>
+                        <i className="pi pi-users text-3xl text-blue-600"></i>
                     </div>
                 </div>
 
                 {/* Statistics Cards */}
                 {stats && (
-                    <div className="grid grid-nogutter mb-4">
-                        <div className="col-12 md:col-3">
-                            <Card className="text-center">
-                                <div className="text-2xl font-bold text-blue-500">
+                    <div className="grid mb-5">
+                        <div className="col-12 md:col-3 mb-3">
+                            <div className="p-4 border-round text-center h-full bg-white"
+                                 style={{
+                                     boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                                     border: '1px solid #e5e7eb',
+                                     borderLeft: '4px solid #3b82f6'
+                                 }}>
+                                <div className="flex align-items-center justify-content-center mb-3">
+                                    <div style={{
+                                        width: '48px',
+                                        height: '48px',
+                                        borderRadius: '12px',
+                                        background: '#eff6ff',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        border: '1px solid #dbeafe'
+                                    }}>
+                                        <i className="pi pi-clock text-2xl text-blue-600"></i>
+                                    </div>
+                                </div>
+                                <div className="text-3xl font-bold text-gray-800 mb-2">
                                     {workOrders.filter(wo => !wo.assigned_to_id).length}
                                 </div>
-                                <div className="text-sm text-gray-600">Unassigned</div>
-                            </Card>
+                                <div className="text-sm text-gray-600 font-medium">Unassigned Orders</div>
+                            </div>
                         </div>
-                        <div className="col-12 md:col-3">
-                            <Card className="text-center">
-                                <div className="text-2xl font-bold text-green-500">
+                        <div className="col-12 md:col-3 mb-3">
+                            <div className="p-4 border-round text-center h-full bg-white"
+                                 style={{
+                                     boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                                     border: '1px solid #e5e7eb',
+                                     borderLeft: '4px solid #10b981'
+                                 }}>
+                                <div className="flex align-items-center justify-content-center mb-3">
+                                    <div style={{
+                                        width: '48px',
+                                        height: '48px',
+                                        borderRadius: '12px',
+                                        background: '#ecfdf5',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        border: '1px solid #d1fae5'
+                                    }}>
+                                        <i className="pi pi-check-circle text-2xl text-green-600"></i>
+                                    </div>
+                                </div>
+                                <div className="text-3xl font-bold text-gray-800 mb-2">
                                     {workOrders.filter(wo => wo.assigned_to_id).length}
                                 </div>
-                                <div className="text-sm text-gray-600">Assigned</div>
-                            </Card>
+                                <div className="text-sm text-gray-600 font-medium">Assigned Orders</div>
+                            </div>
                         </div>
-                        <div className="col-12 md:col-3">
-                            <Card className="text-center">
-                                <div className="text-2xl font-bold text-orange-500">
+                        <div className="col-12 md:col-3 mb-3">
+                            <div className="p-4 border-round text-center h-full bg-white"
+                                 style={{
+                                     boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                                     border: '1px solid #e5e7eb',
+                                     borderLeft: '4px solid #f59e0b'
+                                 }}>
+                                <div className="flex align-items-center justify-content-center mb-3">
+                                    <div style={{
+                                        width: '48px',
+                                        height: '48px',
+                                        borderRadius: '12px',
+                                        background: '#fffbeb',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        border: '1px solid #fed7aa'
+                                    }}>
+                                        <i className="pi pi-user text-2xl text-amber-600"></i>
+                                    </div>
+                                </div>
+                                <div className="text-3xl font-bold text-gray-800 mb-2">
                                     {stats.summary?.total_technicians || 0}
                                 </div>
-                                <div className="text-sm text-gray-600">Active Technicians</div>
-                            </Card>
+                                <div className="text-sm text-gray-600 font-medium">Active Technicians</div>
+                            </div>
                         </div>
-                        <div className="col-12 md:col-3">
-                            <Card className="text-center">
-                                <div className="text-2xl font-bold text-purple-500">
+                        <div className="col-12 md:col-3 mb-3">
+                            <div className="p-4 border-round text-center h-full bg-white"
+                                 style={{
+                                     boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                                     border: '1px solid #e5e7eb',
+                                     borderLeft: '4px solid #8b5cf6'
+                                 }}>
+                                <div className="flex align-items-center justify-content-center mb-3">
+                                    <div style={{
+                                        width: '48px',
+                                        height: '48px',
+                                        borderRadius: '12px',
+                                        background: '#faf5ff',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        border: '1px solid #e9d5ff'
+                                    }}>
+                                        <i className="pi pi-chart-bar text-2xl text-violet-600"></i>
+                                    </div>
+                                </div>
+                                <div className="text-3xl font-bold text-gray-800 mb-2">
                                     {Math.round(stats.summary?.avg_workload || 0)}
                                 </div>
-                                <div className="text-sm text-gray-600">Avg Workload</div>
-                            </Card>
+                                <div className="text-sm text-gray-600 font-medium">Avg Workload</div>
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* Filters */}
-                <div className="grid grid-nogutter gap-2 mb-4 p-3 border-1 border-gray-300 border-round">
-                    <div className="col-12 md:col-3">
-                        <label className="block text-sm font-medium mb-1">Status</label>
-                        <Dropdown
-                            value={filters.status}
-                            options={statusOptions}
-                            onChange={(e) => handleFilterChange('status', e.value)}
-                            placeholder="Select Status"
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="col-12 md:col-3">
-                        <label className="block text-sm font-medium mb-1">Assignment</label>
-                        <Dropdown
-                            value={filters.assigned}
-                            options={assignedOptions}
-                            onChange={(e) => handleFilterChange('assigned', e.value)}
-                            placeholder="Select Assignment"
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="col-12 md:col-3">
-                        <label className="block text-sm font-medium mb-1">Priority</label>
-                        <Dropdown
-                            value={filters.priority}
-                            options={priorityOptions}
-                            onChange={(e) => handleFilterChange('priority', e.value)}
-                            placeholder="Select Priority"
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="col-12 md:col-3">
-                        <label className="block text-sm font-medium mb-1">Type</label>
-                        <Dropdown
-                            value={filters.type}
-                            options={typeOptions}
-                            onChange={(e) => handleFilterChange('type', e.value)}
-                            placeholder="Select Type"
-                            className="w-full"
-                        />
-                    </div>
-                </div>
-                <div className="grid">
-                    <div className="col-12 md:col-3 flex align-items-end">
-                        <Button
-                            label="Clear Filters"
-                            icon="pi pi-filter-slash"
-                            onClick={clearFilters}
-                            className="p-button-outlined w-full"
-                        />
+                {/* Filters Section */}
+                <div className="mb-4">
+                    <div className="p-3 border-round bg-white"
+                         style={{
+                             border: '1px solid #e5e7eb',
+                             boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                         }}>
+                        <div className="flex align-items-center justify-content-between">
+                            <div className="flex align-items-center">
+                                <div style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '8px',
+                                    background: '#f8fafc',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginRight: '8px',
+                                    border: '1px solid #e2e8f0'
+                                }}>
+                                    <i className="pi pi-filter text-gray-600 text-sm"></i>
+                                </div>
+                                <span className="font-semibold text-gray-700">Filters</span>
+                            </div>
+
+                            <div className="flex align-items-center gap-2 flex-1 justify-content-center">
+                                <div style={{ width: '160px' }}>
+                                    <Dropdown
+                                        value={filters.status}
+                                        options={statusOptions}
+                                        onChange={(e) => handleFilterChange('status', e.value)}
+                                        placeholder="Status"
+                                        className="w-full p-inputtext-sm"
+                                        style={{ borderRadius: '6px', fontSize: '13px', border: '1px solid #d1d5db' }}
+                                    />
+                                </div>
+                                <div style={{ width: '160px' }}>
+                                    <Dropdown
+                                        value={filters.assigned}
+                                        options={assignedOptions}
+                                        onChange={(e) => handleFilterChange('assigned', e.value)}
+                                        placeholder="Assignment"
+                                        className="w-full p-inputtext-sm"
+                                        style={{ borderRadius: '6px', fontSize: '13px', border: '1px solid #d1d5db' }}
+                                    />
+                                </div>
+                                <div style={{ width: '160px' }}>
+                                    <Dropdown
+                                        value={filters.priority}
+                                        options={priorityOptions}
+                                        onChange={(e) => handleFilterChange('priority', e.value)}
+                                        placeholder="Priority"
+                                        className="w-full p-inputtext-sm"
+                                        style={{ borderRadius: '6px', fontSize: '13px', border: '1px solid #d1d5db' }}
+                                    />
+                                </div>
+                                <div style={{ width: '160px' }}>
+                                    <Dropdown
+                                        value={filters.type}
+                                        options={typeOptions}
+                                        onChange={(e) => handleFilterChange('type', e.value)}
+                                        placeholder="Type"
+                                        className="w-full p-inputtext-sm"
+                                        style={{ borderRadius: '6px', fontSize: '13px', border: '1px solid #d1d5db' }}
+                                    />
+                                </div>
+                            </div>
+
+                            <Button
+                                icon="pi pi-times"
+                                onClick={clearFilters}
+                                className="p-button-text p-button-sm"
+                                tooltip="Clear All Filters"
+                                style={{
+                                    borderRadius: '6px',
+                                    color: '#6b7280',
+                                    padding: '4px 8px'
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-row flex-wrap items-center gap-2 mb-4">
+                <div className="flex flex-wrap align-items-center justify-content-between gap-3 mb-5 p-4 border-round bg-white"
+                     style={{
+                         border: '1px solid #e5e7eb',
+                         boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                     }}>
+                    <div className="flex align-items-center gap-3">
+                        <Button
+                            label="Assign Selected"
+                            icon="pi pi-users"
+                            severity="success"
+                            onClick={handleBulkAssign}
+                            disabled={selectedWorkOrders.length === 0}
+                            style={{
+                                borderRadius: '10px',
+                                padding: '12px 24px',
+                                fontWeight: '600',
+                                boxShadow: selectedWorkOrders.length > 0 ? '0 4px 12px rgba(34, 197, 94, 0.2)' : 'none',
+                                background: selectedWorkOrders.length > 0 ? '#22c55e' : '#94a3b8',
+                                border: 'none'
+                            }}
+                        />
+                        {selectedWorkOrders.length > 0 && (
+                            <div className="px-3 py-2 border-round" style={{
+                                background: '#f0fdf4',
+                                color: '#166534',
+                                border: '1px solid #bbf7d0'
+                            }}>
+                                <i className="pi pi-check-circle mr-2"></i>
+                                <span className="font-semibold">{selectedWorkOrders.length} selected</span>
+                            </div>
+                        )}
+                    </div>
+
                     <Button
-                        size="small"
-                        label="Assign Selected"
-                        icon="pi pi-users"
-                        outlined
-                        severity="success"
-                        onClick={handleBulkAssign}
-                        disabled={selectedWorkOrders.length === 0}
-                    />
-                    <Divider layout="vertical" />
-                    <Button
-                        size="small"
-                        label="Refresh"
+                        label="Refresh Data"
                         icon="pi pi-refresh"
-                        outlined
+                        className="p-button-outlined"
                         onClick={() => {
                             fetchWorkOrders();
                             fetchStats();
                         }}
                         disabled={loading}
+                        style={{
+                            borderRadius: '10px',
+                            padding: '12px 20px',
+                            fontWeight: '600',
+                            border: '2px solid #d1d5db',
+                            color: '#374151',
+                            background: '#ffffff'
+                        }}
                     />
                 </div>
 
