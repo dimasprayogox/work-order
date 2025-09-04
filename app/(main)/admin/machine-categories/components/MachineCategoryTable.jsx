@@ -9,70 +9,61 @@ import { FilterMatchMode } from "primereact/api";
 import { ConfirmDialog } from "primereact/confirmdialog";
 import { Tooltip } from "primereact/tooltip";
 
-const MachineCategoryTable = ({
-    categories,
-    loading,
-    onEdit,
-    onDelete,
-    selectedCategories = [],
-    onSelectionChange = () => {},
-    onSearch = () => {},
-    searchText = ""
-}) => {
+const MachineCategoryTable = ({ categories, loading, onEdit, onDelete, selectedCategories = [], onSelectionChange = () => {}, onSearch = () => {}, searchText = "" }) => {
     const [filters, setFilters] = useState({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS }
     });
     const [globalFilterValue, setGlobalFilterValue] = useState(searchText);
-     const [selectAll, setSelectAll] = useState(false);
-     const [currentFirst, setCurrentFirst] = useState(0);
-     const [currentRows, setCurrentRows] = useState(10);
+    const [selectAll, setSelectAll] = useState(false);
+    const [currentFirst, setCurrentFirst] = useState(0);
+    const [currentRows, setCurrentRows] = useState(10);
 
     // useEffect yang sudah diperbaiki
     useEffect(() => {
         setGlobalFilterValue(searchText);
         setFilters((prevFilters) => ({
             ...prevFilters,
-            global: { ...prevFilters.global, value: searchText },
+            global: { ...prevFilters.global, value: searchText }
         }));
     }, [searchText]);
 
     const onGlobalFilterChange = (value) => {
         // Update filter DataTable secara lokal
         const _filters = { ...filters };
-        _filters['global'].value = value;
+        _filters["global"].value = value;
         setFilters(_filters);
 
         // Informasikan ke parent component tentang perubahan search text
         onSearch(value);
     };
 
-     const onPageChange = (e) => {
-         setCurrentFirst(e.first);
-         setCurrentRows(e.rows);
-     };
+    const onPageChange = (e) => {
+        setCurrentFirst(e.first);
+        setCurrentRows(e.rows);
+    };
 
-     const handleSelectAllChange = (e) => {
-         const checked = e.checked;
-         setSelectAll(checked);
+    const handleSelectAllChange = (e) => {
+        const checked = e.checked;
+        setSelectAll(checked);
 
-         if (checked) {
-             // Filter data sesuai dengan global filter saat ini
-             let filteredData = categories;
-             const filterValue = filters.global.value;
+        if (checked) {
+            // Filter data sesuai dengan global filter saat ini
+            let filteredData = categories;
+            const filterValue = filters.global.value;
 
-             if (filterValue) {
-                 const lowerCaseFilter = filterValue.toLowerCase();
-                 filteredData = categories.filter((category) => category.name?.toLowerCase().includes(lowerCaseFilter) || category.description?.toLowerCase().includes(lowerCaseFilter));
-             }
+            if (filterValue) {
+                const lowerCaseFilter = filterValue.toLowerCase();
+                filteredData = categories.filter((category) => category.name?.toLowerCase().includes(lowerCaseFilter) || category.description?.toLowerCase().includes(lowerCaseFilter));
+            }
 
-             // Ambil hanya data yang terlihat di halaman saat ini
-             const visibleData = filteredData.slice(currentFirst, currentFirst + currentRows);
-             onSelectionChange(visibleData);
-         } else {
-             // Jika tidak dicentang, kosongkan seleksi
-             onSelectionChange([]);
-         }
-     };
+            // Ambil hanya data yang terlihat di halaman saat ini
+            const visibleData = filteredData.slice(currentFirst, currentFirst + currentRows);
+            onSelectionChange(visibleData);
+        } else {
+            // Jika tidak dicentang, kosongkan seleksi
+            onSelectionChange([]);
+        }
+    };
 
     const handleSelectionChange = (e) => {
         onSelectionChange(e.value);
@@ -80,39 +71,20 @@ const MachineCategoryTable = ({
 
     const actionBodyTemplate = (rowData) => (
         <div className="flex gap-2">
-            <Button
-                icon="pi pi-pencil"
-                rounded
-                outlined
-                className="p-button-sm"
-                onClick={() => onEdit(rowData)}
-                tooltip="Edit"
-            />
-            <Button
-                icon="pi pi-trash"
-                rounded
-                outlined
-                severity="danger"
-                className="p-button-sm"
-                onClick={() => onDelete(rowData)}
-                tooltip="Delete"
-            />
+            <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onEdit(rowData)} tooltip="Edit" />
+            <Button icon="pi pi-trash" rounded outlined severity="danger" className="p-button-sm" onClick={() => onDelete(rowData)} tooltip="Delete" />
         </div>
     );
 
-    const descriptionBodyTemplate = (rowData) => (
-        <div style={{ maxWidth: '300px' }}>
-            {rowData.description || '-'}
-        </div>
-    );
+    const descriptionBodyTemplate = (rowData) => <div style={{ maxWidth: "300px" }}>{rowData.description || "-"}</div>;
 
     const dateBodyTemplate = (rowData, field) => {
         const date = rowData[field];
-        if (!date) return '-';
-        return new Date(date).toLocaleDateString('id-ID', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
+        if (!date) return "-";
+        return new Date(date).toLocaleDateString("id-ID", {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
         });
     };
 

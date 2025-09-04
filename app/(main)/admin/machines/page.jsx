@@ -5,8 +5,8 @@ import { Toast } from "primereact/toast";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 import { Divider } from "primereact/divider";
-import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import dynamic from "next/dynamic";
@@ -39,9 +39,9 @@ const MachinePage = () => {
     const [pdfUrl, setPdfUrl] = useState("");
     const [fileName, setFileName] = useState("Machines");
     const [printConfig, setPrintConfig] = useState({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
         marginLeft: 10,
         marginRight: 10,
         marginTop: 10,
@@ -49,14 +49,14 @@ const MachinePage = () => {
     });
 
     const [columnOptions] = useState([
-        { field: 'machine_code', header: 'Machine Code', visible: true },
-        { field: 'name', header: 'Name', visible: true },
-        { field: 'location', header: 'Location', visible: true },
-        { field: 'status', header: 'Status', visible: true },
-    { field: 'category', header: 'Category', visible: true },
-    { field: 'division.name', header: 'Division', visible: true },
-        { field: 'created_at', header: 'Created Date', visible: true },
-        { field: 'updated_at', header: 'Updated Date', visible: true }
+        { field: "machine_code", header: "Machine Code", visible: true },
+        { field: "name", header: "Name", visible: true },
+        { field: "location", header: "Location", visible: true },
+        { field: "status", header: "Status", visible: true },
+        { field: "category", header: "Category", visible: true },
+        { field: "division.name", header: "Division", visible: true },
+        { field: "created_at", header: "Created Date", visible: true },
+        { field: "updated_at", header: "Updated Date", visible: true }
     ]);
 
     const showToast = useCallback((severity, summary, detail) => {
@@ -111,11 +111,11 @@ const MachinePage = () => {
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         return new Date(dateString).toLocaleString("en-US", {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
         });
     };
 
@@ -127,28 +127,26 @@ const MachinePage = () => {
         }
 
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Machines');
+        const worksheet = workbook.addWorksheet("Machines");
 
         // Add headers
-        const headers = columnOptions
-            .filter(col => col.visible)
-            .map(col => col.header);
+        const headers = columnOptions.filter((col) => col.visible).map((col) => col.header);
 
         worksheet.addRow(headers);
 
         // Add data
-        machines.forEach(machine => {
+        machines.forEach((machine) => {
             const rowData = columnOptions
-                .filter(col => col.visible)
-                .map(col => {
-                    if (col.field === 'created_at' || col.field === 'updated_at') {
+                .filter((col) => col.visible)
+                .map((col) => {
+                    if (col.field === "created_at" || col.field === "updated_at") {
                         return formatDate(machine[col.field]);
-                    } else if (col.field === 'category') {
-                        return machine.category?.name || '-';
-                    } else if (col.field === 'division.name') {
-                        return machine.division?.name || '';
+                    } else if (col.field === "category") {
+                        return machine.category?.name || "-";
+                    } else if (col.field === "division.name") {
+                        return machine.division?.name || "";
                     } else {
-                        return machine[col.field] || '';
+                        return machine[col.field] || "";
                     }
                 });
 
@@ -159,20 +157,20 @@ const MachinePage = () => {
         worksheet.getRow(1).eachCell((cell) => {
             cell.font = { bold: true };
             cell.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FFE0E0E0' }
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFE0E0E0" }
             };
         });
 
         // Auto-fit columns
-        worksheet.columns.forEach(column => {
+        worksheet.columns.forEach((column) => {
             column.width = 20;
         });
 
         // Generate Excel file
         const buffer = await workbook.xlsx.writeBuffer();
-        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0,10)}.xlsx`);
+        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
         showToast("success", "Success", "Data berhasil diekspor ke Excel");
     };
 
@@ -191,24 +189,24 @@ const MachinePage = () => {
             format: currentConfig.format
         });
 
-        const visibleColumns = columnOptions.filter(col => col.visible);
+        const visibleColumns = columnOptions.filter((col) => col.visible);
 
-        const headers = visibleColumns.map(col => col.header);
-        const data = machines.map(machine => {
-            return visibleColumns.map(col => {
-                if (col.field === 'created_at' || col.field === 'updated_at') {
+        const headers = visibleColumns.map((col) => col.header);
+        const data = machines.map((machine) => {
+            return visibleColumns.map((col) => {
+                if (col.field === "created_at" || col.field === "updated_at") {
                     return formatDate(machine[col.field]);
-                } else if (col.field === 'category') {
-                    return machine.category?.name || '-';
-                } else if (col.field === 'division.name') {
-                    return machine.division?.name || '';
+                } else if (col.field === "category") {
+                    return machine.category?.name || "-";
+                } else if (col.field === "division.name") {
+                    return machine.division?.name || "";
                 } else {
-                    return machine[col.field] || '';
+                    return machine[col.field] || "";
                 }
             });
         });
 
-        doc.text('Machines Report', currentConfig.marginLeft, currentConfig.marginTop);
+        doc.text("Machines Report", currentConfig.marginLeft, currentConfig.marginTop);
 
         autoTable(doc, {
             startY: currentConfig.marginTop + 10,
@@ -224,7 +222,7 @@ const MachinePage = () => {
             headStyles: { fillColor: [71, 85, 105] }
         });
 
-        const pdfBlob = doc.output('blob');
+        const pdfBlob = doc.output("blob");
         const pdfUrl = URL.createObjectURL(pdfBlob);
         setPdfUrl(pdfUrl);
         setJsPdfPreviewOpen(true);
@@ -253,7 +251,7 @@ const MachinePage = () => {
 
                 const rowData = {};
                 row.eachCell((cell, colNumber) => {
-                    const headers = ['machine_code', 'name', 'location', 'status', 'category_id', 'division'];
+                    const headers = ["machine_code", "name", "location", "status", "category_id", "division"];
                     if (headers[colNumber - 1]) {
                         rowData[headers[colNumber - 1]] = cell.value;
                     }
@@ -266,10 +264,10 @@ const MachinePage = () => {
 
             // Resolve division name to division_id (nullable)
             const unresolved = new Set();
-            const payloads = data.map(item => {
+            const payloads = data.map((item) => {
                 const p = { ...item };
                 if (p.division) {
-                    const match = divisions.find(d => String(d.name).trim().toLowerCase() === String(p.division).trim().toLowerCase());
+                    const match = divisions.find((d) => String(d.name).trim().toLowerCase() === String(p.division).trim().toLowerCase());
                     if (match) p.division_id = match.id;
                     else unresolved.add(p.division);
                     delete p.division;
@@ -280,7 +278,7 @@ const MachinePage = () => {
             });
 
             if (unresolved.size > 0) {
-                throw new Error(`Import gagal. Unresolved divisions: ${[...unresolved].join(', ')}`);
+                throw new Error(`Import gagal. Unresolved divisions: ${[...unresolved].join(", ")}`);
             }
 
             for (const item of payloads) {
@@ -288,7 +286,7 @@ const MachinePage = () => {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify(item),
+                    body: JSON.stringify(item)
                 });
                 const body = await res.json();
                 if (!res.ok) throw new Error(body.message || "Import gagal");
@@ -296,13 +294,12 @@ const MachinePage = () => {
 
             showToast("success", "Import Sukses", `${data.length} data berhasil diimpor`);
             fetchMachines();
-
         } catch (err) {
             showToast("error", "Import Gagal", err.message);
         }
 
         // Reset file input
-        e.target.value = '';
+        e.target.value = "";
     };
 
     const handleDelete = (machine) => {
@@ -324,13 +321,7 @@ const MachinePage = () => {
         <div className="p-4">
             <Toast ref={toast} position="top-right" />
 
-            <input
-                type="file"
-                ref={fileInputRef}
-                accept=".xlsx,.xls"
-                onChange={handleImport}
-                style={{ display: "none" }}
-            />
+            <input type="file" ref={fileInputRef} accept=".xlsx,.xls" onChange={handleImport} style={{ display: "none" }} />
 
             <div className="card">
                 <div className="flex justify-content-between items-start mb-4">
@@ -340,14 +331,8 @@ const MachinePage = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-row flex-wrap items-center gap-2 mb-4">
-                    <Button
-                        size="small"
-                        label="Back"
-                        icon="pi pi-arrow-left"
-                        outlined
-                        disabled
-                    />
+                <div className="flex flex-row gap-2 mb-4">
+                    <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
                     <Button
                         size="small"
                         label="New"
@@ -360,46 +345,13 @@ const MachinePage = () => {
                         }}
                     />
                     <Divider layout="vertical" />
-                    <Button
-                        size="small"
-                        label="Import"
-                        icon="pi pi-file-import"
-                        outlined
-                        onClick={() => fileInputRef.current?.click()}
-                    />
-                    <Button
-                        size="small"
-                        label="Export"
-                        icon="pi pi-file-export"
-                        outlined
-                        onClick={exportExcel}
-                    />
-                    <Button
-                        size="small"
-                        label="Print"
-                        icon="pi pi-print"
-                        outlined
-                        onClick={() => setAdjustDialog(true)}
-                    />
+                    <Button size="small" label="Import" icon="pi pi-file-import" outlined onClick={() => fileInputRef.current?.click()} />
+                    <Button size="small" label="Export" icon="pi pi-file-export" outlined onClick={exportExcel} />
+                    <Button size="small" label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
                     <Divider layout="vertical" />
-                    <Button
-                        size="small"
-                        label={`Delete${selectedMachines.length > 0 ? ` (${selectedMachines.length})` : ''}`}
-                        icon="pi pi-trash"
-                        severity="danger"
-                        outlined
-                        onClick={handleDeleteSelected}
-                        disabled={selectedMachines.length === 0}
-                    />
+                    <Button size="small" label={`Delete${selectedMachines.length > 0 ? ` (${selectedMachines.length})` : ""}`} icon="pi pi-trash" severity="danger" outlined onClick={handleDeleteSelected} disabled={selectedMachines.length === 0} />
                     <Divider layout="vertical" />
-                    <Button
-                        size="small"
-                        label="Refresh"
-                        icon="pi pi-refresh"
-                        outlined
-                        onClick={fetchMachines}
-                        disabled={loading}
-                    />
+                    <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={fetchMachines} disabled={loading} />
                 </div>
 
                 <MachineTable
@@ -440,7 +392,7 @@ const MachinePage = () => {
                 />
 
                 <AdjustPrintMarginLaporan
-                    key={adjustDialog ? 'open' : 'closed'}
+                    key={adjustDialog ? "open" : "closed"}
                     adjustDialog={adjustDialog}
                     setAdjustDialog={setAdjustDialog}
                     handleAdjust={handleAdjust}
@@ -450,13 +402,7 @@ const MachinePage = () => {
                     setPrintConfig={setPrintConfig}
                 />
 
-                <Dialog
-                    visible={jsPdfPreviewOpen}
-                    onHide={() => setJsPdfPreviewOpen(false)}
-                    modal
-                    style={{ width: '90vw', height: '90vh' }}
-                    header="PDF Preview"
-                >
+                <Dialog visible={jsPdfPreviewOpen} onHide={() => setJsPdfPreviewOpen(false)} modal style={{ width: "90vw", height: "90vh" }} header="PDF Preview">
                     <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
                 </Dialog>
             </div>

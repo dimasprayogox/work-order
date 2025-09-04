@@ -8,54 +8,88 @@ import { Tag } from "primereact/tag";
 import { useState, useEffect } from "react";
 import { FilterMatchMode } from "primereact/api";
 import { ConfirmDialog } from "primereact/confirmdialog";
+import { motion } from "framer-motion";
 
-const MachineTable = ({
-    machines,
-    loading,
-    onEdit,
-    onDelete,
-    selectedMachines = [],
-    onSelectionChange = () => {},
-    onSearch = () => {},
-    searchText = ""
-}) => {
+const MachineTable = ({ machines, loading, onEdit, onDelete, selectedMachines = [], onSelectionChange = () => {}, onSearch = () => {}, searchText = "" }) => {
     const [filters, setFilters] = useState({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS }
     });
     const [globalFilterValue, setGlobalFilterValue] = useState(searchText);
+    const [selectAll, setSelectAll] = useState(false);
+    const [currentFirst, setCurrentFirst] = useState(0);
+    const [currentRows, setCurrentRows] = useState(10);
 
     // useEffect yang sudah diperbaiki - sama seperti MachineCategoryTable
     useEffect(() => {
         setGlobalFilterValue(searchText);
         setFilters((prevFilters) => ({
             ...prevFilters,
-            global: { ...prevFilters.global, value: searchText },
+            global: { ...prevFilters.global, value: searchText }
         }));
     }, [searchText]);
 
     const onGlobalFilterChange = (value) => {
         // Update filter DataTable secara lokal
         const _filters = { ...filters };
-        _filters['global'].value = value;
+        _filters["global"].value = value;
         setFilters(_filters);
 
         // Informasikan ke parent component tentang perubahan search text
         onSearch(value);
     };
 
-    const handleSelectionChange = (e) => {
-        onSelectionChange(e.value);
+    const onPageChange = (e) => {
+        setCurrentFirst(e.first);
+        setCurrentRows(e.rows);
+    };
+
+    const handleSelectAllChange = (e) => {
+        const checked = e.checked;
+        setSelectAll(checked);
+
+        if (checked) {
+            let filteredData = machines;
+            const filterValue = filters.global.value;
+
+            if (filterValue) {
+                const lowerCaseFilter = filterValue.toLowerCase();
+                // Daftar field yang akan difilter, sesuai dengan prop globalFilterFields
+                const globalFilterFields = ["machine_code", "name", "location", "category.name", "division.name"];
+
+                filteredData = machines.filter((machine) => {
+                    // Cek setiap field apakah mengandung nilai filter
+                    return globalFilterFields.some((field) => {
+                        let value;
+                        // Handle properti bersarang (nested) seperti 'category.name'
+                        if (field.includes(".")) {
+                            const parts = field.split(".");
+                            value = machine[parts[0]] ? machine[parts[0]][parts[1]] : null;
+                        } else {
+                            value = machine[field];
+                        }
+                        return value && value.toString().toLowerCase().includes(lowerCaseFilter);
+                    });
+                });
+            }
+
+            // Ambil hanya data yang terlihat di halaman saat ini
+            const visibleData = filteredData.slice(currentFirst, currentFirst + currentRows);
+            onSelectionChange(visibleData);
+        } else {
+            // Jika tidak dicentang, kosongkan seleksi
+            onSelectionChange([]);
+        }
     };
 
     const statusBodyTemplate = (rowData) => {
         const getSeverity = (status) => {
             switch (status) {
-                case 'operational':
-                    return 'success';
-                case 'maintenance':
-                    return 'warning';
-                case 'down':
-                    return 'danger';
+                case "operational":
+                    return "success";
+                case "maintenance":
+                    return "warning";
+                case "down":
+                    return "danger";
                 default:
                     return null;
             }
@@ -63,12 +97,12 @@ const MachineTable = ({
 
         const getStatusLabel = (status) => {
             switch (status) {
-                case 'operational':
-                    return 'Operational';
-                case 'maintenance':
-                    return 'Maintenance';
-                case 'down':
-                    return 'Down';
+                case "operational":
+                    return "Operational";
+                case "maintenance":
+                    return "Maintenance";
+                case "down":
+                    return "Down";
                 default:
                     return status;
             }
@@ -78,32 +112,23 @@ const MachineTable = ({
     };
 
     const categoryBodyTemplate = (rowData) => {
-        return rowData.category?.name || '-';
+        return rowData.category?.name || "-";
     };
 
     const divisionBodyTemplate = (rowData) => {
-        return rowData.division?.name || '-';
+        return rowData.division?.name || "-";
     };
+
+    const locationBodyTemplate = (rowData) => (
+        <motion.span whileHover={{ x: 5 }} transition={{ type: "spring", stiffness: 300 }} className="font-medium text-blue-600 cursor-pointer">
+            {rowData.location}
+        </motion.span>
+    );
 
     const actionBodyTemplate = (rowData) => (
         <div className="flex gap-2">
-            <Button
-                icon="pi pi-pencil"
-                rounded
-                outlined
-                className="p-button-sm"
-                onClick={() => onEdit(rowData)}
-                tooltip="Edit"
-            />
-            <Button
-                icon="pi pi-trash"
-                rounded
-                outlined
-                severity="danger"
-                className="p-button-sm"
-                onClick={() => onDelete(rowData)}
-                tooltip="Delete"
-            />
+            <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onEdit(rowData)} tooltip="Edit" />
+            <Button icon="pi pi-trash" rounded outlined severity="danger" className="p-button-sm" onClick={() => onDelete(rowData)} tooltip="Delete" />
         </div>
     );
 
@@ -135,10 +160,14 @@ const MachineTable = ({
             <DataTable
                 value={machines}
                 selection={selectedMachines}
-                onSelectionChange={handleSelectionChange}
+                selectAll={selectAll}
+                onSelectAllChange={handleSelectAllChange}
+                onSelectionChange={(e) => onSelectionChange(e.value)}
+                onPage={onPageChange}
+                first={currentFirst}
+                rows={currentRows}
                 dataKey="id"
                 paginator
-                rows={10}
                 loading={loading}
                 emptyMessage="No machines found."
                 filters={filters}
@@ -152,12 +181,13 @@ const MachineTable = ({
                 selectionMode="multiple"
             >
                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
-                <Column field="machine_code" header="Machine Code" style={{ width: "150px" }} sortable />
-                <Column field="name" header="Machine Name" style={{ width: "200px" }} sortable />
-                <Column field="location" header="Location" sortable />
-                <Column field="division" header="Division" body={divisionBodyTemplate} sortable />
+                <Column field="machine_code" header="Machine Code" body={(rowData) => <Tag value={rowData.machine_code} className="bg-gray-100 text-gray-800 font-medium" />} style={{ minWidth: "8rem" }} />
+
+                <Column field="name" header="Machine Name" sortable  style={{ minWidth: "13rem" }} />
+                <Column field="location" header="Location" body={locationBodyTemplate} style={{ width: "120px" }} sortable />
+                <Column field="division" header="Division" body={divisionBodyTemplate} sortable className="text-sm" />
                 <Column field="status" header="Status" body={statusBodyTemplate} sortable />
-                <Column field="category" header="Category" body={categoryBodyTemplate} sortable />
+                <Column field="category" header="Category" body={categoryBodyTemplate} sortable className="text-sm" />
                 <Column header="Actions" body={actionBodyTemplate} style={{ minWidth: "8rem" }} />
             </DataTable>
         </div>
