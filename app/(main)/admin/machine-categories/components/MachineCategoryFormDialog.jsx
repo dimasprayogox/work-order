@@ -93,7 +93,6 @@ const MachineCategoryFormDialog = ({ visible, onHide, category, fetchCategories,
                         id="name"
                         value={form.name}
                         onChange={(e) => handleChange("name", e.target.value)}
-                        placeholder="Enter category name"
                         className={classNames({ "p-invalid": submitted && !form.name.trim() })}
                         maxLength={100}
                     />
@@ -112,7 +111,6 @@ const MachineCategoryFormDialog = ({ visible, onHide, category, fetchCategories,
                         id="description"
                         value={form.description}
                         onChange={(e) => handleChange("description", e.target.value)}
-                        placeholder="Enter category description (optional)"
                         rows={4}
                         autoResize
                     />

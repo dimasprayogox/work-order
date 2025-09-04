@@ -7,6 +7,7 @@ import { InputText } from "primereact/inputtext";
 import { useState, useEffect, useCallback } from "react";
 import { FilterMatchMode } from "primereact/api";
 import { ConfirmDialog } from "primereact/confirmdialog";
+import { Tooltip } from "primereact/tooltip";
 
 const MachineCategoryTable = ({
     categories,
@@ -22,6 +23,9 @@ const MachineCategoryTable = ({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS }
     });
     const [globalFilterValue, setGlobalFilterValue] = useState(searchText);
+     const [selectAll, setSelectAll] = useState(false);
+     const [currentFirst, setCurrentFirst] = useState(0);
+     const [currentRows, setCurrentRows] = useState(10);
 
     // useEffect yang sudah diperbaiki
     useEffect(() => {
@@ -41,6 +45,34 @@ const MachineCategoryTable = ({
         // Informasikan ke parent component tentang perubahan search text
         onSearch(value);
     };
+
+     const onPageChange = (e) => {
+         setCurrentFirst(e.first);
+         setCurrentRows(e.rows);
+     };
+
+     const handleSelectAllChange = (e) => {
+         const checked = e.checked;
+         setSelectAll(checked);
+
+         if (checked) {
+             // Filter data sesuai dengan global filter saat ini
+             let filteredData = categories;
+             const filterValue = filters.global.value;
+
+             if (filterValue) {
+                 const lowerCaseFilter = filterValue.toLowerCase();
+                 filteredData = categories.filter((category) => category.name?.toLowerCase().includes(lowerCaseFilter) || category.description?.toLowerCase().includes(lowerCaseFilter));
+             }
+
+             // Ambil hanya data yang terlihat di halaman saat ini
+             const visibleData = filteredData.slice(currentFirst, currentFirst + currentRows);
+             onSelectionChange(visibleData);
+         } else {
+             // Jika tidak dicentang, kosongkan seleksi
+             onSelectionChange([]);
+         }
+     };
 
     const handleSelectionChange = (e) => {
         onSelectionChange(e.value);
@@ -112,10 +144,14 @@ const MachineCategoryTable = ({
             <DataTable
                 value={categories}
                 selection={selectedCategories}
-                onSelectionChange={handleSelectionChange}
+                selectAll={selectAll}
+                onSelectAllChange={handleSelectAllChange}
+                onSelectionChange={(e) => onSelectionChange(e.value)}
+                onPage={onPageChange}
+                first={currentFirst}
+                rows={currentRows}
                 dataKey="id"
                 paginator
-                rows={10}
                 loading={loading}
                 emptyMessage="No machine categories found."
                 filters={filters}
@@ -129,35 +165,32 @@ const MachineCategoryTable = ({
                 selectionMode="multiple"
             >
                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
-                <Column
-                    field="name"
-                    header="Category Name"
-                    style={{ width: "200px" }}
-                    sortable
-                />
+                <Column field="name" header="Category Name" style={{ width: "200px" }} sortable />
                 <Column
                     field="description"
                     header="Description"
-                    body={descriptionBodyTemplate}
-                    sortable
+                    body={(rowData) => (
+                        <>
+                            <Tooltip target={`.description-tooltip-${rowData.id}`} position="bottom" />
+                            <span
+                                className={`description-tooltip-${rowData.id}`}
+                                data-pr-tooltip={rowData.description}
+                                style={{
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    display: "block",
+                                    maxWidth: "200px"
+                                }}
+                            >
+                                {rowData.description}
+                            </span>
+                        </>
+                    )}
                 />
-                <Column
-                    field="created_at"
-                    header="Created Date"
-                    body={(rowData) => dateBodyTemplate(rowData, 'created_at')}
-                    sortable
-                />
-                <Column
-                    field="updated_at"
-                    header="Updated Date"
-                    body={(rowData) => dateBodyTemplate(rowData, 'updated_at')}
-                    sortable
-                />
-                <Column
-                    header="Actions"
-                    body={actionBodyTemplate}
-                    style={{ minWidth: "8rem" }}
-                />
+                <Column field="created_at" header="Created" body={(rowData) => dateBodyTemplate(rowData, "created_at")} sortable style={{ minWidth: "8rem" }} />
+                <Column field="updated_at" header="Updated" body={(rowData) => dateBodyTemplate(rowData, "updated_at")} sortable style={{ minWidth: "8rem" }} />
+                <Column header="Actions" body={actionBodyTemplate} style={{ minWidth: "8rem" }} />
             </DataTable>
         </div>
     );
