@@ -121,7 +121,6 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, divisions = [
                         id="machine_code"
                         value={form.machine_code}
                         onChange={(e) => handleChange("machine_code", e.target.value)}
-                        placeholder="Enter machine code"
                         className={classNames({ "p-invalid": submitted && !form.machine_code.trim() })}
                     />
                     {submitted && !form.machine_code.trim() && <small className="p-error">Machine code is required</small>}
@@ -137,7 +136,6 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, divisions = [
                         id="name"
                         value={form.name}
                         onChange={(e) => handleChange("name", e.target.value)}
-                        placeholder="Enter machine name"
                         className={classNames({ "p-invalid": submitted && !form.name.trim() })}
                     />
                     {submitted && !form.name.trim() && <small className="p-error">Machine name is required</small>}
@@ -153,7 +151,6 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, divisions = [
                         id="location"
                         value={form.location}
                         onChange={(e) => handleChange("location", e.target.value)}
-                        placeholder="Enter location"
                         className={classNames({ "p-invalid": submitted && !form.location.trim() })}
                     />
                     {submitted && !form.location.trim() && <small className="p-error">Location is required</small>}
@@ -170,7 +167,6 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, divisions = [
                         value={form.status}
                         options={statusOptions}
                         onChange={(e) => handleChange("status", e.value)}
-                        placeholder="Select status"
                     />
                 </div>
             </div>
@@ -185,8 +181,6 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, divisions = [
                         value={form.category_id}
                         options={categoryOptions}
                         onChange={(e) => handleChange("category_id", e.value)}
-                        placeholder="Select category"
-                        showClear
                     />
                 </div>
             </div>
@@ -201,8 +195,6 @@ const MachineFormDialog = ({ visible, onHide, machine, categories, divisions = [
                         value={form.division_id}
                         options={divisionOptions}
                         onChange={(e) => handleChange("division_id", e.value)}
-                        placeholder="Select division"
-                        showClear
                     />
                 </div>
             </div>
