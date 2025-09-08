@@ -1,11 +1,10 @@
 // app/(main)/admin/dashboard/page.jsx
 "use client";
 
-import { Knob } from "primereact/knob";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { Card } from "primereact/card";
 import { Skeleton } from "primereact/skeleton";
 import { Toast } from "primereact/toast";
-import { useRef } from "react";
 
 const AdminDashboard = () => {
     const toast = useRef(null);
@@ -22,8 +21,8 @@ const AdminDashboard = () => {
         offlineMachines: 0,
         lowStockParts: 0,
         mttr: null,
-        mtbf: '7.9H',
-        maintenanceExpenses: 100.76
+        mtbf: 'N/A',
+        maintenanceExpenses: 0
     });
 
     const showToast = (severity, summary, detail) => {
@@ -40,20 +39,23 @@ const AdminDashboard = () => {
                 });
 
                 if (!response.ok) {
-                    const errorResult = await response.json();
+                    const errorResult = await response.json().catch(() => ({}));
                     throw new Error(`HTTP error! status: ${response.status}. Detail: ${errorResult.message || 'Failed to fetch dashboard data'}`);
                 }
 
                 const result = await response.json();
 
-                if (result.success && result.data) {
+                if (result && result.success && result.data) {
+                    setDashboardData(result.data);
+                } else if (result && result.data) {
+                    // Some endpoints may return data directly
                     setDashboardData(result.data);
                 } else {
                     throw new Error('Invalid data format from API');
                 }
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
-                showToast('error', 'Error', 'Failed to load dashboard data');
+                showToast('error', 'Error', 'Gagal memuat data dashboard');
             } finally {
                 setLoading(false);
             }
@@ -61,224 +63,60 @@ const AdminDashboard = () => {
         fetchDashboardData();
     }, []);
 
-    // Calculate work order completion rate
+    // Derived metrics
     const completionRate = dashboardData.totalWorkOrders > 0
         ? Math.round((dashboardData.closedWorkOrders / dashboardData.totalWorkOrders) * 100)
         : 0;
 
-    // Calculate overdue rate
     const overdueRate = dashboardData.totalWorkOrders > 0
         ? Math.round((dashboardData.overdueWorkOrders / dashboardData.totalWorkOrders) * 100)
         : 0;
 
+    const metricCards = [
+        { id: 'totalWorkOrders', title: 'Total Work Orders', value: dashboardData.totalWorkOrders, icon: 'pi pi-briefcase', colorClass: 'bg-blue-100 text-blue-500' },
+        { id: 'closedWorkOrders', title: 'Closed Work Orders', value: dashboardData.closedWorkOrders, icon: 'pi pi-check', colorClass: 'bg-green-100 text-green-500' },
+        { id: 'overdueWorkOrders', title: 'Overdue Work Orders', value: dashboardData.overdueWorkOrders, icon: 'pi pi-clock', colorClass: 'bg-red-100 text-red-500' },
+        { id: 'completionRate', title: 'Completion Rate', value: `${completionRate}%`, icon: 'pi pi-chart-line', colorClass: 'bg-purple-100 text-purple-500' },
+        { id: 'openIssues', title: 'Open Issues', value: dashboardData.openIssues, icon: 'pi pi-exclamation-triangle', colorClass: 'bg-orange-100 text-orange-500' },
+        { id: 'inProgressIssues', title: 'In Progress', value: dashboardData.inProgressIssues, icon: 'pi pi-spinner', colorClass: 'bg-indigo-100 text-indigo-500' },
+        { id: 'resolvedIssues', title: 'Resolved Issues', value: dashboardData.resolvedIssues, icon: 'pi pi-check-circle', colorClass: 'bg-cyan-100 text-cyan-500' },
+        { id: 'totalMachines', title: 'Total Machines', value: dashboardData.totalMachines, icon: 'pi pi-cog', colorClass: 'bg-amber-100 text-amber-500' },
+        { id: 'offlineMachines', title: 'Offline Machines', value: dashboardData.offlineMachines, icon: 'pi pi-power-off', colorClass: 'bg-gray-100 text-gray-700' },
+        { id: 'lowStockParts', title: 'Low Stock Parts', value: dashboardData.lowStockParts, icon: 'pi pi-box', colorClass: 'bg-yellow-100 text-yellow-600' },
+        { id: 'mttr', title: 'MTTR', value: dashboardData.mttr || 'N/A', icon: 'pi pi-clock', colorClass: 'bg-teal-100 text-teal-500' },
+        { id: 'maintenanceExpenses', title: 'Maintenance Expenses', value: `$${dashboardData.maintenanceExpenses}`, icon: 'pi pi-dollar', colorClass: 'bg-green-50 text-green-700' },
+    ];
+
     return (
         <>
             <Toast ref={toast} position="top-right" />
-            <div className="card">
-                <h2 className="font-semibold">Admin Dashboard</h2>
-                <div className="grid">
-                    {/* Large Work Order Completion Rate */}
-                    <div className="col-12 md:col-6">
-                        <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ minHeight: "575px", flexDirection: "column" }}>
-                            <div className="text-center mb-3">
-                                <h4 className="font-bold">WORK ORDER ON-TIME COMPLETION RATE</h4>
-                                <p>All Assets & All Groups</p>
-                            </div>
-                            {loading ? (
-                                <Skeleton shape="circle" size="250px" />
-                            ) : (
-                                <Knob value={completionRate} valueTemplate={"{value}%"} readOnly size={250} />
-                            )}
-                        </div>
-                    </div>
 
-                    {/* Right side metrics */}
-                    <div className="col-12 md:col-6">
-                        <div className="grid">
-                            {/* Overdue Work Orders */}
-                            <div className="col-12 md:col-4">
-                                <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ height: "280px", flexDirection: "column" }}>
-                                    <div className="text-center mb-3">
-                                        <h6 className="font-bold">OVERDUE WORK ORDERS</h6>
-                                        <p>All Assets & All Groups</p>
-                                    </div>
-                                    {loading ? (
-                                        <Skeleton height="100px" />
-                                    ) : (
-                                        <Knob
-                                            value={dashboardData.overdueWorkOrders}
-                                            max={dashboardData.totalWorkOrders || 100}
-                                            valueTemplate={`{value} of ${dashboardData.totalWorkOrders}`}
-                                            readOnly
-                                            strokeWidth={8}
-                                            valueColor="#ef4444"
-                                        />
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Closed Work Orders */}
-                            <div className="col-12 md:col-4">
-                                <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ height: "280px", flexDirection: "column" }}>
-                                    <div className="text-center mb-3">
-                                        <h6 className="font-bold">CLOSED WORK ORDERS</h6>
-                                        <p>All Assets & All Groups</p>
-                                    </div>
-                                    {loading ? (
-                                        <Skeleton height="4rem" />
-                                    ) : (
-                                        <h3>{dashboardData.closedWorkOrders}</h3>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Work Requests (Open Issues) */}
-                            <div className="col-12 md:col-4">
-                                <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ height: "280px", flexDirection: "column" }}>
-                                    <div className="text-center mb-3">
-                                        <h6 className="font-bold">OPEN WORK REQUESTS</h6>
-                                        <p>All Assets & All Groups</p>
-                                    </div>
-                                    {loading ? (
-                                        <Skeleton height="4rem" />
-                                    ) : (
-                                        <h3 className="text-yellow-500">{dashboardData.openIssues}</h3>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* MTTR */}
-                            <div className="col-12 md:col-4">
-                                <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ height: "280px", flexDirection: "column" }}>
-                                    <div className="text-center mb-3">
-                                        <h6 className="font-bold">MTTR (FROM WORK ORDER)</h6>
-                                        <p>All Assets</p>
-                                    </div>
-                                    {loading ? (
-                                        <Skeleton height="4rem" />
-                                    ) : (
-                                        <h3>{dashboardData.mttr || 'N/A'}</h3>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Current Offline Assets */}
-                            <div className="col-12 md:col-4">
-                                <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ height: "280px", flexDirection: "column" }}>
-                                    <div className="text-center mb-3">
-                                        <h6 className="font-bold">CURRENT OFFLINE ASSETS</h6>
-                                        <p>All Assets</p>
-                                    </div>
-                                    {loading ? (
-                                        <Skeleton height="4rem" />
-                                    ) : (
-                                        <h3>{dashboardData.offlineMachines}</h3>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Low Stock Items */}
-                            <div className="col-12 md:col-4">
-                                <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ height: "280px", flexDirection: "column" }}>
-                                    <div className="text-center mb-3">
-                                        <h6 className="font-bold">LOW STOCK ITEMS</h6>
-                                        <p>All Assets</p>
-                                    </div>
-                                    {loading ? (
-                                        <Skeleton height="4rem" />
-                                    ) : (
-                                        <h3 className="text-yellow-500">{dashboardData.lowStockParts}</h3>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Bottom row metrics */}
-                    <div className="col-12 md:col-2">
-                        <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ flexDirection: "column" }}>
-                            <div className="text-center mb-3">
-                                <h6 className="font-bold">MTBF (FROM AVAILABILITY TRACKER)</h6>
-                                <p>All Assets</p>
-                            </div>
-                            {loading ? (
-                                <Skeleton height="4rem" />
-                            ) : (
-                                <h3>{dashboardData.mtbf}</h3>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="col-12 md:col-2">
-                        <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ flexDirection: "column" }}>
-                            <div className="text-center mb-3">
-                                <h6 className="font-bold">MAINTENANCE EXPENSES</h6>
-                                <p>All Assets</p>
-                            </div>
-                            {loading ? (
-                                <Skeleton height="4rem" />
-                            ) : (
-                                <h3>${dashboardData.maintenanceExpenses}</h3>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="col-12 md:col-2">
-                        <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ flexDirection: "column" }}>
-                            <div className="text-center mb-3">
-                                <h6 className="font-bold">TOTAL WORK ORDERS</h6>
-                                <p>All Assets</p>
-                            </div>
-                            {loading ? (
-                                <Skeleton height="4rem" />
-                            ) : (
-                                <h3>{dashboardData.totalWorkOrders}</h3>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="col-12 md:col-2">
-                        <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ flexDirection: "column" }}>
-                            <div className="text-center mb-3">
-                                <h6 className="font-bold">IN PROGRESS ISSUES</h6>
-                                <p>All Assets</p>
-                            </div>
-                            {loading ? (
-                                <Skeleton height="4rem" />
-                            ) : (
-                                <h3 className="text-blue-500">{dashboardData.inProgressIssues}</h3>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="col-12 md:col-2">
-                        <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ flexDirection: "column" }}>
-                            <div className="text-center mb-3">
-                                <h6 className="font-bold">TOTAL MACHINES</h6>
-                                <p>All Assets</p>
-                            </div>
-                            {loading ? (
-                                <Skeleton height="4rem" />
-                            ) : (
-                                <h3>{dashboardData.totalMachines}</h3>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="col-12 md:col-2">
-                        <div className="card flex align-items-center justify-content-center overflow-hidden" style={{ flexDirection: "column" }}>
-                            <div className="text-center mb-3">
-                                <h6 className="font-bold">RESOLVED ISSUES</h6>
-                                <p>All Assets</p>
-                            </div>
-                            {loading ? (
-                                <Skeleton height="4rem" />
-                            ) : (
-                                <h3 className="text-green-500">{dashboardData.resolvedIssues}</h3>
-                            )}
-                        </div>
+            <div className="grid">
+                <div className="col-12">
+                    <div className="card">
+                        <h2 className="font-semibold">Admin Dashboard</h2>
+                        <p className="text-500">Ringkasan metrik utama sistem.</p>
                     </div>
                 </div>
+
+                {metricCards.map((card) => (
+                    <div key={card.id} className="col-12 md:col-6 lg:col-3">
+                        <Card className="p-3 shadow-2">
+                            <div className="flex align-items-center justify-content-between mb-3">
+                                <div>
+                                    <div className="text-500 text-sm">{card.title}</div>
+                                    <div className="text-900 font-bold text-2xl mt-1">
+                                        {loading ? <Skeleton width="6rem" height="2rem" /> : card.value}
+                                    </div>
+                                </div>
+                                <div className={`flex align-items-center justify-content-center ${card.colorClass} border-round`} style={{ width: 48, height: 48 }}>
+                                    <i className={`${card.icon} text-lg`} />
+                                </div>
+                            </div>
+                            <div className="text-500 text-sm">{card.id === 'completionRate' ? `Overdue ${overdueRate}%` : 'All Assets'}</div>
+                        </Card>
+                    </div>
+                ))}
             </div>
         </>
     );
