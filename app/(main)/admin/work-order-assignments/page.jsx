@@ -162,7 +162,7 @@ const WorkOrderAssignmentPage = () => {
 
     // Handle bulk assignment
     const handleBulkAssign = () => {
-        if (selectedWorkOrders.length === 0) {
+        if (!selectedWorkOrders || selectedWorkOrders.length === 0) {
             showToast("warn", "Warning", "Pilih work order terlebih dahulu");
             return;
         }

@@ -24,8 +24,7 @@ const AssetFormDialog = ({ visible, onHide, asset, categories, divisions, fetchA
     const statusOptions = [
         { label: "Operational", value: "operational" },
         { label: "Maintenance", value: "maintenance" },
-        { label: "Down", value: "down" },
-        { label: "Inactive", value: "inactive" }
+        { label: "Down", value: "down" }
     ];
 
     useEffect(() => {
