@@ -73,31 +73,43 @@ const MaintenanceSchedule = ({ workOrders, maintenanceSchedules }) => {
         const eventsOnThisDay = allScheduledEvents.filter((event) => event.date.getDate() === date.day && event.date.getMonth() === date.month && event.date.getFullYear() === date.year);
 
         const hasEvent = eventsOnThisDay.length > 0;
-        const hasWorkOrder = eventsOnThisDay.some((e) => e.type === "workOrder");
-        const hasMaintenance = eventsOnThisDay.some((e) => e.type === "maintenanceSchedule");
+        const isSelected = selectedDate.getDate() === date.day && selectedDate.getMonth() === date.month && selectedDate.getFullYear() === date.year;
 
         let bgColor = "";
-
-        if (hasWorkOrder && hasMaintenance) {
-            bgColor = "bg-orange-500"; // kombinasi
-        } else if (hasWorkOrder) {
-            bgColor = "bg-blue-500"; // khusus work order
-        } else if (hasMaintenance) {
-            bgColor = "bg-purple-500"; // khusus maintenance
+        if (hasEvent && isSelected) {
+            bgColor = "bg-blue-700";
+        } else if (hasEvent) {
+            bgColor = "bg-blue-500";
+        } else if (isSelected) {
+            bgColor = "bg-blue-300";
+        } else if (date.today) {
+            bgColor = "bg-blue-100";
         }
 
         return (
             <div
-                className={classNames("relative p-1 rounded-full w-2.5rem h-2.5rem flex align-items-center justify-content-center", {
-                    [bgColor]: hasEvent,
-                    "text-surface-900": !hasEvent,
-                    "bg-primary": date.today && !hasEvent,
-                    "text-primary-50": date.today && !hasEvent,
-                    "font-bold": hasEvent || date.today,
-                    "text-white": hasEvent // biar angka tanggal kontras
+                className={classNames("relative flex align-items-center justify-content-center font-bold", bgColor, {
+                    "text-white": hasEvent || isSelected || date.today,
+                    "text-surface-900": !hasEvent && !isSelected && !date.today
                 })}
+                style={{
+                    width: "2.5rem",
+                    height: "2.5rem",
+                    borderRadius: "50%",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    transform: isSelected ? "scale(1.1)" : "scale(1)",
+                    border: isSelected ? "2px solid #22c55e" : "2px solid transparent" // border hijau saat dipilih
+                }}
                 onClick={() => setSelectedDate(new Date(date.year, date.month, date.day))}
-                style={{ cursor: "pointer" }}
+                onMouseOver={(e) => {
+                    e.currentTarget.style.transform = "scale(1.1)";
+                }}
+                onMouseOut={(e) => {
+                    if (!isSelected) {
+                        e.currentTarget.style.transform = "scale(1)";
+                    }
+                }}
             >
                 {date.day}
             </div>

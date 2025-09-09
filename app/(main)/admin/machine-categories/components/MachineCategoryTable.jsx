@@ -65,10 +65,6 @@ const MachineCategoryTable = ({ categories, loading, onEdit, onDelete, selectedC
         }
     };
 
-    const handleSelectionChange = (e) => {
-        onSelectionChange(e.value);
-    };
-
     const actionBodyTemplate = (rowData) => (
         <div className="flex gap-2">
             <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onEdit(rowData)} tooltip="Edit" />
@@ -76,12 +72,10 @@ const MachineCategoryTable = ({ categories, loading, onEdit, onDelete, selectedC
         </div>
     );
 
-    const descriptionBodyTemplate = (rowData) => <div style={{ maxWidth: "300px" }}>{rowData.description || "-"}</div>;
-
     const dateBodyTemplate = (rowData, field) => {
         const date = rowData[field];
         if (!date) return "-";
-        return new Date(date).toLocaleDateString("id-ID", {
+        return new Date(date).toLocaleDateString("en-US", {
             year: "numeric",
             month: "short",
             day: "numeric"
@@ -160,8 +154,8 @@ const MachineCategoryTable = ({ categories, loading, onEdit, onDelete, selectedC
                         </>
                     )}
                 />
-                <Column field="created_at" header="Created" body={(rowData) => dateBodyTemplate(rowData, "created_at")} sortable style={{ minWidth: "8rem" }} />
-                <Column field="updated_at" header="Updated" body={(rowData) => dateBodyTemplate(rowData, "updated_at")} sortable style={{ minWidth: "8rem" }} />
+                <Column field="created_at" header="Created" body={(rowData) => dateBodyTemplate(rowData, "created_at")} sortable style={{ minWidth: "10rem" }} />
+                <Column field="updated_at" header="Updated" body={(rowData) => dateBodyTemplate(rowData, "updated_at")} sortable style={{ minWidth: "10rem" }} />
                 <Column header="Actions" body={actionBodyTemplate} style={{ minWidth: "8rem" }} />
             </DataTable>
         </div>

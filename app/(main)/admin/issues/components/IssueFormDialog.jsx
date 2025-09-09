@@ -237,10 +237,13 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
         value: asset.id
     }));
 
-    const userOptions = users.map(user => ({
-        label: `${user.full_name} (${user.role})`,
+    const userOptions = users.map(user => {
+        const divisionName = user.division?.name || "Tanpa Divisi";
+        return {
+        label: `${user.full_name} (${user.role}) (${divisionName})`,
         value: user.id
-    }));
+        }
+    });
 
     const typeOptions = [
         { label: "Machine", value: "machine" },
@@ -275,49 +278,15 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
         </div>
     );
 
-    const footerContent = (
-        <div className="flex justify-end gap-2">
-            <Button
-                label="Cancel"
-                icon="pi pi-times"
-                onClick={onHide}
-                className="p-button-text"
-                disabled={loading}
-            />
-            <Button
-                label={issue ? "Update" : "Save"}
-                icon="pi pi-check"
-                onClick={handleSubmit}
-                loading={loading}
-                disabled={loading}
-            />
-        </div>
-    );
-
     return (
-        <Dialog
-            header={issue ? "Edit Issue" : "Add New Issue"}
-            visible={visible}
-            style={{ width: "40rem" }}
-            breakpoints={{ "960px": "75vw", "641px": "90vw" }}
-            onHide={onHide}
-            modal
-            className="p-fluid"
-            footer={footerContent}
-        >
+        <Dialog header={issue ? "Edit Issue" : "Add New Issue"} visible={visible} style={{ width: "40rem" }} breakpoints={{ "960px": "75vw", "641px": "90vw" }} onHide={onHide} modal className="p-fluid" >
             <div className="formgrid grid">
                 {/* Title Field */}
                 <div className="field col-12">
                     <label htmlFor="title" className="font-medium">
                         Title <span className="text-red-500">*</span>
                     </label>
-                    <InputText
-                        id="title"
-                        value={form.title}
-                        onChange={(e) => handleChange("title", e.target.value)}
-                        placeholder="Enter issue title"
-                        className={classNames({ "p-invalid": submitted && !form.title.trim() })}
-                    />
+                    <InputText id="title" value={form.title} onChange={(e) => handleChange("title", e.target.value)} className={classNames({ "p-invalid": submitted && !form.title.trim() })} />
                     {submitted && !form.title.trim() && <small className="p-error">Title is required</small>}
                 </div>
 
@@ -326,15 +295,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                     <label htmlFor="type" className="font-medium">
                         Type <span className="text-red-500">*</span>
                     </label>
-                    <Dropdown
-                        id="type"
-                        value={form.type}
-                        options={typeOptions}
-                        onChange={(e) => handleChange("type", e.value)}
-                        placeholder="Select type"
-                        showClear
-                        className={classNames({ "p-invalid": submitted && !form.type })}
-                    />
+                    <Dropdown id="type" value={form.type} options={typeOptions} onChange={(e) => handleChange("type", e.value)} className={classNames({ "p-invalid": submitted && !form.type })} />
                     {submitted && !form.type && <small className="p-error">Type is required</small>}
                 </div>
 
@@ -349,9 +310,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                             value={form.machine_id}
                             options={machineOptions}
                             onChange={(e) => handleChange("machine_id", e.value)}
-                            placeholder="Select machine"
                             filter
-                            showClear
                             className={classNames({ "p-invalid": submitted && form.type === "machine" && !form.machine_id })}
                         />
                         {submitted && form.type === "machine" && !form.machine_id && <small className="p-error">Machine is required</small>}
@@ -369,9 +328,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                             value={form.asset_id}
                             options={assetOptions}
                             onChange={(e) => handleChange("asset_id", e.value)}
-                            placeholder="Select asset"
                             filter
-                            showClear
                             emptyMessage={loadingAssets ? "Loading assets..." : "No assets available"}
                             disabled={loadingAssets}
                             className={classNames({ "p-invalid": submitted && form.type === "asset" && !form.asset_id })}
@@ -382,33 +339,27 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
 
                 {/* Priority Field */}
                 <div className="field col-12">
-                    <label htmlFor="priority" className="font-medium">Priority</label>
-                    <Dropdown
-                        id="priority"
-                        value={form.priority}
-                        options={priorityOptions}
-                        onChange={(e) => handleChange("priority", e.value)}
-                        placeholder="Select priority"
-                    />
+                    <label htmlFor="priority" className="font-medium">
+                        Priority
+                    </label>
+                    <Dropdown id="priority" value={form.priority} options={priorityOptions} onChange={(e) => handleChange("priority", e.value)} />
                 </div>
 
                 {/* Reported By Field */}
                 <div className="field col-12">
-                    <label htmlFor="reported_by_id" className="font-medium">Reported By (Opsional)</label>
+                    <label htmlFor="reported_by_id" className="font-medium">
+                        Reported By (Opsional)
+                    </label>
                     <Dropdown
                         id="reported_by_id"
                         value={form.reported_by_id}
                         options={userOptions}
                         onChange={(e) => handleChange("reported_by_id", e.value)}
-                        placeholder="Select user (optional)"
                         filter
-                        showClear
                         emptyMessage={loadingUsers ? "Loading users..." : "No users available"}
                         disabled={loadingUsers}
                     />
-                    <small className="text-gray-500">
-                        Leave empty to use current admin user
-                    </small>
+                    <small className="text-gray-500">Leave empty to use current admin user</small>
                 </div>
 
                 {/* Description Field */}
@@ -416,14 +367,7 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                     <label htmlFor="description" className="font-medium">
                         Description <span className="text-red-500">*</span>
                     </label>
-                    <InputTextarea
-                        id="description"
-                        value={form.description}
-                        onChange={(e) => handleChange("description", e.target.value)}
-                        placeholder="Describe the issue in detail"
-                        rows={4}
-                        className={classNames({ "p-invalid": submitted && !form.description.trim() })}
-                    />
+                    <InputTextarea id="description" value={form.description} onChange={(e) => handleChange("description", e.target.value)} rows={4} className={classNames({ "p-invalid": submitted && !form.description.trim() })} />
                     {submitted && !form.description.trim() && <small className="p-error">Description is required</small>}
                 </div>
 
@@ -437,29 +381,19 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                             <div className="flex align-items-center justify-content-between mb-2">
                                 <span className="text-sm text-gray-600">Current photo:</span>
                                 <div className="flex align-items-center">
-                                    <Checkbox
-                                        inputId="remove_photo"
-                                        checked={removePhoto}
-                                        onChange={(e) => handleRemovePhotoChange(e.checked)}
-                                    />
+                                    <Checkbox inputId="remove_photo" checked={removePhoto} onChange={(e) => handleRemovePhotoChange(e.checked)} />
                                     <label htmlFor="remove_photo" className="ml-2 text-sm cursor-pointer">
                                         Remove photo
                                     </label>
                                 </div>
                             </div>
-                            <Image
-                                src={issue.photo_url}
-                                alt="Current issue photo"
-                                width="150"
-                                preview
-                                className="border-round shadow-2"
-                            />
+                            <Image src={issue.photo_url} alt="Current issue photo" width="150" preview className="border-round shadow-2" />
                         </div>
                     )}
 
                     {/* Komponen FileUpload yang sudah disempurnakan */}
                     <FileUpload
-                        key={`fileupload-${issue?.id || 'new'}-${visible}`}
+                        key={`fileupload-${issue?.id || "new"}-${visible}`}
                         ref={fileUploadRef}
                         name="photo"
                         accept="image/*"
@@ -472,12 +406,16 @@ const IssueFormDialog = ({ visible, onHide, issue, machines, fetchIssues, showTo
                         emptyTemplate={<p className="m-0">Drag and drop the image here.</p>}
                         disabled={removePhoto}
                     />
-                     {removePhoto && (
+                    {removePhoto && (
                         <div className="mt-2">
                             <small className="text-red-600">The current photo will be deleted when saved.</small>
                         </div>
                     )}
                 </div>
+            </div>
+            <div className="flex justify-end gap-2">
+                <Button label="Cancel" icon="pi pi-times" onClick={onHide} className="p-button-text" disabled={loading} />
+                <Button label={issue ? "Update" : "Save"} icon="pi pi-check" onClick={handleSubmit} loading={loading} disabled={loading} />
             </div>
         </Dialog>
     );

@@ -35,9 +35,7 @@ const ConfirmDeleteDialog = ({ visible, onHide, asset, selectedAssets = [], fetc
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
 
-            const successMessage = isBulkDelete
-                ? `${selectedAssets.length} asset berhasil dihapus`
-                : "Asset berhasil dihapus";
+            const successMessage = isBulkDelete ? `${selectedAssets.length} asset berhasil dihapus` : "Asset berhasil dihapus";
 
             showToast("success", "Berhasil", successMessage);
             fetchAssets();
@@ -51,41 +49,17 @@ const ConfirmDeleteDialog = ({ visible, onHide, asset, selectedAssets = [], fetc
 
     const footerContent = (
         <div className="flex justify-content-center gap-2">
-            <Button
-                label="Batal"
-                icon="pi pi-times"
-                severity="secondary"
-                outlined
-                onClick={onHide}
-                disabled={loading}
-            />
-            <Button
-                label="Ya, Hapus"
-                icon="pi pi-trash"
-                severity="danger"
-                onClick={handleDelete}
-                loading={loading}
-            />
+            <Button label="Batal" icon="pi pi-times" severity="secondary" outlined onClick={onHide} disabled={loading} />
+            <Button label="Ya, Hapus" icon="pi pi-trash" severity="danger" onClick={handleDelete} loading={loading} />
         </div>
     );
 
     return (
-        <Dialog
-            header="Konfirmasi Hapus"
-            visible={visible}
-            onHide={onHide}
-            modal
-            style={{ width: "25rem" }}
-            footer={footerContent}
-        >
+        <Dialog header="Konfirmasi Hapus" visible={visible} onHide={onHide} modal footer={footerContent}>
             <div className="flex flex-column align-items-center text-center gap-4 py-4">
-                <i className="pi pi-exclamation-triangle text-red-500 text-6xl" />
-
-                <div>
-                    <h3 className="font-bold mb-2">
-                        {isBulkDelete ? `Hapus ${selectedAssets.length} Asset?` : "Hapus Asset Ini?"}
-                    </h3>
-                    <p className="text-color-secondary">
+                <div className="flex align-items-center justify-content-center gap-3">
+                    <i className="pi pi-exclamation-triangle text-3xl" />
+                    <p className="text-color-secondary m-0">
                         {isBulkDelete ? (
                             `Anda akan menghapus ${selectedAssets.length} asset yang dipilih.`
                         ) : (
@@ -93,8 +67,6 @@ const ConfirmDeleteDialog = ({ visible, onHide, asset, selectedAssets = [], fetc
                                 Anda akan menghapus <strong>{asset?.name ?? "asset yang dipilih"}</strong>.
                             </>
                         )}
-                        <br />
-                        Tindakan ini tidak dapat diurungkan.
                     </p>
                 </div>
             </div>

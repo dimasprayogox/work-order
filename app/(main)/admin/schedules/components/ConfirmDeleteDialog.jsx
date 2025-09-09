@@ -84,51 +84,19 @@ const ConfirmDeleteDialog = ({ visible, onHide, schedule, selectedSchedules = []
     );
 
     return (
-        <Dialog
-            header="Konfirmasi Hapus"
-            visible={visible}
-            onHide={onHide}
-            modal
-            style={{ width: "30rem" }}
-            footer={footerContent}
-        >
+        <Dialog header="Konfirmasi Hapus" visible={visible} onHide={onHide} modal style={{ width: "30rem" }} footer={footerContent}>
             <div className="flex flex-column align-items-center text-center gap-4 py-4">
-                <i className="pi pi-exclamation-triangle text-red-500 text-6xl" />
-
-                <div>
-                    <h3 className="font-bold mb-2">
-                        {isBulkDelete ? `Hapus ${selectedSchedules.length} Schedule?` : "Hapus Schedule Ini?"}
-                    </h3>
-
-                    <p className="text-color-secondary mb-3">
-                        {getWarningMessage()}
-                        <br />
-                        Tindakan ini tidak dapat diurungkan.
+                <div className="flex align-items-center justify-content-center gap-3">
+                    <i className="pi pi-exclamation-triangle text-3xl" />
+                    <p className="text-color-secondary m-0">
+                        {isBulkDelete ? (
+                            `Anda akan menghapus ${selectedSchedules.length} schedule yang dipilih.`
+                        ) : (
+                            <>
+                                Anda akan menghapus <strong>{schedule?.name ?? "schedule yang dipilih"}</strong>.
+                            </>
+                        )}
                     </p>
-
-                    <div className="p-3 border-left-3 border-red-500 bg-red-50 text-left">
-                        <div className="flex align-items-center gap-2 mb-2">
-                            <i className="pi pi-info-circle text-red-600"></i>
-                            <span className="font-semibold text-red-800">Yang akan dihapus:</span>
-                        </div>
-                        <ul className="text-red-700 text-sm m-0 pl-3">
-                            <li>Data schedule maintenance</li>
-                            <li>Jadwal maintenance yang terkait</li>
-                            {!isBulkDelete && schedule?.next_due_date && (
-                                <li>Jadwal berikutnya: {new Date(schedule.next_due_date).toLocaleDateString('id-ID')}</li>
-                            )}
-                        </ul>
-                    </div>
-
-                    <div className="p-3 border-left-3 border-yellow-500 bg-yellow-50 text-left mt-3">
-                        <div className="flex align-items-center gap-2 mb-2">
-                            <i className="pi pi-exclamation-triangle text-yellow-600"></i>
-                            <span className="font-semibold text-yellow-800">Peringatan</span>
-                        </div>
-                        <p className="text-yellow-700 text-sm m-0">
-                            Work Order yang sudah dibuat dari schedule ini tidak akan terpengaruh dan tetap ada dalam sistem.
-                        </p>
-                    </div>
                 </div>
             </div>
         </Dialog>

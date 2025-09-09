@@ -1,32 +1,27 @@
-// app/(main)/admin/divisions/components/ConfirmDeleteDialog.jsx
 "use client";
 
 import { Dialog } from "primereact/dialog";
 import { Button } from "primereact/button";
 import { useState } from "react";
 
-const ConfirmDeleteDialog = ({ visible, onHide, division, selectedDivisions = [], fetchDivisions, showToast }) => {
+const ConfirmDeleteDialog = ({ visible, onHide, workOrder, selectedWorkOrders = [], fetchWorkOrders, showToast }) => {
     const [loading, setLoading] = useState(false);
 
-    const isBulkDelete = !division && selectedDivisions.length > 0;
+    const isBulkDelete = !workOrder && selectedWorkOrders.length > 0;
 
     const handleDelete = async () => {
         setLoading(true);
         try {
             let res;
             if (isBulkDelete) {
-                res = await fetch("/api/admin/divisions/delete-many", {
+                res = await fetch("/api/admin/work-order-assignments/", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify({
-                        ids: selectedDivisions.map((d) => d.id)
-                    })
+                    body: JSON.stringify({ ids: selectedWorkOrders.map((p) => p.id) })
                 });
             } else {
-                res = await fetch(`/api/admin/divisions/${division.id}`, {
+                res = await fetch(`/api/admin/work-order-assignments/${workOrder.id}`, {
                     method: "DELETE",
                     credentials: "include"
                 });
@@ -35,10 +30,10 @@ const ConfirmDeleteDialog = ({ visible, onHide, division, selectedDivisions = []
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
 
-            const successMessage = isBulkDelete ? `${selectedDivisions.length} divisi berhasil dihapus` : "Divisi berhasil dihapus";
+            const successMessage = isBulkDelete ? `${selectedWorkOrders.length} schedule berhasil dihapus` : "schedule berhasil dihapus";
 
             showToast("success", "Berhasil", successMessage);
-            fetchDivisions();
+            fetchWorkOrders();
             onHide();
         } catch (error) {
             showToast("error", "Gagal", error.message);
@@ -48,9 +43,9 @@ const ConfirmDeleteDialog = ({ visible, onHide, division, selectedDivisions = []
     };
 
     const footerContent = (
-        <div className="flex justify-content-center gap-2">
-            <Button label="Batal" icon="pi pi-times" severity="secondary" outlined onClick={onHide} disabled={loading} />
-            <Button label="Ya, Hapus" icon="pi pi-trash" severity="danger" onClick={handleDelete} loading={loading} />
+        <div className="flex justify-content-end gap-2">
+            <Button label="Batal" severity="secondary" outlined onClick={onHide} disabled={loading} />
+            <Button label="Ya, Hapus" severity="danger" onClick={handleDelete} loading={loading} />
         </div>
     );
 
@@ -61,10 +56,10 @@ const ConfirmDeleteDialog = ({ visible, onHide, division, selectedDivisions = []
                     <i className="pi pi-exclamation-triangle text-3xl" />
                     <p className="text-color-secondary m-0">
                         {isBulkDelete ? (
-                            `Anda akan menghapus ${selectedDivisions.length} divisi yang dipilih.`
+                            `Anda akan menghapus ${selectedWorkOrders.length} schedule yang dipilih.`
                         ) : (
                             <>
-                                Anda akan menghapus <strong>{division?.name ?? "divisi yang dipilih"}</strong>.
+                                Anda akan menghapus <strong>{workOrder?.title ?? "schedule yang dipilih"}</strong>.
                             </>
                         )}
                     </p>

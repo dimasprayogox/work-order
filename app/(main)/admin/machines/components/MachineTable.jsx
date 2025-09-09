@@ -9,12 +9,22 @@ import { useState, useEffect } from "react";
 import { FilterMatchMode } from "primereact/api";
 import { ConfirmDialog } from "primereact/confirmdialog";
 import { motion } from "framer-motion";
+import { Dropdown } from "primereact/dropdown";
+
+const statusFilterOptions = [
+    { label: "All Statuses", value: null },
+    { label: "Operational", value: "operational" },
+    { label: "Maintenance", value: "maintenance" },
+    { label: "Down", value: "down" }
+];
 
 const MachineTable = ({ machines, loading, onEdit, onDelete, selectedMachines = [], onSelectionChange = () => {}, onSearch = () => {}, searchText = "" }) => {
     const [filters, setFilters] = useState({
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS }
+        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+        status: { value: null, matchMode: FilterMatchMode.EQUALS }
     });
     const [globalFilterValue, setGlobalFilterValue] = useState(searchText);
+    const [statusFilterValue, setStatusFilterValue] = useState(null);
     const [selectAll, setSelectAll] = useState(false);
     const [currentFirst, setCurrentFirst] = useState(0);
     const [currentRows, setCurrentRows] = useState(10);
@@ -38,6 +48,14 @@ const MachineTable = ({ machines, loading, onEdit, onDelete, selectedMachines = 
         onSearch(value);
     };
 
+    const onStatusFilterChange = (e) => {
+        const { value } = e;
+        setStatusFilterValue(value);
+        const _filters = { ...filters };
+        _filters["status"].value = value;
+        setFilters(_filters);
+    };
+
     const onPageChange = (e) => {
         setCurrentFirst(e.first);
         setCurrentRows(e.rows);
@@ -49,34 +67,29 @@ const MachineTable = ({ machines, loading, onEdit, onDelete, selectedMachines = 
 
         if (checked) {
             let filteredData = machines;
-            const filterValue = filters.global.value;
+            const globalFilter = filters.global.value;
+            const statusFilter = filters.status.value;
 
-            if (filterValue) {
-                const lowerCaseFilter = filterValue.toLowerCase();
-                // Daftar field yang akan difilter, sesuai dengan prop globalFilterFields
+            // Terapkan filter pencarian global
+            if (globalFilter) {
+                const lowerCaseFilter = globalFilter.toLowerCase();
                 const globalFilterFields = ["machine_code", "name", "location", "category.name", "division.name"];
-
-                filteredData = machines.filter((machine) => {
-                    // Cek setiap field apakah mengandung nilai filter
+                filteredData = filteredData.filter((machine) => {
                     return globalFilterFields.some((field) => {
-                        let value;
-                        // Handle properti bersarang (nested) seperti 'category.name'
-                        if (field.includes(".")) {
-                            const parts = field.split(".");
-                            value = machine[parts[0]] ? machine[parts[0]][parts[1]] : null;
-                        } else {
-                            value = machine[field];
-                        }
+                        const value = field.includes(".") ? machine[field.split(".")[0]]?.[field.split(".")[1]] : machine[field];
                         return value && value.toString().toLowerCase().includes(lowerCaseFilter);
                     });
                 });
             }
 
-            // Ambil hanya data yang terlihat di halaman saat ini
+            // Terapkan filter status
+            if (statusFilter) {
+                filteredData = filteredData.filter((machine) => machine.status === statusFilter);
+            }
+
             const visibleData = filteredData.slice(currentFirst, currentFirst + currentRows);
             onSelectionChange(visibleData);
         } else {
-            // Jika tidak dicentang, kosongkan seleksi
             onSelectionChange([]);
         }
     };
@@ -136,7 +149,8 @@ const MachineTable = ({ machines, loading, onEdit, onDelete, selectedMachines = 
         <div className="flex flex-wrap align-items-center justify-content-between gap-2">
             <span className="text-xl font-bold">Machine Inventory</span>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+                <Dropdown value={statusFilterValue} options={statusFilterOptions} onChange={onStatusFilterChange} placeholder="All Status" className="w-full sm:w-auto" />
                 <span className="p-input-icon-left">
                     <i className="pi pi-search" />
                     <InputText
@@ -183,7 +197,7 @@ const MachineTable = ({ machines, loading, onEdit, onDelete, selectedMachines = 
                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
                 <Column field="machine_code" header="Machine Code" body={(rowData) => <Tag value={rowData.machine_code} className="bg-gray-100 text-gray-800 font-medium" />} style={{ minWidth: "8rem" }} />
 
-                <Column field="name" header="Machine Name" sortable  style={{ minWidth: "13rem" }} />
+                <Column field="name" header="Machine Name" sortable style={{ minWidth: "13rem" }} />
                 <Column field="location" header="Location" body={locationBodyTemplate} style={{ width: "120px" }} sortable />
                 <Column field="division" header="Division" body={divisionBodyTemplate} sortable className="text-sm" />
                 <Column field="status" header="Status" body={statusBodyTemplate} sortable />

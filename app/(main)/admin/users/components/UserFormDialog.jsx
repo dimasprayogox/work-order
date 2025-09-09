@@ -121,36 +121,8 @@ const UserFormDialog = ({ visible, onHide, user, divisions = [], fetchUsers, sho
         }
     };
 
-    const dialogFooter = (
-        <div className="flex justify-end gap-2">
-            <Button
-                label="Cancel"
-                icon="pi pi-times"
-                onClick={onHide}
-                className="p-button-text"
-                disabled={loading}
-            />
-            <Button
-                label={user ? "Update" : "Save"}
-                icon="pi pi-check"
-                onClick={handleSubmit}
-                loading={loading}
-                disabled={loading}
-            />
-        </div>
-    );
-
     return (
-        <Dialog
-            header={user ? "Edit User" : "Add New User"}
-            visible={visible}
-            style={{ width: "32rem" }}
-            breakpoints={{ "960px": "75vw", "641px": "90vw" }}
-            onHide={onHide}
-            modal
-            className="p-fluid"
-            footer={dialogFooter}
-        >
+        <Dialog header={user ? "Edit User" : "Add New User"} visible={visible} style={{ width: "32rem" }} breakpoints={{ "960px": "75vw", "641px": "90vw" }} onHide={onHide} modal className="p-fluid">
             <div className="field grid mb-4">
                 <label htmlFor="username" className="col-12 mb-2 font-medium">
                     Username <span className="text-red-500">*</span>
@@ -160,14 +132,11 @@ const UserFormDialog = ({ visible, onHide, user, divisions = [], fetchUsers, sho
                         id="username"
                         value={form.username}
                         onChange={(e) => handleChange("username", e.target.value)}
-                        placeholder="Enter username"
                         className={classNames({
                             "p-invalid": submitted && !form.username.trim()
                         })}
                     />
-                    {submitted && !form.username.trim() &&
-                        <small className="p-error">Username is required</small>
-                    }
+                    {submitted && !form.username.trim() && <small className="p-error">Username is required</small>}
                 </div>
             </div>
 
@@ -181,17 +150,12 @@ const UserFormDialog = ({ visible, onHide, user, divisions = [], fetchUsers, sho
                         type="email"
                         value={form.email}
                         onChange={(e) => handleChange("email", e.target.value)}
-                        placeholder="Enter email address"
                         className={classNames({
                             "p-invalid": submitted && (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email))
                         })}
                     />
-                    {submitted && !form.email.trim() &&
-                        <small className="p-error">Email is required</small>
-                    }
-                    {submitted && form.email.trim() && !/\S+@\S+\.\S+/.test(form.email) &&
-                        <small className="p-error">Email is invalid</small>
-                    }
+                    {submitted && !form.email.trim() && <small className="p-error">Email is required</small>}
+                    {submitted && form.email.trim() && !/\S+@\S+\.\S+/.test(form.email) && <small className="p-error">Email is invalid</small>}
                 </div>
             </div>
 
@@ -205,16 +169,13 @@ const UserFormDialog = ({ visible, onHide, user, divisions = [], fetchUsers, sho
                         id="password"
                         value={form.password}
                         onChange={(e) => handleChange("password", e.target.value)}
-                        placeholder={user ? "Enter new password (optional)" : "Enter password"}
                         toggleMask
                         className={classNames({
                             "p-invalid": submitted && !user && !form.password.trim()
                         })}
                         inputClassName="w-full"
                     />
-                    {submitted && !user && !form.password.trim() &&
-                        <small className="p-error">Password is required</small>
-                    }
+                    {submitted && !user && !form.password.trim() && <small className="p-error">Password is required</small>}
                 </div>
             </div>
 
@@ -227,14 +188,11 @@ const UserFormDialog = ({ visible, onHide, user, divisions = [], fetchUsers, sho
                         id="full_name"
                         value={form.full_name}
                         onChange={(e) => handleChange("full_name", e.target.value)}
-                        placeholder="Enter full name"
                         className={classNames({
                             "p-invalid": submitted && !form.full_name.trim()
                         })}
                     />
-                    {submitted && !form.full_name.trim() &&
-                        <small className="p-error">Full name is required</small>
-                    }
+                    {submitted && !form.full_name.trim() && <small className="p-error">Full name is required</small>}
                 </div>
             </div>
 
@@ -243,13 +201,7 @@ const UserFormDialog = ({ visible, onHide, user, divisions = [], fetchUsers, sho
                     Role <span className="text-red-500">*</span>
                 </label>
                 <div className="col-12">
-                    <Dropdown
-                        id="role"
-                        value={form.role}
-                        options={roleOptions}
-                        onChange={(e) => handleChange("role", e.value)}
-                        placeholder="Select role"
-                    />
+                    <Dropdown id="role" value={form.role} options={roleOptions} onChange={(e) => handleChange("role", e.value)} />
                 </div>
             </div>
 
@@ -258,26 +210,21 @@ const UserFormDialog = ({ visible, onHide, user, divisions = [], fetchUsers, sho
                     Division
                 </label>
                 <div className="col-12">
-                    <Dropdown
-                        id="division_id"
-                        value={form.division_id}
-                        options={divisions.map(d => ({ label: d.name, value: d.id }))}
-                        onChange={(e) => handleChange("division_id", e.value)}
-                        placeholder="Select division"
-                        showClear
-                    />
+                    <Dropdown id="division_id" value={form.division_id} options={divisions.map((d) => ({ label: d.name, value: d.id }))} onChange={(e) => handleChange("division_id", e.value)} />
                 </div>
             </div>
 
             <div className="field grid mb-6">
                 <div className="col-12">
-                    <Checkbox
-                        inputId="is_active"
-                        checked={form.is_active}
-                        onChange={(e) => handleChange("is_active", e.checked)}
-                    />
-                    <label htmlFor="is_active" className="ml-2">Active User</label>
+                    <Checkbox inputId="is_active" checked={form.is_active} onChange={(e) => handleChange("is_active", e.checked)} />
+                    <label htmlFor="is_active" className="ml-2">
+                        Active User
+                    </label>
                 </div>
+            </div>
+            <div className="flex justify-end gap-2">
+                <Button label="Cancel" icon="pi pi-times" onClick={onHide} className="p-button-text" disabled={loading} />
+                <Button label={user ? "Update" : "Save"} icon="pi pi-check" onClick={handleSubmit} loading={loading} disabled={loading} />
             </div>
         </Dialog>
     );

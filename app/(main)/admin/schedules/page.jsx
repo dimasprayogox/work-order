@@ -4,9 +4,10 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Toast } from "primereact/toast";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
+import { ConfirmDialog } from "primereact/confirmdialog";
 import { Divider } from "primereact/divider";
-import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import dynamic from "next/dynamic";
@@ -30,6 +31,7 @@ const SchedulePage = () => {
     const [loading, setLoading] = useState(false);
     const [selectedSchedule, setSelectedSchedule] = useState(null);
     const [selectedSchedules, setSelectedSchedules] = useState([]);
+    const [generateConfirmOpen, setGenerateConfirmOpen] = useState(false);
 
     const [isFormOpen, setFormOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
@@ -42,9 +44,9 @@ const SchedulePage = () => {
     const [pdfUrl, setPdfUrl] = useState("");
     const [fileName, setFileName] = useState("Schedules");
     const [printConfig, setPrintConfig] = useState({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
         marginLeft: 10,
         marginRight: 10,
         marginTop: 10,
@@ -52,13 +54,13 @@ const SchedulePage = () => {
     });
 
     const [columnOptions] = useState([
-        { field: 'title', header: 'Title', visible: true },
-        { field: 'type', header: 'Type', visible: true },
-        { field: 'target', header: 'Machine/Asset', visible: true },
-        { field: 'frequency', header: 'Frequency', visible: true },
-        { field: 'priority', header: 'Priority', visible: true },
-        { field: 'next_due_date', header: 'Next Due Date', visible: true },
-        { field: 'created_at', header: 'Created Date', visible: true }
+        { field: "title", header: "Title", visible: true },
+        { field: "type", header: "Type", visible: true },
+        { field: "target", header: "Machine/Asset", visible: true },
+        { field: "frequency", header: "Frequency", visible: true },
+        { field: "priority", header: "Priority", visible: true },
+        { field: "next_due_date", header: "Next Due Date", visible: true },
+        { field: "created_at", header: "Created Date", visible: true }
     ]);
 
     const showToast = useCallback((severity, summary, detail) => {
@@ -113,55 +115,70 @@ const SchedulePage = () => {
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         return new Date(dateString).toLocaleString("en-US", {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
         });
     };
 
     const formatFrequency = (frequency) => {
         const frequencies = {
-            'daily': 'Daily',
-            'weekly': 'Weekly',
-            'monthly': 'Monthly',
-            'yearly': 'Yearly'
+            daily: "Daily",
+            weekly: "Weekly",
+            monthly: "Monthly",
+            yearly: "Yearly"
         };
         return frequencies[frequency] || frequency;
     };
 
     const formatPriority = (priority) => {
         const priorities = {
-            'low': 'Low',
-            'medium': 'Medium',
-            'high': 'High'
+            low: "Low",
+            medium: "Medium",
+            high: "High"
         };
         return priorities[priority] || priority;
     };
 
-    // --- Generate Work Orders ---
     const handleGenerateWorkOrders = async () => {
+        if (selectedSchedules.length === 0) {
+            showToast("warn", "Peringatan", "Pilih setidaknya satu jadwal untuk dibuatkan Work Order");
+            return;
+        }
+        setGenerateConfirmOpen(true);
+    };
+
+    const confirmGenerateWorkOrders = async () => {
         setGeneratingWO(true);
+        setGenerateConfirmOpen(false);
         try {
+            const scheduleIds = selectedSchedules.map((schedule) => schedule.id);
+
             const res = await fetch("/api/admin/schedules/generate", {
                 method: "POST",
-                credentials: "include"
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include",
+                body: JSON.stringify({ ids: scheduleIds })
             });
+
             const body = await res.json();
 
             if (!res.ok) throw new Error(body.message);
 
             const createdCount = body.data?.length || 0;
-            showToast("success", "Success", `${createdCount} Work Order berhasil dibuat dari jadwal yang jatuh tempo`);
+            showToast("success", "Success", `${createdCount} Work Order berhasil dibuat dari jadwal yang dipilih`);
             fetchSchedules(); // Refresh schedules to update next due dates
+            setSelectedSchedules([]); // Clear selection after generation
         } catch (err) {
             showToast("error", "Error", err.message || "Gagal membuat Work Order");
         } finally {
             setGeneratingWO(false);
         }
     };
-
     // --- Export to Excel ---
     const exportExcel = async () => {
         if (!schedules.length) {
@@ -170,39 +187,37 @@ const SchedulePage = () => {
         }
 
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Schedules');
+        const worksheet = workbook.addWorksheet("Schedules");
 
         // Add headers
-        const headers = columnOptions
-            .filter(col => col.visible)
-            .map(col => col.header);
+        const headers = columnOptions.filter((col) => col.visible).map((col) => col.header);
 
         worksheet.addRow(headers);
 
         // Add data
-        schedules.forEach(schedule => {
+        schedules.forEach((schedule) => {
             const rowData = columnOptions
-                .filter(col => col.visible)
-                .map(col => {
-                    if (col.field === 'created_at' || col.field === 'next_due_date') {
+                .filter((col) => col.visible)
+                .map((col) => {
+                    if (col.field === "created_at" || col.field === "next_due_date") {
                         return formatDate(schedule[col.field]);
-                    } else if (col.field === 'type') {
-                        return schedule.type === 'machine' ? 'Machine' : 'Asset';
-                    } else if (col.field === 'target') {
-                        if (schedule.type === 'machine' && schedule.machine) {
+                    } else if (col.field === "type") {
+                        return schedule.type === "machine" ? "Machine" : "Asset";
+                    } else if (col.field === "target") {
+                        if (schedule.type === "machine" && schedule.machine) {
                             return `${schedule.machine.name} (${schedule.machine.machine_code || schedule.machine.id})`;
-                        } else if (schedule.type === 'asset' && schedule.asset) {
+                        } else if (schedule.type === "asset" && schedule.asset) {
                             return `${schedule.asset.name} (${schedule.asset.asset_code || schedule.asset.id})`;
                         }
-                        return '-';
-                    } else if (col.field === 'machine.name') {
-                        return schedule.machine?.name || '-';
-                    } else if (col.field === 'frequency') {
+                        return "-";
+                    } else if (col.field === "machine.name") {
+                        return schedule.machine?.name || "-";
+                    } else if (col.field === "frequency") {
                         return formatFrequency(schedule.frequency);
-                    } else if (col.field === 'priority') {
+                    } else if (col.field === "priority") {
                         return formatPriority(schedule.priority);
                     } else {
-                        return schedule[col.field] || '';
+                        return schedule[col.field] || "";
                     }
                 });
 
@@ -213,20 +228,20 @@ const SchedulePage = () => {
         worksheet.getRow(1).eachCell((cell) => {
             cell.font = { bold: true };
             cell.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FFE0E0E0' }
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFE0E0E0" }
             };
         });
 
         // Auto-fit columns
-        worksheet.columns.forEach(column => {
+        worksheet.columns.forEach((column) => {
             column.width = 20;
         });
 
         // Generate Excel file
         const buffer = await workbook.xlsx.writeBuffer();
-        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0,10)}.xlsx`);
+        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
         showToast("success", "Success", "Data berhasil diekspor ke Excel");
     };
 
@@ -245,35 +260,35 @@ const SchedulePage = () => {
             format: currentConfig.format
         });
 
-        const visibleColumns = columnOptions.filter(col => col.visible);
+        const visibleColumns = columnOptions.filter((col) => col.visible);
 
-        const headers = visibleColumns.map(col => col.header);
-        const data = schedules.map(schedule => {
-            return visibleColumns.map(col => {
-                if (col.field === 'created_at' || col.field === 'next_due_date') {
+        const headers = visibleColumns.map((col) => col.header);
+        const data = schedules.map((schedule) => {
+            return visibleColumns.map((col) => {
+                if (col.field === "created_at" || col.field === "next_due_date") {
                     return formatDate(schedule[col.field]);
-                } else if (col.field === 'type') {
-                    return schedule.type === 'machine' ? 'Machine' : 'Asset';
-                } else if (col.field === 'target') {
-                    if (schedule.type === 'machine' && schedule.machine) {
+                } else if (col.field === "type") {
+                    return schedule.type === "machine" ? "Machine" : "Asset";
+                } else if (col.field === "target") {
+                    if (schedule.type === "machine" && schedule.machine) {
                         return `${schedule.machine.name}`;
-                    } else if (schedule.type === 'asset' && schedule.asset) {
+                    } else if (schedule.type === "asset" && schedule.asset) {
                         return `${schedule.asset.name}`;
                     }
-                    return '-';
-                } else if (col.field === 'machine.name') {
-                    return schedule.machine?.name || '-';
-                } else if (col.field === 'frequency') {
+                    return "-";
+                } else if (col.field === "machine.name") {
+                    return schedule.machine?.name || "-";
+                } else if (col.field === "frequency") {
                     return formatFrequency(schedule.frequency);
-                } else if (col.field === 'priority') {
+                } else if (col.field === "priority") {
                     return formatPriority(schedule.priority);
                 } else {
-                    return schedule[col.field] || '';
+                    return schedule[col.field] || "";
                 }
             });
         });
 
-        doc.text('Maintenance Schedules Report', currentConfig.marginLeft, currentConfig.marginTop);
+        doc.text("Maintenance Schedules Report", currentConfig.marginLeft, currentConfig.marginTop);
 
         autoTable(doc, {
             startY: currentConfig.marginTop + 10,
@@ -289,7 +304,7 @@ const SchedulePage = () => {
             headStyles: { fillColor: [71, 85, 105] }
         });
 
-        const pdfBlob = doc.output('blob');
+        const pdfBlob = doc.output("blob");
         const pdfUrl = URL.createObjectURL(pdfBlob);
         setPdfUrl(pdfUrl);
         setJsPdfPreviewOpen(true);
@@ -318,7 +333,7 @@ const SchedulePage = () => {
 
                 const rowData = {};
                 row.eachCell((cell, colNumber) => {
-                    const headers = ['title', 'machine_id', 'frequency', 'next_due_date', 'priority'];
+                    const headers = ["title", "machine_id", "frequency", "next_due_date", "priority"];
                     if (headers[colNumber - 1]) {
                         rowData[headers[colNumber - 1]] = cell.value;
                     }
@@ -334,7 +349,7 @@ const SchedulePage = () => {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify(item),
+                    body: JSON.stringify(item)
                 });
                 const body = await res.json();
                 if (!res.ok) throw new Error(body.message || "Import gagal");
@@ -342,13 +357,12 @@ const SchedulePage = () => {
 
             showToast("success", "Import Sukses", `${data.length} data berhasil diimpor`);
             fetchSchedules();
-
         } catch (err) {
             showToast("error", "Import Gagal", err.message);
         }
 
         // Reset file input
-        e.target.value = '';
+        e.target.value = "";
     };
 
     const handleDelete = (schedule) => {
@@ -375,14 +389,8 @@ const SchedulePage = () => {
         <div className="p-4">
             <Toast ref={toast} position="top-right" />
 
-            <input
-                type="file"
-                ref={fileInputRef}
-                accept=".xlsx,.xls"
-                onChange={handleImport}
-                style={{ display: "none" }}
-            />
-
+            <input type="file" ref={fileInputRef} accept=".xlsx,.xls" onChange={handleImport} style={{ display: "none" }} />
+            <ConfirmDialog />
             <div className="card">
                 <div className="flex justify-content-between items-start mb-4">
                     <div>
@@ -391,14 +399,8 @@ const SchedulePage = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-row flex-wrap items-center gap-2 mb-4">
-                    <Button
-                        size="small"
-                        label="Back"
-                        icon="pi pi-arrow-left"
-                        outlined
-                        disabled
-                    />
+                <div className="flex flex-row gap-2 mb-4">
+                    <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
                     <Button
                         size="small"
                         label="New"
@@ -413,69 +415,51 @@ const SchedulePage = () => {
                     <Divider layout="vertical" />
                     <Button
                         size="small"
-                        label="Generate WO"
+                        label={`Generate${selectedSchedules?.length > 0 ? ` ${selectedSchedules.length}` : ""} WO`}
                         icon="pi pi-cog"
                         outlined
                         severity="info"
                         onClick={handleGenerateWorkOrders}
                         loading={isGeneratingWO}
-                        disabled={isGeneratingWO}
-                        tooltip="Generate Work Orders for due schedules"
+                        disabled={!selectedSchedules || selectedSchedules.length === 0}
                     />
+                    <Button size="small" label="Import" icon="pi pi-file-import" outlined onClick={() => fileInputRef.current?.click()} />
+                    <Button size="small" label="Export" icon="pi pi-file-export" outlined onClick={exportExcel} />
+                    <Button size="small" label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
                     <Divider layout="vertical" />
                     <Button
                         size="small"
-                        label="Import"
-                        icon="pi pi-file-import"
-                        outlined
-                        onClick={() => fileInputRef.current?.click()}
-                    />
-                    <Button
-                        size="small"
-                        label="Export"
-                        icon="pi pi-file-export"
-                        outlined
-                        onClick={exportExcel}
-                    />
-                    <Button
-                        size="small"
-                        label="Print"
-                        icon="pi pi-print"
-                        outlined
-                        onClick={() => setAdjustDialog(true)}
-                    />
-                    <Divider layout="vertical" />
-                    <Button
-                        size="small"
-                        label={`Delete${selectedSchedules.length > 0 ? ` (${selectedSchedules.length})` : ''}`}
+                        label={`Delete${selectedSchedules?.length > 0 ? ` (${selectedSchedules.length})` : ""}`}
                         icon="pi pi-trash"
                         severity="danger"
                         outlined
                         onClick={handleDeleteSelected}
-                        disabled={selectedSchedules.length === 0}
+                        disabled={!selectedSchedules || selectedSchedules.length === 0}
                     />
                     <Divider layout="vertical" />
-                    <Button
-                        size="small"
-                        label="Refresh"
-                        icon="pi pi-refresh"
-                        outlined
-                        onClick={fetchSchedules}
-                        disabled={loading}
-                    />
+                    <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={fetchSchedules} disabled={loading} />
                 </div>
 
                 <ScheduleTable
                     schedules={schedules}
                     loading={loading}
                     selectedSchedules={selectedSchedules}
-                    onSelectionChange={setSelectedSchedules}
+                    setSelectedSchedules={setSelectedSchedules}
                     onEdit={(schedule) => {
                         setSelectedSchedule(schedule);
                         setFormOpen(true);
                     }}
                     onDelete={handleDelete}
                     onDetail={handleDetail}
+                />
+
+                <ConfirmDialog
+                    visible={generateConfirmOpen}
+                    message={`Are you sure you want to create a Work Order for ${selectedSchedules.length} schedules?`}
+                    icon="pi pi-exclamation-triangle"
+                    header="Konfirmasi Generate Work Orders"
+                    accept={confirmGenerateWorkOrders}
+                    reject={() => setGenerateConfirmOpen(false)}
                 />
 
                 <ScheduleFormDialog
@@ -513,7 +497,7 @@ const SchedulePage = () => {
                 />
 
                 <AdjustPrintMarginLaporan
-                    key={adjustDialog ? 'open' : 'closed'}
+                    key={adjustDialog ? "open" : "closed"}
                     adjustDialog={adjustDialog}
                     setAdjustDialog={setAdjustDialog}
                     handleAdjust={handleAdjust}
@@ -523,13 +507,7 @@ const SchedulePage = () => {
                     setPrintConfig={setPrintConfig}
                 />
 
-                <Dialog
-                    visible={jsPdfPreviewOpen}
-                    onHide={() => setJsPdfPreviewOpen(false)}
-                    modal
-                    style={{ width: '90vw', height: '90vh' }}
-                    header="PDF Preview"
-                >
+                <Dialog visible={jsPdfPreviewOpen} onHide={() => setJsPdfPreviewOpen(false)} modal style={{ width: "90vw", height: "90vh" }} header="PDF Preview">
                     <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
                 </Dialog>
             </div>

@@ -67,6 +67,8 @@ export const API_ENDPOINTS = {
     ADMIN_WORK_ORDER_UNASSIGN: (id) => `${API_URL}/admin/work-order-assignments/${id}/unassign`,
     ADMIN_WORK_ORDER_ASSIGNMENT_TECHNICIANS: `${API_URL}/admin/work-order-assignments/technicians`,
     ADMIN_WORK_ORDER_ASSIGNMENT_STATS: `${API_URL}/admin/work-order-assignments/stats`,
+    ADMIN_WORK_ORDER_BY_ID: (id) => `${API_URL}/admin/work-order-assignments/${id}`,
+    ADMIN_WORK_ORDER_DELETE_MANY: `${API_URL}/admin/work-order-assignments/delete-many`,
     ADMIN_SCHEDULES: `${API_URL}/admin/schedules`,
     ADMIN_SCHEDULE_BY_ID: (id) => `${API_URL}/admin/schedules/${id}`,
     ADMIN_SCHEDULES_GENERATE: `${API_URL}/admin/schedules/generate`,

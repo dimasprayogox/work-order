@@ -14,7 +14,6 @@ import dynamic from "next/dynamic";
 
 import PartRequestTable from "./components/PartRequestTable";
 import PartRequestDetailDialog from "./components/PartRequestDetailDialog";
-import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog";
 
 // Dynamic imports for print components
 const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
@@ -298,46 +297,16 @@ const AdminPartRequestPage = () => {
         e.target.value = '';
     };
 
-    const handleDelete = (request) => {
-        setSelectedRequest(request);
-        setDeleteOpen(true);
-    };
-
-    const handleDeleteSelected = () => {
-        if (selectedRequests.length === 0) {
-            showToast("warn", "Warning", "Tidak ada part request yang dipilih");
-            return;
-        }
-
-        // Set data untuk ConfirmDeleteDialog dan buka dialog
-        setSelectedRequest(null); // Clear single selection karena ini untuk multiple delete
-        setDeleteOpen(true); // Buka ConfirmDeleteDialog
-    };
-
     const handleViewDetail = (request) => {
         setSelectedRequest(request);
         setDetailOpen(true);
-    };
-
-    // Clear selection after successful operations
-    const handleDeleteSuccess = () => {
-        setSelectedRequests([]);
-        setSelectedRequest(null);
-        setDeleteOpen(false);
-        fetchPartRequests();
     };
 
     return (
         <div className="p-4">
             <Toast ref={toast} position="top-right" />
 
-            <input
-                type="file"
-                ref={fileInputRef}
-                accept=".xlsx,.xls"
-                onChange={handleImport}
-                style={{ display: "none" }}
-            />
+            <input type="file" ref={fileInputRef} accept=".xlsx,.xls" onChange={handleImport} style={{ display: "none" }} />
 
             <div className="card">
                 <div className="flex justify-content-between items-start mb-4">
@@ -347,14 +316,8 @@ const AdminPartRequestPage = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-row flex-wrap items-center gap-2 mb-4">
-                    <Button
-                        size="small"
-                        label="Back"
-                        icon="pi pi-arrow-left"
-                        outlined
-                        disabled
-                    />
+                <div className="flex flex-row gap-2 mb-4">
+                    <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
                     <Button
                         size="small"
                         label="New"
@@ -368,57 +331,17 @@ const AdminPartRequestPage = () => {
                         }}
                     />
                     <Divider layout="vertical" />
-                    <Button
-                        size="small"
-                        label="Import"
-                        icon="pi pi-file-import"
-                        outlined
-                        onClick={() => fileInputRef.current?.click()}
-                    />
-                    <Button
-                        size="small"
-                        label="Export"
-                        icon="pi pi-file-export"
-                        outlined
-                        onClick={exportExcel}
-                    />
-                    <Button
-                        size="small"
-                        label="Print"
-                        icon="pi pi-print"
-                        outlined
-                        onClick={() => setAdjustDialog(true)}
-                    />
+                    <Button size="small" label="Import" icon="pi pi-file-import" outlined onClick={() => fileInputRef.current?.click()} />
+                    <Button size="small" label="Export" icon="pi pi-file-export" outlined onClick={exportExcel} />
+                    <Button size="small" label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
                     <Divider layout="vertical" />
-                    <Button
-                        size="small"
-                        label={`Delete${selectedRequests.length > 0 ? ` (${selectedRequests.length})` : ''}`}
-                        icon="pi pi-trash"
-                        severity="danger"
-                        outlined
-                        onClick={handleDeleteSelected}
-                        disabled={selectedRequests.length === 0}
-                    />
+                    <Button size="small" label="Delete" icon="pi pi-trash" severity="danger" outlined disabled/>
                     <Divider layout="vertical" />
-                    <Button
-                        size="small"
-                        label="Refresh"
-                        icon="pi pi-refresh"
-                        outlined
-                        onClick={fetchPartRequests}
-                        disabled={loading}
-                    />
+                    <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={fetchPartRequests} disabled={loading} />
                 </div>
 
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                    <PartRequestTable
-                        partRequests={partRequests}
-                        loading={loading}
-                        selectedRequests={selectedRequests}
-                        onSelectionChange={setSelectedRequests}
-                        onViewDetail={handleViewDetail}
-                        onDelete={handleDelete}
-                    />
+                    <PartRequestTable partRequests={partRequests} loading={loading} selectedRequests={selectedRequests} onSelectionChange={setSelectedRequests} onViewDetail={handleViewDetail}  />
                 </motion.div>
 
                 <PartRequestDetailDialog
@@ -432,21 +355,8 @@ const AdminPartRequestPage = () => {
                     showToast={showToast}
                 />
 
-                <ConfirmDeleteDialog
-                    visible={isDeleteOpen}
-                    request={selectedRequest}
-                    selectedRequests={selectedRequests}
-                    onHide={() => {
-                        setDeleteOpen(false);
-                        setSelectedRequest(null);
-                    }}
-                    fetchPartRequests={fetchPartRequests}
-                    showToast={showToast}
-                    onDeleteSuccess={handleDeleteSuccess}
-                />
-
                 <AdjustPrintMarginLaporan
-                    key={adjustDialog ? 'open' : 'closed'}
+                    key={adjustDialog ? "open" : "closed"}
                     adjustDialog={adjustDialog}
                     setAdjustDialog={setAdjustDialog}
                     handleAdjust={handleAdjust}
@@ -456,13 +366,7 @@ const AdminPartRequestPage = () => {
                     setPrintConfig={setPrintConfig}
                 />
 
-                <Dialog
-                    visible={jsPdfPreviewOpen}
-                    onHide={() => setJsPdfPreviewOpen(false)}
-                    modal
-                    style={{ width: '90vw', height: '90vh' }}
-                    header="PDF Preview"
-                >
+                <Dialog visible={jsPdfPreviewOpen} onHide={() => setJsPdfPreviewOpen(false)} modal style={{ width: "90vw", height: "90vh" }} header="PDF Preview">
                     <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
                 </Dialog>
             </div>

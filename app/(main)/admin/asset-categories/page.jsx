@@ -271,13 +271,7 @@ const AssetCategoryPage = () => {
         <div className="p-4">
             <Toast ref={toast} position="top-right" />
 
-            <input
-                type="file"
-                ref={fileInputRef}
-                accept=".xlsx,.xls"
-                onChange={handleImport}
-                style={{ display: "none" }}
-            />
+            <input type="file" ref={fileInputRef} accept=".xlsx,.xls" onChange={handleImport} style={{ display: "none" }} />
 
             <div className="card">
                 <div className="flex justify-content-between items-start mb-4">
@@ -287,14 +281,8 @@ const AssetCategoryPage = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-row flex-wrap items-center gap-2 mb-4">
-                    <Button
-                        size="small"
-                        label="Back"
-                        icon="pi pi-arrow-left"
-                        outlined
-                        disabled
-                    />
+                <div className="flex flex-row gap-2 mb-4">
+                    <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
                     <Button
                         size="small"
                         label="New"
@@ -307,31 +295,13 @@ const AssetCategoryPage = () => {
                         }}
                     />
                     <Divider layout="vertical" />
-                    <Button
-                        size="small"
-                        label="Import"
-                        icon="pi pi-file-import"
-                        outlined
-                        onClick={() => fileInputRef.current?.click()}
-                    />
-                    <Button
-                        size="small"
-                        label="Export"
-                        icon="pi pi-file-export"
-                        outlined
-                        onClick={exportExcel}
-                    />
-                    <Button
-                        size="small"
-                        label="Print"
-                        icon="pi pi-print"
-                        outlined
-                        onClick={() => setAdjustDialog(true)}
-                    />
+                    <Button size="small" label="Import" icon="pi pi-file-import" outlined onClick={() => fileInputRef.current?.click()} />
+                    <Button size="small" label="Export" icon="pi pi-file-export" outlined onClick={exportExcel} />
+                    <Button size="small" label="Print" icon="pi pi-print" outlined onClick={() => setAdjustDialog(true)} />
                     <Divider layout="vertical" />
                     <Button
                         size="small"
-                        label={`Delete${selectedCategories.length > 0 ? ` (${selectedCategories.length})` : ''}`}
+                        label={`Delete${selectedCategories.length > 0 ? ` (${selectedCategories.length})` : ""}`}
                         icon="pi pi-trash"
                         severity="danger"
                         outlined
@@ -339,14 +309,7 @@ const AssetCategoryPage = () => {
                         disabled={selectedCategories.length === 0}
                     />
                     <Divider layout="vertical" />
-                    <Button
-                        size="small"
-                        label="Refresh"
-                        icon="pi pi-refresh"
-                        outlined
-                        onClick={fetchCategories}
-                        disabled={loading}
-                    />
+                    <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={fetchCategories} disabled={loading} />
                 </div>
 
                 <AssetCategoryTable
@@ -385,7 +348,7 @@ const AssetCategoryPage = () => {
                 />
 
                 <AdjustPrintMarginLaporan
-                    key={adjustDialog ? 'open' : 'closed'}
+                    key={adjustDialog ? "open" : "closed"}
                     adjustDialog={adjustDialog}
                     setAdjustDialog={setAdjustDialog}
                     handleAdjust={handleAdjust}
@@ -395,13 +358,7 @@ const AssetCategoryPage = () => {
                     setPrintConfig={setPrintConfig}
                 />
 
-                <Dialog
-                    visible={jsPdfPreviewOpen}
-                    onHide={() => setJsPdfPreviewOpen(false)}
-                    modal
-                    style={{ width: '90vw', height: '90vh' }}
-                    header="PDF Preview"
-                >
+                <Dialog visible={jsPdfPreviewOpen} onHide={() => setJsPdfPreviewOpen(false)} modal style={{ width: "90vw", height: "90vh" }} header="PDF Preview">
                     <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
                 </Dialog>
             </div>

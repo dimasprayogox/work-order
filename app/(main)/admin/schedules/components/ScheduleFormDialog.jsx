@@ -176,49 +176,15 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, assets, fetch
         value: asset.id
     }));
 
-    const footerContent = (
-        <div className="flex justify-end gap-2">
-            <Button
-                label="Cancel"
-                icon="pi pi-times"
-                onClick={onHide}
-                className="p-button-text"
-                disabled={loading}
-            />
-            <Button
-                label={schedule ? "Update" : "Save"}
-                icon="pi pi-check"
-                onClick={handleSubmit}
-                loading={loading}
-                disabled={loading}
-            />
-        </div>
-    );
-
     return (
-        <Dialog
-            header={schedule ? "Edit Schedule" : "Add New Schedule"}
-            visible={visible}
-            style={{ width: "40rem" }}
-            breakpoints={{ "960px": "75vw", "641px": "90vw" }}
-            onHide={onHide}
-            modal
-            className="p-fluid"
-            footer={footerContent}
-        >
+        <Dialog header={schedule ? "Edit Schedule" : "Add New Schedule"} visible={visible} style={{ width: "40rem" }} breakpoints={{ "960px": "75vw", "641px": "90vw" }} onHide={onHide} modal className="p-fluid">
             <div className="formgrid grid">
                 {/* Title Field */}
                 <div className="field col-12">
                     <label htmlFor="title" className="font-medium">
                         Title <span className="text-red-500">*</span>
                     </label>
-                    <InputText
-                        id="title"
-                        value={form.title}
-                        onChange={(e) => handleChange("title", e.target.value)}
-                        placeholder="Enter schedule title"
-                        className={classNames({ "p-invalid": submitted && !form.title.trim() })}
-                    />
+                    <InputText id="title" value={form.title} onChange={(e) => handleChange("title", e.target.value)} className={classNames({ "p-invalid": submitted && !form.title.trim() })} />
                     {submitted && !form.title.trim() && <small className="p-error">Title is required</small>}
                 </div>
 
@@ -227,19 +193,12 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, assets, fetch
                     <label htmlFor="type" className="font-medium">
                         Type <span className="text-red-500">*</span>
                     </label>
-                    <Dropdown
-                        id="type"
-                        value={form.type}
-                        options={typeOptions}
-                        onChange={(e) => handleChange("type", e.value)}
-                        placeholder="Select type"
-                        className={classNames({ "p-invalid": submitted && !form.type })}
-                    />
+                    <Dropdown id="type" value={form.type} options={typeOptions} onChange={(e) => handleChange("type", e.value)} className={classNames({ "p-invalid": submitted && !form.type })} />
                     {submitted && !form.type && <small className="p-error">Type is required</small>}
                 </div>
 
                 {/* Machine Field - shown when type is machine */}
-                {form.type === 'machine' && (
+                {form.type === "machine" && (
                     <div className="field col-12">
                         <label htmlFor="machine_id" className="font-medium">
                             Machine <span className="text-red-500">*</span>
@@ -252,14 +211,14 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, assets, fetch
                             placeholder="Select machine"
                             filter
                             showClear
-                            className={classNames({ "p-invalid": submitted && form.type === 'machine' && !form.machine_id })}
+                            className={classNames({ "p-invalid": submitted && form.type === "machine" && !form.machine_id })}
                         />
-                        {submitted && form.type === 'machine' && !form.machine_id && <small className="p-error">Machine is required</small>}
+                        {submitted && form.type === "machine" && !form.machine_id && <small className="p-error">Machine is required</small>}
                     </div>
                 )}
 
                 {/* Asset Field - shown when type is asset */}
-                {form.type === 'asset' && (
+                {form.type === "asset" && (
                     <div className="field col-12">
                         <label htmlFor="asset_id" className="font-medium">
                             Asset <span className="text-red-500">*</span>
@@ -272,9 +231,9 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, assets, fetch
                             placeholder="Select asset"
                             filter
                             showClear
-                            className={classNames({ "p-invalid": submitted && form.type === 'asset' && !form.asset_id })}
+                            className={classNames({ "p-invalid": submitted && form.type === "asset" && !form.asset_id })}
                         />
-                        {submitted && form.type === 'asset' && !form.asset_id && <small className="p-error">Asset is required</small>}
+                        {submitted && form.type === "asset" && !form.asset_id && <small className="p-error">Asset is required</small>}
                     </div>
                 )}
 
@@ -283,26 +242,15 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, assets, fetch
                     <label htmlFor="frequency" className="font-medium">
                         Frequency <span className="text-red-500">*</span>
                     </label>
-                    <Dropdown
-                        id="frequency"
-                        value={form.frequency}
-                        options={frequencyOptions}
-                        onChange={(e) => handleChange("frequency", e.value)}
-                        placeholder="Select frequency"
-                        className={classNames({ "p-invalid": submitted && !form.frequency })}
-                    />
+                    <Dropdown id="frequency" value={form.frequency} options={frequencyOptions} onChange={(e) => handleChange("frequency", e.value)} className={classNames({ "p-invalid": submitted && !form.frequency })} />
                     {submitted && !form.frequency && <small className="p-error">Frequency is required</small>}
                 </div>
 
                 <div className="field col-12 md:col-6">
-                    <label htmlFor="priority" className="font-medium">Priority</label>
-                    <Dropdown
-                        id="priority"
-                        value={form.priority}
-                        options={priorityOptions}
-                        onChange={(e) => handleChange("priority", e.value)}
-                        placeholder="Select priority"
-                    />
+                    <label htmlFor="priority" className="font-medium">
+                        Priority
+                    </label>
+                    <Dropdown id="priority" value={form.priority} options={priorityOptions} onChange={(e) => handleChange("priority", e.value)} />
                 </div>
 
                 {/* Next Due Date Field */}
@@ -316,41 +264,36 @@ const ScheduleFormDialog = ({ visible, onHide, schedule, machines, assets, fetch
                         onChange={(e) => handleChange("next_due_date", e.value)}
                         showTime
                         hourFormat="24"
-                        placeholder="Select next due date"
+                        required
+                        showIcon
+                        placeholder="Select due date"
+                        showButtonBar
                         dateFormat="dd/mm/yy"
                         className={classNames({ "p-invalid": submitted && !form.next_due_date })}
                     />
                     {submitted && !form.next_due_date && <small className="p-error">Next due date is required</small>}
-                    <small className="text-gray-500">
-                        This will be the first maintenance date. Future dates will be calculated automatically based on frequency.
-                    </small>
                 </div>
 
                 {/* Description Field */}
                 <div className="field col-12">
-                    <label htmlFor="description" className="font-medium">Description</label>
-                    <InputTextarea
-                        id="description"
-                        value={form.description}
-                        onChange={(e) => handleChange("description", e.target.value)}
-                        placeholder="Describe the maintenance schedule"
-                        rows={3}
-                    />
-                    <small className="text-gray-500">Optional: Provide additional details about this maintenance schedule</small>
+                    <label htmlFor="description" className="font-medium">
+                        Description
+                    </label>
+                    <InputTextarea id="description" value={form.description} onChange={(e) => handleChange("description", e.target.value)} rows={3} />
                 </div>
 
                 {/* Active Status Field */}
-                <div className="field mb-4">
+                <div className="field mb-4 col-12">
                     <label htmlFor="is_active" className="font-semibold text-gray-800 block mb-2">
                         Aktifkan Jadwal
                     </label>
-                    <Checkbox
-                        inputId="is_active"
-                        checked={form.is_active}
-                        onChange={e => setForm({ ...form, is_active: e.checked })}
-                    />
+                    <Checkbox inputId="is_active" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.checked })} />
                     <span className="ml-2">{form.is_active ? "Aktif" : "Nonaktif"}</span>
                 </div>
+            </div>
+            <div className="flex justify-end gap-2">
+                <Button label="Cancel" icon="pi pi-times" onClick={onHide} className="p-button-text" disabled={loading} />
+                <Button label={schedule ? "Update" : "Save"} icon="pi pi-check" onClick={handleSubmit} loading={loading} disabled={loading} />
             </div>
         </Dialog>
     );

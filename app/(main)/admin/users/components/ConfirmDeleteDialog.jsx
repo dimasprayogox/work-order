@@ -78,35 +78,18 @@ const ConfirmDeleteDialog = ({
     );
 
     return (
-        <Dialog
-            header="Konfirmasi Hapus"
-            visible={visible}
-            onHide={onHide}
-            modal
-            style={{ width: "25rem" }}
-            footer={footerContent}
-        >
+        <Dialog header="Konfirmasi Hapus" visible={visible} onHide={onHide} modal footer={footerContent}>
             <div className="flex flex-column align-items-center text-center gap-4 py-4">
-                <i className="pi pi-exclamation-triangle text-red-500 text-6xl" />
-
-                <div>
-                    <h3 className="font-bold mb-2">
-                        {isBulkDelete
-                            ? `Hapus ${selectedUsers.length} User?`
-                            : "Hapus User Ini?"
-                        }
-                    </h3>
-                    <p className="text-color-secondary">
+                <div className="flex align-items-center justify-content-center gap-3">
+                    <i className="pi pi-exclamation-triangle text-3xl" />
+                    <p className="text-color-secondary m-0">
                         {isBulkDelete ? (
                             `Anda akan menghapus ${selectedUsers.length} user yang dipilih.`
                         ) : (
                             <>
                                 Anda akan menghapus user <strong>{user?.username ?? "yang dipilih"}</strong>
-                                {user?.full_name && ` (${user.full_name})`}.
                             </>
                         )}
-                        <br />
-                        Tindakan ini tidak dapat diurungkan.
                     </p>
                 </div>
             </div>

@@ -90,7 +90,6 @@ const DivisionFormDialog = ({ visible, onHide, division, fetchDivisions, showToa
                         id="name"
                         value={form.name}
                         onChange={(e) => handleChange("name", e.target.value)}
-                        placeholder="Enter division name"
                         className={classNames({ 
                             "p-invalid": submitted && form.name.trim().length < 3 
                         })}
@@ -112,7 +111,6 @@ const DivisionFormDialog = ({ visible, onHide, division, fetchDivisions, showToa
                         id="description"
                         value={form.description}
                         onChange={(e) => handleChange("description", e.target.value)}
-                        placeholder="Enter division description (optional)"
                         rows={4}
                         maxLength={255}
                         className={classNames({ 

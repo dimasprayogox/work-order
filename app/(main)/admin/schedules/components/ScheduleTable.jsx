@@ -10,145 +10,95 @@ import { FilterMatchMode } from "primereact/api";
 import { ConfirmDialog } from "primereact/confirmdialog";
 import { motion } from "framer-motion";
 import { Dropdown } from "primereact/dropdown";
+import { Tooltip } from "primereact/tooltip";
 
-const statusOptions = [
-    { label: "All", value: null },
-    { label: "Aktif", value: true },
-    { label: "Nonaktif", value: false }
+const frequencyOptions = [
+    { label: "All Frequency", value: "" },
+    { label: "Daily", value: "daily" },
+    { label: "Weekly", value: "weekly" },
+    { label: "Monthly", value: "monthly" },
+    { label: "Yearly", value: "yearly" }
 ];
 
-const ScheduleTable = ({
-    schedules,
-    loading,
-    onEdit,
-    onDelete,
-    onDetail,
-    selectedSchedules = [],
-    onSelectionChange = () => {},
-    onSearch = () => {},
-    searchText = ""
-}) => {
+const ScheduleTable = ({ schedules, loading, selectedSchedules, setSelectedSchedules, onEdit, onDelete, handleViewDetails }) => {
     const [filters, setFilters] = useState({
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS }
+        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+        frequency: { value: null, matchMode: FilterMatchMode.EQUALS }
     });
-    const [globalFilterValue, setGlobalFilterValue] = useState(searchText);
-    const [statusFilter, setStatusFilter] = useState(null);
+    const [globalFilterValue, setGlobalFilterValue] = useState("");
+    const [frequencyFilter, setFrequencyFilter] = useState("");
+    const [selectAll, setSelectAll] = useState(false);
+    const [currentFirst, setCurrentFirst] = useState(0);
+    const [currentRows, setCurrentRows] = useState(10);
 
-    useEffect(() => {
-        setGlobalFilterValue(searchText);
+    const onGlobalFilterChange = (e) => {
+        const value = e.target.value;
+        setGlobalFilterValue(value);
         setFilters((prevFilters) => ({
             ...prevFilters,
-            global: { ...prevFilters.global, value: searchText },
+            global: { value, matchMode: FilterMatchMode.CONTAINS }
         }));
-    }, [searchText]);
-
-    const onGlobalFilterChange = (value) => {
-        const _filters = { ...filters };
-        _filters['global'].value = value;
-        setFilters(_filters);
-        onSearch(value);
     };
 
-    const handleSelectionChange = (e) => {
-        onSelectionChange(e.value);
+    const onFrequencyFilterChange = (e) => {
+        const value = e.value;
+        setFrequencyFilter(value);
+        setFilters((prevFilters) => ({
+            ...prevFilters,
+            frequency: { value, matchMode: FilterMatchMode.EQUALS }
+        }));
     };
+
+    const handleSelectAllChange = (e) => {
+        const checked = e.checked;
+
+        // Filter data according to global filter and frequency filter
+        let filteredData = schedules;
+
+        // Apply global filter if exists
+        if (filters.global.value) {
+            const filterValue = filters.global.value.toLowerCase();
+            filteredData = filteredData.filter((schedule) => schedule.title?.toLowerCase().includes(filterValue) || schedule.machine?.name?.toLowerCase().includes(filterValue) || schedule.description?.toLowerCase().includes(filterValue));
+        }
+
+        // Apply frequency filter if exists
+        if (filters.frequency.value) {
+            filteredData = filteredData.filter((schedule) => schedule.frequency === filters.frequency.value);
+        }
+
+        // Get currently visible data on the page
+        const visibleData = filteredData.slice(currentFirst, currentFirst + currentRows);
+        const selected = checked ? visibleData : [];
+
+        setSelectAll(checked);
+        setSelectedSchedules(selected);
+    };
+
+    const onPageChange = (e) => {
+        setCurrentFirst(e.first);
+        setCurrentRows(e.rows);
+    };
+    const titleBodyTemplate = (rowData) => (
+        <motion.span whileHover={{ x: 5 }} transition={{ type: "spring", stiffness: 300 }} className="font-medium text-blue-600 cursor-pointer">
+            {rowData.title}
+        </motion.span>
+    );
+
+    const createdByBodyTemplate = (rowData) => (
+        <motion.span whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300 }} className="text-sm text-gray-800">
+            {rowData.createdBy?.full_name || rowData.createdBy?.username || "N/A"}
+        </motion.span>
+    );
 
     const frequencyBodyTemplate = (rowData) => {
         const frequencyMap = {
-            'daily': { label: 'Daily', severity: 'info', icon: 'pi pi-calendar' },
-            'weekly': { label: 'Weekly', severity: 'success', icon: 'pi pi-calendar' },
-            'monthly': { label: 'Monthly', severity: 'warning', icon: 'pi pi-calendar' },
-            'yearly': { label: 'Yearly', severity: 'danger', icon: 'pi pi-calendar' }
+            daily: { label: "Daily", color: "bg-blue-100 text-blue-800" },
+            weekly: { label: "Weekly", color: "bg-green-100 text-green-800" },
+            monthly: { label: "Monthly", color: "bg-purple-100 text-purple-800" },
+            yearly: { label: "Yearly", color: "bg-orange-100 text-orange-800" }
         };
-
-        const config = frequencyMap[rowData.frequency] || { label: rowData.frequency, severity: 'info', icon: 'pi pi-calendar' };
-
-        return (
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
-                <Tag
-                    value={<span className="flex align-items-center gap-1"><i className={config.icon}></i> {config.label}</span>}
-                    severity={config.severity}
-                    className="font-medium"
-                />
-            </motion.div>
-        );
-    };
-
-    const priorityBodyTemplate = (rowData) => {
-        const priorityMap = {
-            'low': { label: 'Low', severity: 'success', icon: 'pi pi-arrow-down' },
-            'medium': { label: 'Medium', severity: 'warning', icon: 'pi pi-minus' },
-            'high': { label: 'High', severity: 'danger', icon: 'pi pi-arrow-up' }
-        };
-
-        const config = priorityMap[rowData.priority] || { label: rowData.priority, severity: 'info', icon: 'pi pi-minus' };
-
-        return (
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
-                <Tag
-                    value={<span className="flex align-items-center gap-1"><i className={config.icon}></i> {config.label}</span>}
-                    severity={config.severity}
-                    className="font-medium"
-                />
-            </motion.div>
-        );
-    };
-
-    const typeBodyTemplate = (rowData) => {
-        const typeConfig = {
-            'machine': { label: 'Machine', severity: 'info', icon: 'pi pi-cog' },
-            'asset': { label: 'Asset', severity: 'success', icon: 'pi pi-box' }
-        };
-
-        const config = typeConfig[rowData.type] || { label: rowData.type || 'Machine', severity: 'info', icon: 'pi pi-cog' };
-
-        return (
-            <Tag
-                value={<span className="flex align-items-center gap-1"><i className={config.icon}></i> {config.label}</span>}
-                severity={config.severity}
-                className="font-medium"
-            />
-        );
-    };
-
-    const targetBodyTemplate = (rowData) => {
-        if (rowData.type === 'machine' && rowData.machine) {
-            return (
-                <div className="flex flex-column">
-                    <span className="font-medium flex align-items-center gap-1">
-                        <i className="pi pi-cog text-blue-500"></i>
-                        {rowData.machine.name}
-                    </span>
-                    {rowData.machine.machine_code && (
-                        <small className="text-gray-500">{rowData.machine.machine_code}</small>
-                    )}
-                </div>
-            );
-        } else if (rowData.type === 'asset' && rowData.asset) {
-            return (
-                <div className="flex flex-column">
-                    <span className="font-medium flex align-items-center gap-1">
-                        <i className="pi pi-box text-green-500"></i>
-                        {rowData.asset.name}
-                    </span>
-                    {rowData.asset.asset_code && (
-                        <small className="text-gray-500">{rowData.asset.asset_code}</small>
-                    )}
-                </div>
-            );
-        }
-        return <span className="text-gray-500">N/A</span>;
-    };
-
-    const machineBodyTemplate = (rowData) => {
-        return (
-            <div className="flex flex-column">
-                <span className="font-medium">{rowData.machine?.name || '-'}</span>
-                {rowData.machine?.machine_code && (
-                    <small className="text-gray-500">{rowData.machine.machine_code}</small>
-                )}
-            </div>
-        );
+        const frequency = frequencyMap[rowData.frequency] || { label: rowData.frequency, color: "bg-gray-100 text-gray-800" };
+        return <Tag value={frequency.label} className={frequency.color} style={{ minWidth: "60px", display: "inline-flex", justifyContent: "center" }} />;
     };
 
     const dueDateBodyTemplate = (rowData) => {
@@ -170,126 +120,130 @@ const ScheduleTable = ({
             icon = "pi pi-clock";
         } else if (diffDays <= 30) {
             severity = "info";
-            icon = "pi pi-calendar-clock";
+            icon = "pi pi-calendar";
         }
 
-        const formattedDate = dueDate.toLocaleString("en-US", {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+        const formattedDate = dueDate.toLocaleDateString("en-US", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
         });
 
         return (
             <div className="flex flex-column">
-                <span className={`flex align-items-center gap-1 ${severity === 'danger' ? 'text-red-600' : severity === 'warning' ? 'text-yellow-600' : 'text-gray-700'}`}>
+                <span className={`flex align-items-center gap-1 ${severity === "danger" ? "text-red-600" : severity === "warning" ? "text-yellow-600" : "text-gray-700"}`}>
                     <i className={icon}></i>
                     {formattedDate}
                 </span>
-                <small className={`${severity === 'danger' ? 'text-red-500' : severity === 'warning' ? 'text-yellow-500' : 'text-gray-500'}`}>
-                    {diffDays < 0 ? `Overdue by ${Math.abs(diffDays)} days` :
-                     diffDays === 0 ? 'Due today' :
-                     diffDays === 1 ? 'Due tomorrow' :
-                     `Due in ${diffDays} days`}
+                <small className={`${severity === "danger" ? "text-red-500" : severity === "warning" ? "text-yellow-500" : "text-gray-500"}`}>
+                    {diffDays < 0 ? `Overdue by ${Math.abs(diffDays)} days` : diffDays === 0 ? "Due today" : diffDays === 1 ? "Due tomorrow" : `Due in ${diffDays} days`}
                 </small>
             </div>
         );
     };
 
-    const dateBodyTemplate = (field) => {
-        return (rowData) => {
-            if (!rowData[field]) return "N/A";
-            return new Date(rowData[field]).toLocaleString("en-US", {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        };
-    };
-
-    const createdByBodyTemplate = (rowData) => {
+    const priorityBodyTemplate = (rowData) => {
+        let severity;
+        switch (rowData.priority) {
+            case "high":
+                severity = "danger";
+                break;
+            case "medium":
+                severity = "warning";
+                break;
+            case "low":
+                severity = "success";
+                break;
+            default:
+                severity = "secondary";
+                break;
+        }
         return (
-            <div className="flex align-items-center gap-2">
-                <i className="pi pi-user text-gray-500"></i>
-                <span>{rowData.createdBy?.full_name || 'Unknown'}</span>
-            </div>
+            <motion.div whileHover={{ scale: 1.1 }} transition={{ type: "spring", stiffness: 400 }}>
+                <Tag value={rowData.priority.toUpperCase()} severity={severity} />
+            </motion.div>
         );
     };
 
-    const statusBodyTemplate = (rowData) => (
-        <Tag
-            value={rowData.is_active ? "Aktif" : "Nonaktif"}
-            severity={rowData.is_active ? "success" : "danger"}
-            className="font-medium"
-        />
-    );
+    const statusBodyTemplate = (rowData) => <Tag value={rowData.is_active ? "Aktif" : "Nonaktif"} severity={rowData.is_active ? "success" : "danger"} className="font-medium" />;
 
+    const machineOrAssetBodyTemplate = (rowData) => {
+        // First check work order direct relations
+        if (rowData.machine) {
+            return (
+                <div>
+                    <div className="font-medium flex align-items-center gap-2">
+                        <i className="pi pi-cog text-blue-500"></i>
+                        {rowData.machine.name}
+                    </div>
+                    {rowData.machine.machine_code && <div className="text-sm text-gray-500">{rowData.machine.machine_code}</div>}
+                    <div className="text-xs text-blue-600">Machine</div>
+                </div>
+            );
+        }
+
+        if (rowData.asset) {
+            return (
+                <div>
+                    <div className="font-medium flex align-items-center gap-2">
+                        <i className="pi pi-box text-green-500"></i>
+                        {rowData.asset.name}
+                    </div>
+                    {rowData.asset.asset_code && <div className="text-sm text-gray-500">{rowData.asset.asset_code}</div>}
+                    <div className="text-xs text-green-600">Asset</div>
+                </div>
+            );
+        }
+
+        // Then check issue relations
+        if (rowData.issue) {
+            if (rowData.issue.machine) {
+                return (
+                    <div>
+                        <div className="font-medium flex align-items-center gap-2">
+                            <i className="pi pi-cog text-blue-500"></i>
+                            {rowData.issue.machine.name}
+                        </div>
+                        {rowData.issue.machine.machine_code && <div className="text-sm text-gray-500">{rowData.issue.machine.machine_code}</div>}
+                        <div className="text-xs text-blue-600">Machine (from Issue)</div>
+                    </div>
+                );
+            }
+
+            if (rowData.issue.asset) {
+                return (
+                    <div>
+                        <div className="font-medium flex align-items-center gap-2">
+                            <i className="pi pi-box text-green-500"></i>
+                            {rowData.issue.asset.name}
+                        </div>
+                        {rowData.issue.asset.asset_code && <div className="text-sm text-gray-500">{rowData.issue.asset.asset_code}</div>}
+                        <div className="text-xs text-green-600">Asset (from Issue)</div>
+                    </div>
+                );
+            }
+        }
+
+        return <span className="text-gray-500">N/A</span>;
+    };
     const actionBodyTemplate = (rowData) => (
         <div className="flex gap-2">
-            <Button
-                icon="pi pi-eye"
-                rounded
-                outlined
-                className="p-button-sm"
-                onClick={() => onDetail(rowData)}
-                tooltip="View Detail"
-            />
-            <Button
-                icon="pi pi-pencil"
-                rounded
-                outlined
-                className="p-button-sm"
-                onClick={() => onEdit(rowData)}
-                tooltip="Edit"
-            />
-            <Button
-                icon="pi pi-trash"
-                rounded
-                outlined
-                severity="danger"
-                className="p-button-sm"
-                onClick={() => onDelete(rowData)}
-                tooltip="Delete"
-            />
+            <Button icon="pi pi-eye" rounded outlined className="p-button-sm" onClick={() => onDetail(rowData)} tooltip="View Detail" />
+            <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onEdit(rowData)} tooltip="Edit" />
+            <Button icon="pi pi-trash" rounded outlined severity="danger" className="p-button-sm" onClick={() => onDelete(rowData)} tooltip="Delete" />
         </div>
     );
 
-    // Filter schedules by status
-    const filteredSchedules = statusFilter === null
-        ? schedules
-        : schedules.filter(s => {
-            // Pastikan is_active boolean
-            const isActive = typeof s.is_active === "boolean"
-                ? s.is_active
-                : Boolean(Number(s.is_active));
-            return isActive === statusFilter;
-        });
-
     const header = (
-        <div className="flex flex-wrap align-items-center justify-content-between gap-2">
-            <span className="text-xl font-bold">Maintenance Schedules</span>
-            <div className="flex gap-2">
-                <Dropdown
-                    value={statusFilter}
-                    options={statusOptions}
-                    onChange={e => setStatusFilter(e.value)}
-                    placeholder="Status"
-                    className="w-10rem"
-                />
+        <div className="flex flex-wrap align-items-center justify-content-between gap-3">
+            <div className="flex align-items-center gap-3">
+                <span className="text-xl font-bold">Schedule List</span>
+            </div>
+            <div className="flex align-items-center gap-3">
+                <Dropdown value={frequencyFilter} options={frequencyOptions} onChange={onFrequencyFilterChange} placeholder="All Frequency" className="w-12rem" />
                 <span className="p-input-icon-left">
                     <i className="pi pi-search" />
-                    <InputText
-                        value={globalFilterValue}
-                        onChange={(e) => {
-                            const value = e.target.value;
-                            setGlobalFilterValue(value);
-                            onGlobalFilterChange(value);
-                        }}
-                        placeholder="Search"
-                    />
+                    <InputText value={globalFilterValue} onChange={onGlobalFilterChange} placeholder="Search" className="w-full" />
                 </span>
             </div>
         </div>
@@ -299,58 +253,61 @@ const ScheduleTable = ({
         <div>
             <ConfirmDialog />
             <DataTable
-                value={filteredSchedules}
+                value={schedules}
                 selection={selectedSchedules}
-                onSelectionChange={handleSelectionChange}
+                onSelectionChange={(e) => setSelectedSchedules(e.value)}
                 dataKey="id"
                 paginator
-                rows={10}
-                loading={loading}
-                emptyMessage="No schedules found."
-                filters={filters}
-                globalFilterFields={["title", "machine.name", "asset.name", "frequency", "priority"]}
+                stripedRows
+                rows={currentRows}
+                rowsPerPageOptions={[5, 10, 25]}
+                emptyMessage="Tidak ada Jadwal Perawatan ditemukan"
+                selectionMode="multiple"
                 className="border-round-lg"
+                header={header}
+                filters={filters}
+                globalFilterFields={["title", "description", "machine.name", "frequency", "priority"]}
                 rowClassName={() => "hover:bg-gray-50 transition-colors cursor-pointer"}
                 paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} schedules"
-                rowsPerPageOptions={[5, 10, 25]}
-                header={header}
-                selectionMode="multiple"
+                currentPageReportTemplate="Displays {first} to {last} of {totalRecords} schedules"
+                loading={loading}
+                selectAll={selectAll}
+                onSelectAllChange={handleSelectAllChange}
+                onPage={onPageChange}
+                first={currentFirst}
             >
                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
-                <Column field="title" header="Title" style={{ width: "200px" }} sortable />
-                <Column field="type" header="Type" body={typeBodyTemplate} style={{ width: "100px" }} sortable />
-                <Column field="target" header="Machine/Asset" body={targetBodyTemplate} style={{ width: "200px" }} sortable />
-                <Column field="frequency" header="Frequency" body={frequencyBodyTemplate} sortable />
+                <Column field="title" header="Title" sortable body={titleBodyTemplate} style={{ minWidth: "10rem" }} />
+                <Column field="target" header="Machine/Asset" body={machineOrAssetBodyTemplate} style={{ minWidth: "180px" }} sortable sortField="machine.name" />
+                <Column field="frequency" header="Frequency" body={frequencyBodyTemplate} sortable filterField="frequency" />
+                <Column field="is_active" header="Status" body={statusBodyTemplate} style={{ width: "100px" }} sortable />
+                <Column field="next_due_date" header="Due_Date" body={dueDateBodyTemplate} sortable style={{ minWidth: "10rem" }} />
                 <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
                 <Column
-                    field="is_active"
-                    header="Status"
-                    body={statusBodyTemplate}
-                    style={{ width: "100px" }}
+                    field="description"
+                    header="Description"
                     sortable
+                    body={(rowData) => (
+                        <>
+                            <Tooltip target={`.description-tooltip-${rowData.id}`} position="bottom" />
+                            <span
+                                className={`text-sm description-tooltip-${rowData.id}`}
+                                data-pr-tooltip={rowData.description}
+                                style={{
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    display: "block",
+                                    maxWidth: "200px"
+                                }}
+                            >
+                                {rowData.description}
+                            </span>
+                        </>
+                    )}
                 />
-                <Column
-                    field="next_due_date"
-                    header="Next Due Date"
-                    body={dueDateBodyTemplate}
-                    sortable
-                    style={{ width: "180px" }}
-                />
-                <Column
-                    field="createdBy"
-                    header="Created By"
-                    body={createdByBodyTemplate}
-                    style={{ width: "150px" }}
-                />
-                <Column
-                    field="created_at"
-                    header="Created"
-                    body={dateBodyTemplate('created_at')}
-                    sortable
-                    style={{ width: "140px" }}
-                />
-                <Column header="Actions" body={actionBodyTemplate} style={{ minWidth: "10rem" }} />
+                <Column header="Created" body={createdByBodyTemplate} sortable sortField="created_by.full_name" />
+                <Column header="Actions" body={actionBodyTemplate} style={{ minWidth: "8rem" }} />
             </DataTable>
         </div>
     );

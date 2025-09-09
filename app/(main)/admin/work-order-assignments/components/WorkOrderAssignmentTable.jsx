@@ -1,143 +1,210 @@
 // app/(main)/work-order-assignments/components/WorkOrderAssignmentTable.jsx
 "use client";
 
-import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
-import { Button } from "primereact/button";
+import { DataTable } from "primereact/datatable";
+import { InputText } from "primereact/inputtext";
+import { Dropdown } from "primereact/dropdown";
 import { Tag } from "primereact/tag";
-import { Avatar } from "primereact/avatar";
-import { Tooltip } from "primereact/tooltip";
-import { Badge } from "primereact/badge";
 import { confirmDialog } from "primereact/confirmdialog";
 import { ConfirmDialog } from "primereact/confirmdialog";
-import { useState } from "react";
+import { Button } from "primereact/button";
+import { FilterMatchMode } from "primereact/api";
+import { useState, useRef } from "react";
+import { motion } from "framer-motion";
+import { Image } from "primereact/image";
+import { Tooltip } from "primereact/tooltip";
+
+const statusFilterOptions = [
+    { label: "All Status", value: null },
+    { label: "Pending", value: "pending" },
+    { label: "In Progress", value: "in_progress" },
+    { label: "Completed", value: "completed" }
+];
 
 const WorkOrderAssignmentTable = ({
     workOrders,
-    technicians,
+    selectedWorkOrders,
+    setSelectedWorkOrders,
     loading,
-    selectedWorkOrders = [],
-    onSelectionChange = () => {},
+    onDelete,
+    searchText,
+    setSearchText,
+    statusFilter,
+    setStatusFilter,
+    handleViewDetails,
+    handleAssignTechnician,
     onAssign,
     onReassign,
     onUnassign
 }) => {
-    const [globalFilterValue, setGlobalFilterValue] = useState('');
+    const [filters, setFilters] = useState({
+        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+        status: { value: null, matchMode: FilterMatchMode.EQUALS }
+    });
+    const [selectAll, setSelectAll] = useState(false);
+    const [currentFirst, setCurrentFirst] = useState(0);
+    const [currentRows, setCurrentRows] = useState(10);
 
-    const handleSelectionChange = (e) => {
-        onSelectionChange(e.value);
+    const onGlobalFilterChange = (e) => {
+        const value = e.target.value;
+        setSearchText(value);
+        setFilters((prevFilters) => ({
+            ...prevFilters,
+            global: { value, matchMode: FilterMatchMode.CONTAINS }
+        }));
     };
 
-    // Status template
-    const statusBodyTemplate = (rowData) => {
-        let severity = "info";
-        let icon = "";
+    const onStatusFilterChange = (e) => {
+        const value = e.value;
+        setStatusFilter(value);
+        setFilters((prevFilters) => ({
+            ...prevFilters,
+            status: { value, matchMode: FilterMatchMode.EQUALS }
+        }));
+    };
 
-        switch (rowData.status) {
-            case "pending":
-                severity = "warning";
-                icon = "pi pi-clock";
-                break;
-            case "in_progress":
-                severity = "info";
-                icon = "pi pi-spin pi-spinner";
-                break;
-            case "completed":
-                severity = "success";
-                icon = "pi pi-check-circle";
-                break;
-            case "cancelled":
-                severity = "danger";
-                icon = "pi pi-times-circle";
-                break;
-            default:
-                severity = "secondary";
-                icon = "pi pi-question-circle";
+    const handleSelectAllChange = (e) => {
+        const checked = e.checked;
+
+        // Filter data according to global filter and status filter
+        let filteredData = workOrders;
+
+        // Apply global filter if exists
+        if (filters.global.value) {
+            const filterValue = filters.global.value.toLowerCase();
+            filteredData = filteredData.filter((wo) => wo.title?.toLowerCase().includes(filterValue) || wo.machine?.name?.toLowerCase().includes(filterValue) || wo.description?.toLowerCase().includes(filterValue));
         }
 
-        return (
-            <Tag
-                value={
-                    <span className="flex align-items-center gap-1">
-                        <i className={icon}></i>
-                        {rowData.status.replace('_', ' ').toUpperCase()}
-                    </span>
-                }
-                severity={severity}
-                className="font-medium"
-            />
-        );
+        // Apply status filter if exists
+        if (filters.status.value) {
+            filteredData = filteredData.filter((wo) => wo.status === filters.status.value);
+        }
+
+        // Get currently visible data on the page
+        const visibleData = filteredData.slice(currentFirst, currentFirst + currentRows);
+        const selected = checked ? visibleData : [];
+
+        setSelectAll(checked);
+        setSelectedWorkOrders(selected);
     };
 
-    // Priority template
-    const priorityBodyTemplate = (rowData) => {
-        let severity = "info";
-        let icon = "";
+    const onPageChange = (e) => {
+        setCurrentFirst(e.first);
+        setCurrentRows(e.rows);
+    };
 
+    const titleBodyTemplate = (rowData) => (
+        <motion.span whileHover={{ x: 5 }} transition={{ type: "spring", stiffness: 300 }} className="font-medium text-blue-600 cursor-pointer">
+            {rowData.title}
+        </motion.span>
+    );
+
+    const photoBodyTemplate = (rowData) => {
+        const photoUrl = rowData.issue?.photo_url;
+        if (photoUrl) {
+            return (
+                <Image
+                    src={photoUrl}
+                    alt="Work Order Photo"
+                    width="50"
+                    height="50"
+                    preview
+                    className="border-round"
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://placehold.co/50x50/cccccc/000000?text=No+Image";
+                    }}
+                />
+            );
+        }
+        return <span className="text-gray-400">No photo</span>;
+    };
+
+    const priorityBodyTemplate = (rowData) => {
+        let severity = "";
         switch (rowData.priority) {
-            case "high":
-                severity = "danger";
-                icon = "pi pi-exclamation-triangle";
+            case "low":
+                severity = "success";
                 break;
             case "medium":
                 severity = "warning";
-                icon = "pi pi-minus";
                 break;
-            case "low":
-                severity = "success";
-                icon = "pi pi-arrow-down";
+            case "high":
+                severity = "danger";
                 break;
             default:
-                severity = "secondary";
-                icon = "pi pi-minus";
+                severity = "info";
+                break;
         }
-
-        return (
-            <Tag
-                value={
-                    <span className="flex align-items-center gap-1">
-                        <i className={icon}></i>
-                        {(rowData.priority || 'medium').toUpperCase()}
-                    </span>
-                }
-                severity={severity}
-                className="font-medium"
-            />
-        );
+        return <Tag value={rowData.priority} severity={severity} style={{ minWidth: "50px", display: "inline-flex", justifyContent: "center" }} />;
     };
 
-    // Assignment template
-    const assignmentBodyTemplate = (rowData) => {
-        if (!rowData.assigned_to_id) {
-            return (
-                <div className="flex align-items-center gap-2">
-                    <Badge value="Unassigned" severity="warning" />
-                </div>
-            );
+    const statusBodyTemplate = (rowData) => {
+        const statusMap = {
+            pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800" },
+            in_progress: { label: "In Progress", color: "bg-blue-100 text-blue-800" },
+            completed: { label: "Completed", color: "bg-green-100 text-green-800" }
+        };
+        const status = statusMap[rowData.status] || { label: rowData.status, color: "bg-gray-100 text-gray-800" };
+        return <Tag value={status.label} className={status.color} style={{ minWidth: "75px", display: "inline-flex", justifyContent: "center" }} />;
+    };
+
+    const technicianBodyTemplate = (rowData) => {
+        if (!rowData.assignedTo) {
+            return <Tag value="Not Assigned" className="bg-red-100 text-red-800" />;
         }
 
-        const technician = rowData.assignedTo || technicians.find(t => t.id === rowData.assigned_to_id);
-
         return (
-            <div className="flex align-items-center gap-2">
-                <Avatar
-                    image={technician?.profile_photo_url}
-                    label={technician?.full_name?.charAt(0) || 'T'}
-                    className="p-mr-2"
-                    size="small"
-                    style={{ backgroundColor: '#2196F3', color: '#ffffff' }}
-                />
-                <div>
-                    <div className="font-medium">{technician?.full_name || 'Unknown'}</div>
-                    <div className="text-sm text-gray-500">
-                        Workload: {technician?.current_workload || 0}
-                    </div>
-                </div>
+            <div className="flex flex-col gap-1">
+                <Tag value={rowData.assignedTo.full_name} className="bg-green-100 text-green-800" style={{ minWidth: "75px", display: "inline-flex", justifyContent: "center" }} />
+                {rowData.assignedTo.current_workload !== undefined && (
+                    <Tag
+                        value={`${rowData.assignedTo.current_workload} tasks`}
+                        className={`
+                text-xs py-0.5
+                ${rowData.assignedTo.current_workload >= 5 ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}
+            `}
+                        style={{ minWidth: "50px", display: "inline-flex", justifyContent: "center" }}
+                    />
+                )}
             </div>
         );
     };
 
-    // Machine/Asset template
+    const dateBodyTemplate = (field) => (rowData) => {
+        if (!rowData[field]) return "N/A";
+        return new Date(rowData[field]).toLocaleDateString("en-US", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+        });
+    };
+
+    const scheduledDateBodyTemplate = (rowData) => {
+        if (!rowData.scheduled_date) return "N/A";
+
+        const scheduleDate = new Date(rowData.scheduled_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const isOverdue = scheduleDate < today && rowData.status !== "completed";
+        const isToday = scheduleDate.toDateString() === today.toDateString();
+
+        return (
+            <div className={`flex align-items-center gap-1 ${isOverdue ? "text-red-500" : isToday ? "text-blue-500" : ""}`}>
+                <i className={`pi ${isOverdue ? "pi-exclamation-triangle" : isToday ? "pi-clock" : "pi-calendar"}`}></i>
+                <span className={isOverdue ? "font-semibold" : ""}>
+                    {scheduleDate.toLocaleDateString("en-US", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric"
+                    })}
+                </span>
+            </div>
+        );
+    };
+
     const machineOrAssetBodyTemplate = (rowData) => {
         // First check work order direct relations
         if (rowData.machine) {
@@ -147,14 +214,12 @@ const WorkOrderAssignmentTable = ({
                         <i className="pi pi-cog text-blue-500"></i>
                         {rowData.machine.name}
                     </div>
-                    {rowData.machine.machine_code && (
-                        <div className="text-sm text-gray-500">{rowData.machine.machine_code}</div>
-                    )}
+                    {rowData.machine.machine_code && <div className="text-sm text-gray-500">{rowData.machine.machine_code}</div>}
                     <div className="text-xs text-blue-600">Machine</div>
                 </div>
             );
         }
-        
+
         if (rowData.asset) {
             return (
                 <div>
@@ -162,14 +227,12 @@ const WorkOrderAssignmentTable = ({
                         <i className="pi pi-box text-green-500"></i>
                         {rowData.asset.name}
                     </div>
-                    {rowData.asset.asset_code && (
-                        <div className="text-sm text-gray-500">{rowData.asset.asset_code}</div>
-                    )}
+                    {rowData.asset.asset_code && <div className="text-sm text-gray-500">{rowData.asset.asset_code}</div>}
                     <div className="text-xs text-green-600">Asset</div>
                 </div>
             );
         }
-        
+
         // Then check issue relations
         if (rowData.issue) {
             if (rowData.issue.machine) {
@@ -179,14 +242,12 @@ const WorkOrderAssignmentTable = ({
                             <i className="pi pi-cog text-blue-500"></i>
                             {rowData.issue.machine.name}
                         </div>
-                        {rowData.issue.machine.machine_code && (
-                            <div className="text-sm text-gray-500">{rowData.issue.machine.machine_code}</div>
-                        )}
+                        {rowData.issue.machine.machine_code && <div className="text-sm text-gray-500">{rowData.issue.machine.machine_code}</div>}
                         <div className="text-xs text-blue-600">Machine (from Issue)</div>
                     </div>
                 );
             }
-            
+
             if (rowData.issue.asset) {
                 return (
                     <div>
@@ -194,142 +255,52 @@ const WorkOrderAssignmentTable = ({
                             <i className="pi pi-box text-green-500"></i>
                             {rowData.issue.asset.name}
                         </div>
-                        {rowData.issue.asset.asset_code && (
-                            <div className="text-sm text-gray-500">{rowData.issue.asset.asset_code}</div>
-                        )}
+                        {rowData.issue.asset.asset_code && <div className="text-sm text-gray-500">{rowData.issue.asset.asset_code}</div>}
                         <div className="text-xs text-green-600">Asset (from Issue)</div>
                     </div>
                 );
             }
         }
-        
+
         return <span className="text-gray-500">N/A</span>;
     };
 
-    // Issue template
-    const issueBodyTemplate = (rowData) => {
-        if (!rowData.issue) return '-';
-
-        return (
-            <div className="max-w-200">
-                <div className="font-medium text-sm">{rowData.issue.title}</div>
-                <div className="text-xs text-gray-500 truncate">
-                    {rowData.issue.description}
-                </div>
-            </div>
-        );
-    };
-
-    // Date template
-    const dateBodyTemplate = (field) => {
-        return (rowData) => {
-            if (!rowData[field]) return "N/A";
-            return new Date(rowData[field]).toLocaleDateString("id-ID", {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric'
-            });
-        };
-    };
-
-    // Scheduled date template with overdue check
-    const scheduledDateBodyTemplate = (rowData) => {
-        if (!rowData.scheduled_date) return '-';
-
-        const scheduleDate = new Date(rowData.scheduled_date);
-        const today = new Date();
-        const isOverdue = scheduleDate < today && rowData.status !== 'completed';
-
-        return (
-            <div className={`flex align-items-center gap-1 ${isOverdue ? 'text-red-500' : ''}`}>
-                <i className={`pi ${isOverdue ? 'pi-exclamation-triangle' : 'pi-calendar'}`}></i>
-                <span className={isOverdue ? 'font-semibold' : ''}>
-                    {scheduleDate.toLocaleDateString("id-ID", {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric'
-                    })}
-                </span>
-                {isOverdue && <Badge value="Overdue" severity="danger" />}
-            </div>
-        );
-    };
-
-    // Action template
     const actionBodyTemplate = (rowData) => {
-        const canAssign = !rowData.assigned_to_id && rowData.status !== 'completed';
-        const canReassign = rowData.assigned_to_id && rowData.status !== 'completed';
-        const canUnassign = rowData.assigned_to_id && rowData.status !== 'completed' && rowData.status !== 'in_progress';
+        const canAssign = !rowData.assigned_to_id && rowData.status !== "completed";
+        const canReassign = rowData.assigned_to_id && rowData.status !== "completed" && rowData.status !== "in_progress";
+        const canUnassign = rowData.assigned_to_id && rowData.status !== "completed" && rowData.status !== "in_progress";
 
         const handleUnassignClick = () => {
             confirmDialog({
                 message: `Apakah Anda yakin ingin membatalkan assignment work order "${rowData.title}"?`,
-                header: 'Konfirmasi Unassign',
-                icon: 'pi pi-exclamation-triangle',
-                acceptClassName: 'p-button-danger',
-                accept: () => onUnassign(rowData, 'Unassigned by admin'),
+                header: "Konfirmasi Unassign",
+                icon: "pi pi-exclamation-triangle",
+                acceptClassName: "p-button-danger",
+                accept: () => onUnassign(rowData, ""),
                 reject: () => {}
             });
         };
 
         return (
-            <div className="flex gap-1">
-                {canAssign && (
-                    <Button
-                        icon="pi pi-user-plus"
-                        rounded
-                        outlined
-                        size="small"
-                        className="p-button-sm"
-                        onClick={() => onAssign(rowData)}
-                        tooltip="Assign to Technician"
-                        tooltipOptions={{ position: 'top' }}
-                    />
-                )}
-
-                {canReassign && (
-                    <Button
-                        icon="pi pi-user-edit"
-                        rounded
-                        outlined
-                        size="small"
-                        className="p-button-sm"
-                        onClick={() => onReassign(rowData)}
-                        tooltip="Reassign"
-                        tooltipOptions={{ position: 'top' }}
-                    />
-                )}
-
-                {canUnassign && (
-                    <Button
-                        icon="pi pi-user-minus"
-                        rounded
-                        outlined
-                        severity="danger"
-                        size="small"
-                        className="p-button-sm"
-                        onClick={handleUnassignClick}
-                        tooltip="Unassign"
-                        tooltipOptions={{ position: 'top' }}
-                    />
-                )}
+            <div className="flex gap-2">
+                {canAssign && <Button icon="pi pi-user-plus" rounded outlined className="p-button-sm" onClick={() => onAssign(rowData)} tooltip="Assign to Technician" tooltipOptions={{ position: "top" }} />}
+                {canReassign && <Button icon="pi pi-user-edit" rounded outlined className="p-button-sm" onClick={() => onReassign(rowData)} tooltip="Reassign" tooltipOptions={{ position: "top" }} />}
+                {canUnassign && <Button icon="pi pi-user-minus" rounded outlined severity="danger" className="p-button-sm" onClick={handleUnassignClick} tooltip="Unassign Technician" />}
+                <Button icon="pi pi-trash" rounded outlined severity="danger" className="p-button-sm" onClick={() => onDelete(rowData)} tooltip="Delete" />
             </div>
         );
     };
 
-    const header = (
-        <div className="flex flex-wrap align-items-center justify-content-between gap-2">
-            <span className="text-xl font-bold">Work Order Assignments</span>
-            <div className="flex gap-2">
+    const Header = (
+        <div className="flex flex-wrap align-items-center justify-content-between gap-3">
+            <div className="flex align-items-center gap-3">
+                <span className="text-xl font-bold">Work Order List</span>
+            </div>
+            <div className="flex align-items-center gap-3">
+                <Dropdown value={statusFilter} options={statusFilterOptions} onChange={onStatusFilterChange} placeholder="All Status" className="w-full md:w-auto" />
                 <span className="p-input-icon-left">
                     <i className="pi pi-search" />
-                    <input
-                        type="text"
-                        value={globalFilterValue}
-                        onChange={(e) => setGlobalFilterValue(e.target.value)}
-                        placeholder="Search work orders..."
-                        className="p-inputtext p-component"
-                    />
+                    <InputText value={searchText} onChange={onGlobalFilterChange} placeholder="Search" className="w-full md:w-auto" />
                 </span>
             </div>
         </div>
@@ -338,131 +309,63 @@ const WorkOrderAssignmentTable = ({
     return (
         <div>
             <ConfirmDialog />
-            <Tooltip target=".p-button" />
-
             <DataTable
                 value={workOrders}
+                selectAll={selectAll}
+                onSelectAllChange={handleSelectAllChange}
                 selection={selectedWorkOrders}
-                onSelectionChange={handleSelectionChange}
+                onSelectionChange={(e) => setSelectedWorkOrders(e.value)}
                 dataKey="id"
                 paginator
-                rows={15}
-                loading={loading}
-                emptyMessage="No work orders found."
-                globalFilter={globalFilterValue}
-                globalFilterFields={[
-                    "title",
-                    "description",
-                    "machine.name",
-                    "assignedTo.full_name",
-                    "issue.title"
-                ]}
-                className="border-round-lg"
-                rowClassName={(rowData) => {
-                    let className = "hover:bg-gray-50 transition-colors cursor-pointer";
-
-                    // Highlight overdue items
-                    if (rowData.scheduled_date) {
-                        const scheduleDate = new Date(rowData.scheduled_date);
-                        const today = new Date();
-                        if (scheduleDate < today && rowData.status !== 'completed') {
-                            className += " bg-red-50";
-                        }
-                    }
-
-                    // Highlight unassigned items
-                    if (!rowData.assigned_to_id && rowData.status !== 'completed') {
-                        className += " bg-yellow-50";
-                    }
-
-                    return className;
-                }}
-                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} work orders"
-                rowsPerPageOptions={[10, 15, 25, 50]}
-                header={header}
+                onPage={onPageChange}
+                first={currentFirst}
+                rows={currentRows}
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                header={Header}
+                emptyMessage="Tidak ada Work Order ditemukan."
                 selectionMode="multiple"
-                sortMode="multiple"
-                resizableColumns
+                className="border-round-lg"
+                filters={filters}
+                filterDisplay="menu"
+                globalFilterFields={["title", "machine.name", "description"]}
+                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                currentPageReportTemplate="Displays {first} to {last} of {totalRecords} Work Orders"
+                loading={loading}
             >
+                <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
+                <Column field="title" header="Title" sortable body={titleBodyTemplate} style={{ minWidth: "10rem" }} />
+                <Column field="target" header="Machine/Asset" body={machineOrAssetBodyTemplate} style={{ minWidth: "180px" }} sortable sortField="machine.name" />
+                <Column field="image" header="Image" body={photoBodyTemplate} />
+                <Column field="priority" header="Priority" body={priorityBodyTemplate} sortable />
+                <Column field="status" header="Status" body={statusBodyTemplate} sortable />
+                <Column header="Assigned" body={technicianBodyTemplate} sortable sortField="assignedTo.full_name" />
+                <Column header="Schedule" body={scheduledDateBodyTemplate} style={{ minWidth: "145px" }} sortable sortField="scheduled_date" />
+                <Column field="started_at" header="Started" body={dateBodyTemplate("started_at")} style={{ minWidth: "120px" }} sortable />
+                <Column field="completed_at" header="Completed" body={dateBodyTemplate("completed_at")} style={{ minWidth: "120px" }} sortable />
                 <Column
-                    selectionMode="multiple"
-                    headerStyle={{ width: "3rem" }}
-                    frozen
-                />
-
-                <Column
-                    field="title"
-                    header="Title"
-                    style={{ minWidth: "200px" }}
+                    field="description"
+                    header="Description"
                     sortable
-                    frozen
+                    body={(rowData) => (
+                        <>
+                            <Tooltip target={`.description-tooltip-${rowData.id}`} position="bottom" />
+                            <span
+                                className={`text-sm description-tooltip-${rowData.id}`}
+                                data-pr-tooltip={rowData.description}
+                                style={{
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    display: "block",
+                                    maxWidth: "200px"
+                                }}
+                            >
+                                {rowData.description}
+                            </span>
+                        </>
+                    )}
                 />
-
-                <Column
-                    field="target"
-                    header="Machine/Asset"
-                    body={machineOrAssetBodyTemplate}
-                    style={{ minWidth: "180px" }}
-                    sortable
-                    sortField="machine.name"
-                />
-
-                <Column
-                    field="issue"
-                    header="Related Issue"
-                    body={issueBodyTemplate}
-                    style={{ minWidth: "200px" }}
-                />
-
-                <Column
-                    field="status"
-                    header="Status"
-                    body={statusBodyTemplate}
-                    style={{ minWidth: "120px" }}
-                    sortable
-                />
-
-                <Column
-                    field="priority"
-                    header="Priority"
-                    body={priorityBodyTemplate}
-                    style={{ minWidth: "100px" }}
-                    sortable
-                />
-
-                <Column
-                    field="assigned_to_id"
-                    header="Assigned To"
-                    body={assignmentBodyTemplate}
-                    style={{ minWidth: "180px" }}
-                    sortable
-                    sortField="assignedTo.full_name"
-                />
-
-                <Column
-                    field="scheduled_date"
-                    header="Scheduled"
-                    body={scheduledDateBodyTemplate}
-                    style={{ minWidth: "120px" }}
-                    sortable
-                />
-
-                <Column
-                    field="created_at"
-                    header="Created"
-                    body={dateBodyTemplate('created_at')}
-                    style={{ minWidth: "100px" }}
-                    sortable
-                />
-
-                <Column
-                    header="Actions"
-                    body={actionBodyTemplate}
-                    style={{ minWidth: "120px" }}
-                    frozen
-                    alignFrozen="right"
-                />
+                <Column header="Actions" body={actionBodyTemplate} style={{ minWidth: "10rem" }} />
             </DataTable>
         </div>
     );

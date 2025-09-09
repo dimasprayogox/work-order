@@ -61,9 +61,9 @@ const ConfirmDeleteDialog = ({ visible, onHide, issue, selectedIssues = [], fetc
         if (hasNonOpenIssues()) {
             if (isBulkDelete) {
                 const nonOpenCount = selectedIssues.filter(issue => issue.status !== 'open').length;
-                return `${nonOpenCount} dari ${selectedIssues.length} issue yang dipilih tidak berstatus 'open' dan tidak dapat dihapus.`;
+                return `${nonOpenCount} dari ${selectedIssues.length} issue yang dipilih tidak berstatus 'pending' dan tidak dapat dihapus.`;
             } else {
-                return `Issue ini berstatus '${issue.status}' dan tidak dapat dihapus. Hanya issue dengan status 'open' yang dapat dihapus.`;
+                return `Issue ini berstatus '${issue.status}' dan tidak dapat dihapus. Hanya issue dengan status 'pending' yang dapat dihapus.`;
             }
         }
         return null;
@@ -85,29 +85,16 @@ const ConfirmDeleteDialog = ({ visible, onHide, issue, selectedIssues = [], fetc
                 severity="danger"
                 onClick={handleDelete}
                 loading={loading}
-                disabled={hasNonOpenIssues()}
             />
         </div>
     );
 
     return (
-        <Dialog
-            header="Konfirmasi Hapus"
-            visible={visible}
-            onHide={onHide}
-            modal
-            style={{ width: "30rem" }}
-            footer={footerContent}
-        >
+        <Dialog header="Konfirmasi Hapus" visible={visible} onHide={onHide} modal footer={footerContent}>
             <div className="flex flex-column align-items-center text-center gap-4 py-4">
-                <i className="pi pi-exclamation-triangle text-red-500 text-6xl" />
-
-                <div>
-                    <h3 className="font-bold mb-2">
-                        {isBulkDelete ? `Hapus ${selectedIssues.length} Issue?` : "Hapus Issue Ini?"}
-                    </h3>
-
-                    <p className="text-color-secondary mb-3">
+                <div className="flex align-items-center justify-content-center gap-3">
+                    <i className="pi pi-exclamation-triangle text-3xl" />
+                    <p className="text-color-secondary m-0">
                         {isBulkDelete ? (
                             `Anda akan menghapus ${selectedIssues.length} issue yang dipilih.`
                         ) : (
@@ -115,36 +102,14 @@ const ConfirmDeleteDialog = ({ visible, onHide, issue, selectedIssues = [], fetc
                                 Anda akan menghapus issue <strong>&quot;{issue?.title}&quot;</strong>.
                             </>
                         )}
-                        <br />
-                        Tindakan ini akan menghapus issue beserta work order terkait dan tidak dapat diurungkan.
                     </p>
-
-                    {getDeleteWarning() && (
-                        <div className="p-3 border-left-3 border-yellow-500 bg-yellow-50 text-left">
-                            <div className="flex align-items-center gap-2 mb-2">
-                                <i className="pi pi-exclamation-triangle text-yellow-600"></i>
-                                <span className="font-semibold text-yellow-800">Peringatan</span>
-                            </div>
-                            <p className="text-yellow-700 text-sm m-0">
-                                {getDeleteWarning()}
-                            </p>
-                        </div>
-                    )}
-
-                    {!hasNonOpenIssues() && (
-                        <div className="p-3 border-left-3 border-red-500 bg-red-50 text-left">
-                            <div className="flex align-items-center gap-2 mb-2">
-                                <i className="pi pi-info-circle text-red-600"></i>
-                                <span className="font-semibold text-red-800">Yang akan dihapus:</span>
-                            </div>
-                            <ul className="text-red-700 text-sm m-0 pl-3">
-                                <li>Data issue</li>
-                                <li>Photo terkait (jika ada)</li>
-                                <li>Work order yang terkait</li>
-                            </ul>
-                        </div>
-                    )}
                 </div>
+                {getDeleteWarning() && (
+                    <div className="p-3 border-left-3 border-yellow-500 bg-yellow-50 text-left">
+                        <div className="flex align-items-center gap-2 mb-2"></div>
+                        <p className="text-yellow-700 text-sm m-0">{getDeleteWarning()}</p>
+                    </div>
+                )}
             </div>
         </Dialog>
     );

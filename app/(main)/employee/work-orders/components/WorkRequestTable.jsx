@@ -275,7 +275,7 @@ const WorkOrderTable = ({ workOrders = [], loading = false, selectedWorkOrders =
                                 <>
                                     <Tooltip target={`.description-tooltip-${rowData.id}`} position="bottom" />
                                     <span
-                                        className={`description-tooltip-${rowData.id}`}
+                                        className={`text-sm description-tooltip-${rowData.id}`}
                                         data-pr-tooltip={rowData.description}
                                         style={{
                                             whiteSpace: "nowrap",

@@ -260,7 +260,6 @@ const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast, ass
               setForm((prev) => ({ ...prev, asset_id: null, machine_id: null }));
             }}
             placeholder="Select Owner Type"
-            showClear
           />
           {submitted && !selectionType && (
             <small className="p-error">Please select Asset or Machine</small>
@@ -276,7 +275,6 @@ const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast, ass
               options={assets.map((a) => ({ label: a.name, value: a.id }))}
               onChange={(e) => handleSelectAsset(e.value)}
               placeholder="Select Asset"
-              showClear
             />
             {submitted && selectionType === "asset" && !form.asset_id && (
               <small className="p-error">Please select an Asset</small>
@@ -292,7 +290,6 @@ const AdminPartFormDialog = ({ visible, onHide, part, fetchParts, showToast, ass
               options={machines.map((m) => ({ label: m.name, value: m.id }))}
               onChange={(e) => handleSelectMachine(e.value)}
               placeholder="Select Machine"
-              showClear
             />
             {submitted && selectionType === "machine" && !form.machine_id && (
               <small className="p-error">Please select a Machine</small>

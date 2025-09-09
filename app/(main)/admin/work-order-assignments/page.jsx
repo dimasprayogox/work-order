@@ -1,4 +1,3 @@
-// app/(main)/work-order-assignments/page.jsx
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -6,13 +5,27 @@ import { Toast } from "primereact/toast";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 import { Divider } from "primereact/divider";
-import { Dropdown } from "primereact/dropdown";
-import { Card } from "primereact/card";
-import { Chip } from "primereact/chip";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import dynamic from "next/dynamic";
+import { Message } from "primereact/message";
 
 import WorkOrderAssignmentTable from "./components/WorkOrderAssignmentTable";
 import AssignmentDialog from "./components/AssignmentDialog";
 import BulkAssignmentDialog from "./components/BulkAssignmentDialog";
+import ConfirmDeleteDialog from "./components/ConfirmDeleteDialog";
+
+const AdjustPrintMarginLaporan = dynamic(() => import("../../Export/adjustPrintMarginLaporan"), { ssr: false });
+const PDFViewer = dynamic(() => import("../../Export/PDFViewer"), { ssr: false });
+
+const statusMapForExport = {
+    pending: "Pending",
+    in_progress: "In Progress",
+    completed: "Completed",
+    cancelled: "Cancelled"
+};
 
 const WorkOrderAssignmentPage = () => {
     const toast = useRef(null);
@@ -20,7 +33,10 @@ const WorkOrderAssignmentPage = () => {
     const [workOrders, setWorkOrders] = useState([]);
     const [technicians, setTechnicians] = useState([]);
     const [stats, setStats] = useState(null);
+    const [searchText, setSearchText] = useState("");
     const [loading, setLoading] = useState(false);
+    const [statusFilter, setStatusFilter] = useState(null);
+    const [isDeleteOpen, setDeleteOpen] = useState(false);
 
     const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
     const [selectedWorkOrders, setSelectedWorkOrders] = useState([]);
@@ -28,12 +44,24 @@ const WorkOrderAssignmentPage = () => {
     const [isAssignDialogOpen, setAssignDialogOpen] = useState(false);
     const [isBulkAssignDialogOpen, setBulkAssignDialogOpen] = useState(false);
 
-    // Filter states
-    const [filters, setFilters] = useState({
-        status: '',
-        assigned: '',
-        priority: '',
-        type: ''
+    // Print/export/pdf states
+    const [adjustDialog, setAdjustDialog] = useState(false);
+    const [jsPdfPreviewOpen, setJsPdfPreviewOpen] = useState(false);
+    const [pdfUrl, setPdfUrl] = useState("");
+    const [fileName] = useState("WorkOrders");
+    const [printConfig, setPrintConfig] = useState({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+        marginLeft: 10,
+        marginRight: 10,
+        marginTop: 10,
+        marginBottom: 10
+    });
+    const [confirmReassignDialog, setConfirmReassignDialog] = useState({
+        visible: false,
+        assignedCount: 0,
+        unassignedCount: 0
     });
 
     const showToast = useCallback((severity, summary, detail) => {
@@ -44,13 +72,7 @@ const WorkOrderAssignmentPage = () => {
     const fetchWorkOrders = useCallback(async () => {
         setLoading(true);
         try {
-            const queryParams = new URLSearchParams();
-
-            Object.entries(filters).forEach(([key, value]) => {
-                if (value) queryParams.append(key, value);
-            });
-
-            const res = await fetch(`/api/admin/work-order-assignments?${queryParams}`, {
+            const res = await fetch(`/api/admin/work-order-assignments`, {
                 credentials: "include"
             });
             const body = await res.json();
@@ -65,7 +87,7 @@ const WorkOrderAssignmentPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [filters, showToast]);
+    }, [showToast]);
 
     // Fetch available technicians
     const fetchTechnicians = useCallback(async () => {
@@ -118,7 +140,7 @@ const WorkOrderAssignmentPage = () => {
     };
 
     // Handle unassign
-    const handleUnassign = async (workOrder, reason = '') => {
+    const handleUnassign = async (workOrder, reason = "") => {
         try {
             const res = await fetch(`/api/admin/work-order-assignments/${workOrder.id}/unassign`, {
                 method: "PATCH",
@@ -144,187 +166,160 @@ const WorkOrderAssignmentPage = () => {
             showToast("warn", "Warning", "Pilih work order terlebih dahulu");
             return;
         }
-        setBulkAssignDialogOpen(true);
+        // Hitung jumlah yang sudah dan belum di-assign
+        const assignedCount = selectedWorkOrders.filter((wo) => wo.assigned_to_id).length;
+        const unassignedCount = selectedWorkOrders.length - assignedCount;
+
+        if (assignedCount > 0) {
+            setConfirmReassignDialog({
+                visible: true,
+                assignedCount,
+                unassignedCount
+            });
+        } else {
+            setBulkAssignDialogOpen(true);
+        }
     };
 
-    // Handle filter change
-    const handleFilterChange = (field, value) => {
-        setFilters(prev => ({ ...prev, [field]: value }));
+    const handleDelete = (workOrder) => {
+        setSelectedWorkOrder(workOrder);
+        setDeleteOpen(true);
     };
 
-    // Clear filters
-    const clearFilters = () => {
-        setFilters({
-            status: '',
-            assigned: '',
-            priority: '',
-            type: ''
+    const handleDeleteSelected = () => {
+        if (selectedWorkOrders.length === 0) {
+            showToast("warn", "Peringatan", "Tidak ada work order yang dipilih");
+            return;
+        }
+        setSelectedWorkOrder(null);
+        setDeleteOpen(true);
+    };
+
+    // Export Excel
+    const exportExcel = async () => {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Work Orders");
+        const headers = ["No", "Title", "Machine/Asset", "Priority", "Status", "Assigned To", "Schedule", "Created", "Started", "Completed", "Description"];
+        worksheet.addRow(headers);
+
+        workOrders.forEach((wo, index) => {
+            const rowData = [
+                index + 1,
+                wo.title,
+                wo.machine?.name || wo.asset?.name || "N/A",
+                wo.priority,
+                statusMapForExport[wo.status] || wo.status,
+                wo.assignedTo?.full_name || "Not Assigned",
+                wo.scheduled_date ? new Date(wo.scheduled_date).toLocaleString("id-ID") : "N/A",
+                wo.created_at ? new Date(wo.created_at).toLocaleString("id-ID") : "N/A",
+                wo.started_at ? new Date(wo.started_at).toLocaleString("id-ID") : "N/A",
+                wo.completed_at ? new Date(wo.completed_at).toLocaleString("id-ID") : "N/A",
+                wo.notes || ""
+            ];
+            worksheet.addRow(rowData);
         });
+
+        worksheet.getRow(1).eachCell((cell) => {
+            cell.font = { bold: true };
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        saveAs(new Blob([buffer]), `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        showToast("success", "Export Success", "Data berhasil diekspor ke Excel.");
     };
 
-    const statusOptions = [
-        { label: 'All Status', value: '' },
-        { label: 'Pending', value: 'pending' },
-        { label: 'In Progress', value: 'in_progress' },
-        { label: 'Completed', value: 'completed' },
-        { label: 'Cancelled', value: 'cancelled' }
-    ];
+    // Export PDF
+    const exportPdf = () => {
+        const doc = new jsPDF({
+            orientation: printConfig.orientation,
+            unit: printConfig.unit,
+            format: printConfig.format
+        });
 
-    const assignedOptions = [
-        { label: 'All', value: '' },
-        { label: 'Assigned', value: 'true' },
-        { label: 'Unassigned', value: 'false' }
-    ];
+        const headers = ["No", "Title", "Machine/Asset", "Status", "Assigned To", "Schedule", "Priority"];
 
-    const priorityOptions = [
-        { label: 'All Priority', value: '' },
-        { label: 'Low', value: 'low' },
-        { label: 'Medium', value: 'medium' },
-        { label: 'High', value: 'high' }
-    ];
+        const data = workOrders.map((wo, index) => [
+            index + 1,
+            wo.title,
+            wo.machine?.name || wo.asset?.name || "N/A",
+            statusMapForExport[wo.status] || wo.status,
+            wo.assignedTo?.full_name || "Not Assigned",
+            wo.scheduled_date ? new Date(wo.scheduled_date).toLocaleDateString("id-ID") : "N/A",
+            wo.priority
+        ]);
 
-    const typeOptions = [
-        { label: 'All Types', value: '' },
-        { label: 'Machine', value: 'machine' },
-        { label: 'Asset', value: 'asset' }
-    ];
+        doc.text("Work Orders Report", printConfig.marginLeft, printConfig.marginTop);
+        autoTable(doc, {
+            startY: printConfig.marginTop + 10,
+            head: [headers],
+            body: data,
+            margin: {
+                left: printConfig.marginLeft,
+                right: printConfig.marginRight,
+                top: printConfig.marginTop + 10,
+                bottom: printConfig.marginBottom
+            }
+        });
+
+        const pdfBlob = doc.output("blob");
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        setPdfUrl(pdfUrl);
+        setJsPdfPreviewOpen(true);
+        showToast("success", "Ekspor Berhasil", "Laporan berhasil dibuat dalam format PDF.");
+    };
+
+    const handlePrint = () => {
+        setAdjustDialog(true);
+    };
+
+    const handleAdjust = (newConfig) => {
+        setPrintConfig(newConfig);
+        setAdjustDialog(false);
+        exportPdf();
+    };
 
     return (
         <div className="p-4">
             <Toast ref={toast} position="top-right" />
 
             <div className="card">
-                <div className="flex justify-content-between items-start mb-4">
-                    <div>
-                        <h3 className="text-2xl font-semibold">Work Order Assignment</h3>
-                        <p className="text-sm text-gray-500">Manage work order assignments to technicians.</p>
-                    </div>
-                </div>
-
-                {/* Statistics Cards */}
-                {stats && (
-                    <div className="grid grid-nogutter mb-4">
-                        <div className="col-12 md:col-3">
-                            <Card className="text-center">
-                                <div className="text-2xl font-bold text-blue-500">
-                                    {workOrders.filter(wo => !wo.assigned_to_id).length}
-                                </div>
-                                <div className="text-sm text-gray-600">Unassigned</div>
-                            </Card>
-                        </div>
-                        <div className="col-12 md:col-3">
-                            <Card className="text-center">
-                                <div className="text-2xl font-bold text-green-500">
-                                    {workOrders.filter(wo => wo.assigned_to_id).length}
-                                </div>
-                                <div className="text-sm text-gray-600">Assigned</div>
-                            </Card>
-                        </div>
-                        <div className="col-12 md:col-3">
-                            <Card className="text-center">
-                                <div className="text-2xl font-bold text-orange-500">
-                                    {stats.summary?.total_technicians || 0}
-                                </div>
-                                <div className="text-sm text-gray-600">Active Technicians</div>
-                            </Card>
-                        </div>
-                        <div className="col-12 md:col-3">
-                            <Card className="text-center">
-                                <div className="text-2xl font-bold text-purple-500">
-                                    {Math.round(stats.summary?.avg_workload || 0)}
-                                </div>
-                                <div className="text-sm text-gray-600">Avg Workload</div>
-                            </Card>
-                        </div>
-                    </div>
-                )}
-
-                {/* Filters */}
-                <div className="grid grid-nogutter gap-2 mb-4 p-3 border-1 border-gray-300 border-round">
-                    <div className="col-12 md:col-3">
-                        <label className="block text-sm font-medium mb-1">Status</label>
-                        <Dropdown
-                            value={filters.status}
-                            options={statusOptions}
-                            onChange={(e) => handleFilterChange('status', e.value)}
-                            placeholder="Select Status"
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="col-12 md:col-3">
-                        <label className="block text-sm font-medium mb-1">Assignment</label>
-                        <Dropdown
-                            value={filters.assigned}
-                            options={assignedOptions}
-                            onChange={(e) => handleFilterChange('assigned', e.value)}
-                            placeholder="Select Assignment"
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="col-12 md:col-3">
-                        <label className="block text-sm font-medium mb-1">Priority</label>
-                        <Dropdown
-                            value={filters.priority}
-                            options={priorityOptions}
-                            onChange={(e) => handleFilterChange('priority', e.value)}
-                            placeholder="Select Priority"
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="col-12 md:col-3">
-                        <label className="block text-sm font-medium mb-1">Type</label>
-                        <Dropdown
-                            value={filters.type}
-                            options={typeOptions}
-                            onChange={(e) => handleFilterChange('type', e.value)}
-                            placeholder="Select Type"
-                            className="w-full"
-                        />
-                    </div>
-                </div>
-                <div className="grid">
-                    <div className="col-12 md:col-3 flex align-items-end">
-                        <Button
-                            label="Clear Filters"
-                            icon="pi pi-filter-slash"
-                            onClick={clearFilters}
-                            className="p-button-outlined w-full"
-                        />
-                    </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-row flex-wrap items-center gap-2 mb-4">
-                    <Button
-                        size="small"
-                        label="Assign Selected"
-                        icon="pi pi-users"
-                        outlined
-                        severity="success"
-                        onClick={handleBulkAssign}
-                        disabled={selectedWorkOrders.length === 0}
-                    />
+                <h3 className="mb-4">Work Orders Assignment</h3>
+                <div className="flex flex-row gap-2 mb-4">
+                    <Button size="small" label="Back" icon="pi pi-arrow-left" outlined disabled />
+                    <Button size="small" label="New" icon="pi pi-plus" outlined severity="success" disabled />
+                    <Divider layout="vertical" />
+                    <Button size="small" label="Assign Selected" icon="pi pi-users" outlined onClick={handleBulkAssign} disabled={selectedWorkOrders.length === 0} />
+                    <Button size="small" label="Export" icon="pi pi-file-export" outlined onClick={exportExcel} />
+                    <Button size="small" label="Print" icon="pi pi-print" outlined onClick={handlePrint} />
                     <Divider layout="vertical" />
                     <Button
                         size="small"
-                        label="Refresh"
-                        icon="pi pi-refresh"
+                        label={`Delete${selectedWorkOrders.length > 0 ? ` (${selectedWorkOrders.length})` : ""}`}
+                        icon="pi pi-trash"
+                        severity="danger"
                         outlined
-                        onClick={() => {
-                            fetchWorkOrders();
-                            fetchStats();
-                        }}
-                        disabled={loading}
+                        onClick={handleDeleteSelected}
+                        disabled={selectedWorkOrders.length === 0}
                     />
+                    <Divider layout="vertical" />
+                    <Button size="small" label="Refresh" icon="pi pi-refresh" outlined onClick={fetchWorkOrders} disabled={loading} />
                 </div>
 
                 {/* Work Order Table */}
                 <WorkOrderAssignmentTable
                     workOrders={workOrders}
-                    technicians={technicians}
-                    loading={loading}
                     selectedWorkOrders={selectedWorkOrders}
-                    onSelectionChange={setSelectedWorkOrders}
+                    setSelectedWorkOrders={setSelectedWorkOrders}
+                    searchText={searchText}
+                    loading={loading}
+                    setSearchText={setSearchText}
+                    statusFilter={statusFilter}
+                    setStatusFilter={setStatusFilter}
+                    handleAssignTechnician={(rowData) => {
+                        setSelectedWorkOrder(rowData);
+                        setAssignDialogVisible(true);
+                    }}
+                    onDelete={handleDelete}
                     onAssign={handleAssign}
                     onReassign={handleReassign}
                     onUnassign={handleUnassign}
@@ -353,15 +348,65 @@ const WorkOrderAssignmentPage = () => {
                         setBulkAssignDialogOpen(false);
                         setSelectedWorkOrders([]);
                     }}
-                    workOrders={selectedWorkOrders}
+                    workOrders={selectedWorkOrders.filter((wo) => !wo.assigned_to_id)}
                     technicians={technicians}
                     onSuccess={() => {
                         fetchWorkOrders();
                         fetchStats();
                         setSelectedWorkOrders([]);
+                        showToast("success", "Success", "Work orders berhasil di-assign ulang");
                     }}
                     showToast={showToast}
                 />
+
+                <ConfirmDeleteDialog
+                    visible={isDeleteOpen}
+                    onHide={() => {
+                        setDeleteOpen(false);
+                        setSelectedWorkOrders([]);
+                    }}
+                    workOrder={selectedWorkOrder}
+                    selectedWorkOrders={selectedWorkOrders}
+                    fetchWorkOrders={() => {
+                        fetchWorkOrders();
+                        setSelectedWorkOrders([]);
+                    }}
+                    showToast={showToast}
+                />
+
+                {/* Print configuration dialog */}
+                <AdjustPrintMarginLaporan adjustDialog={adjustDialog} setAdjustDialog={setAdjustDialog} handleAdjust={handleAdjust} printConfig={printConfig} setPrintConfig={setPrintConfig} excel={exportExcel} />
+
+                {/* PDF preview dialog */}
+                <Dialog visible={jsPdfPreviewOpen} onHide={() => setJsPdfPreviewOpen(false)} modal style={{ width: "90vw", height: "90vh" }} header="Pratinjau PDF">
+                    <PDFViewer pdfUrl={pdfUrl} fileName={fileName} />
+                </Dialog>
+
+                {/* Confirm Reassign Dialog */}
+                <Dialog
+                    visible={confirmReassignDialog.visible}
+                    onHide={() => setConfirmReassignDialog({ ...confirmReassignDialog, visible: false })}
+                    header="Warning!"
+                    style={{ width: "500px" }}
+                    modal
+                    footer={
+                        <div>
+                            <Button
+                                label="Continue"
+                                icon="pi pi-check"
+                                onClick={() => {
+                                    setConfirmReassignDialog({ ...confirmReassignDialog, visible: false });
+                                    setBulkAssignDialogOpen(true);
+                                }}
+                                autoFocus
+                            />
+                        </div>
+                    }
+                >
+                    <div className="p-fluid">
+                        <Message severity="info" text={`${confirmReassignDialog.assignedCount} out of ${selectedWorkOrders.length} selected work orders have already been assigned`} className="mb-4" />
+                    </div>
+                </Dialog>
             </div>
         </div>
     );

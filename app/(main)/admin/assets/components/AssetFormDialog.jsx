@@ -129,7 +129,6 @@ const AssetFormDialog = ({ visible, onHide, asset, categories, divisions, fetchA
                         id="asset_code"
                         value={form.asset_code}
                         onChange={(e) => handleChange("asset_code", e.target.value)}
-                        placeholder="Enter asset code"
                         className={classNames({ "p-invalid": submitted && !form.asset_code.trim() })}
                     />
                     {submitted && !form.asset_code.trim() && <small className="p-error">Asset code is required</small>}
@@ -145,7 +144,6 @@ const AssetFormDialog = ({ visible, onHide, asset, categories, divisions, fetchA
                         id="name"
                         value={form.name}
                         onChange={(e) => handleChange("name", e.target.value)}
-                        placeholder="Enter asset name"
                         className={classNames({ "p-invalid": submitted && !form.name.trim() })}
                     />
                     {submitted && !form.name.trim() && <small className="p-error">Asset name is required</small>}
@@ -161,7 +159,6 @@ const AssetFormDialog = ({ visible, onHide, asset, categories, divisions, fetchA
                         id="location"
                         value={form.location}
                         onChange={(e) => handleChange("location", e.target.value)}
-                        placeholder="Enter location"
                         className={classNames({ "p-invalid": submitted && !form.location.trim() })}
                     />
                     {submitted && !form.location.trim() && <small className="p-error">Location is required</small>}
@@ -177,7 +174,6 @@ const AssetFormDialog = ({ visible, onHide, asset, categories, divisions, fetchA
                         id="type"
                         value={form.type}
                         onChange={(e) => handleChange("type", e.target.value)}
-                        placeholder="Enter asset type"
                     />
                 </div>
             </div>
@@ -192,7 +188,6 @@ const AssetFormDialog = ({ visible, onHide, asset, categories, divisions, fetchA
                         value={form.status}
                         options={statusOptions}
                         onChange={(e) => handleChange("status", e.value)}
-                        placeholder="Select status"
                     />
                 </div>
             </div>
@@ -207,8 +202,6 @@ const AssetFormDialog = ({ visible, onHide, asset, categories, divisions, fetchA
                         value={form.category_id}
                         options={categoryOptions}
                         onChange={(e) => handleChange("category_id", e.value)}
-                        placeholder="Select category"
-                        showClear
                     />
                 </div>
             </div>
@@ -223,8 +216,6 @@ const AssetFormDialog = ({ visible, onHide, asset, categories, divisions, fetchA
                         value={form.division_id}
                         options={divisionOptions}
                         onChange={(e) => handleChange("division_id", e.value)}
-                        placeholder="Select division"
-                        showClear
                     />
                 </div>
             </div>

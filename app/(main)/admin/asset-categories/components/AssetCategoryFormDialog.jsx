@@ -102,7 +102,6 @@ const AssetCategoryFormDialog = ({ visible, onHide, category, fetchCategories, s
                         id="name"
                         value={form.name}
                         onChange={(e) => handleChange("name", e.target.value)}
-                        placeholder="Enter category name"
                         className={classNames({ 
                             "p-invalid": submitted && (!form.name.trim() || form.name.trim().length < 3) 
                         })}
@@ -126,7 +125,6 @@ const AssetCategoryFormDialog = ({ visible, onHide, category, fetchCategories, s
                         id="description"
                         value={form.description}
                         onChange={(e) => handleChange("description", e.target.value)}
-                        placeholder="Enter category description (optional)"
                         rows={4}
                         maxLength={255}
                         className={classNames({ 

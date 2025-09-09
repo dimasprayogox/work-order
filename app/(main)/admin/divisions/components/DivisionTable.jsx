@@ -8,83 +8,79 @@ import { InputText } from "primereact/inputtext";
 import { useState, useEffect } from "react";
 import { FilterMatchMode } from "primereact/api";
 import { ConfirmDialog } from "primereact/confirmdialog";
+import { Tooltip } from "primereact/tooltip";
 
-const DivisionTable = ({
-    divisions,
-    loading,
-    onEdit,
-    onDelete,
-    selectedDivisions = [],
-    onSelectionChange = () => {},
-    onSearch = () => {},
-    searchText = ""
-}) => {
+const DivisionTable = ({ divisions, loading, onEdit, onDelete, selectedDivisions = [], onSelectionChange = () => {}, onSearch = () => {}, searchText = "" }) => {
     const [filters, setFilters] = useState({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS }
     });
     const [globalFilterValue, setGlobalFilterValue] = useState(searchText);
+    const [selectAll, setSelectAll] = useState(false);
+    const [currentFirst, setCurrentFirst] = useState(0);
+    const [currentRows, setCurrentRows] = useState(10);
+
 
     useEffect(() => {
         setGlobalFilterValue(searchText);
         setFilters((prevFilters) => ({
             ...prevFilters,
-            global: { ...prevFilters.global, value: searchText },
+            global: { ...prevFilters.global, value: searchText }
         }));
     }, [searchText]);
 
     const onGlobalFilterChange = (value) => {
         // Update filter DataTable secara lokal
         const _filters = { ...filters };
-        _filters['global'].value = value;
+        _filters["global"].value = value;
         setFilters(_filters);
 
         // Informasikan ke parent component tentang perubahan search text
         onSearch(value);
     };
 
-    const handleSelectionChange = (e) => {
-        onSelectionChange(e.value);
-    };
+     const onPageChange = (e) => {
+         setCurrentFirst(e.first);
+         setCurrentRows(e.rows);
+     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return "N/A";
-        return new Date(dateString).toLocaleString("en-US", {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
+     // Handler untuk Select All
+     const handleSelectAllChange = (e) => {
+         const checked = e.checked;
+         setSelectAll(checked); // Memperbarui state selectAll
+
+         if (checked) {
+             // Filter data sesuai dengan global filter saat ini
+             let filteredData = divisions;
+             const filterValue = filters.global.value;
+
+             if (filterValue) {
+                 const lowerCaseFilter = filterValue.toLowerCase();
+                 filteredData = divisions.filter((division) => division.name?.toLowerCase().includes(lowerCaseFilter) || division.description?.toLowerCase().includes(lowerCaseFilter));
+             }
+
+             // Ambil hanya data yang terlihat di halaman saat ini
+             const visibleData = filteredData.slice(currentFirst, currentFirst + currentRows);
+             onSelectionChange(visibleData);
+         } else {
+             // Jika tidak dicentang, kosongkan seleksi
+             onSelectionChange([]);
+         }
+     };
 
     const dateBodyTemplate = (rowData, field) => {
-        return formatDate(rowData[field]);
-    };
-
-    const descriptionBodyTemplate = (rowData) => {
-        const description = rowData.description || '-';
-        return description.length > 50 ? `${description.substring(0, 50)}...` : description;
+        const date = rowData[field];
+        if (!date) return "-";
+        return new Date(date).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+        });
     };
 
     const actionBodyTemplate = (rowData) => (
         <div className="flex gap-2">
-            <Button
-                icon="pi pi-pencil"
-                rounded
-                outlined
-                className="p-button-sm"
-                onClick={() => onEdit(rowData)}
-                tooltip="Edit"
-            />
-            <Button
-                icon="pi pi-trash"
-                rounded
-                outlined
-                severity="danger"
-                className="p-button-sm"
-                onClick={() => onDelete(rowData)}
-                tooltip="Delete"
-            />
+            <Button icon="pi pi-pencil" rounded outlined className="p-button-sm" onClick={() => onEdit(rowData)} tooltip="Edit" />
+            <Button icon="pi pi-trash" rounded outlined severity="danger" className="p-button-sm" onClick={() => onDelete(rowData)} tooltip="Delete" />
         </div>
     );
 
@@ -116,10 +112,14 @@ const DivisionTable = ({
             <DataTable
                 value={divisions}
                 selection={selectedDivisions}
-                onSelectionChange={handleSelectionChange}
+                selectAll={selectAll}
+                onSelectAllChange={handleSelectAllChange}
+                onSelectionChange={(e) => onSelectionChange(e.value)}
+                onPage={onPageChange}
+                first={currentFirst}
+                rows={currentRows}
                 dataKey="id"
                 paginator
-                rows={10}
                 loading={loading}
                 emptyMessage="No divisions found."
                 filters={filters}
@@ -133,20 +133,32 @@ const DivisionTable = ({
                 selectionMode="multiple"
             >
                 <Column selectionMode="multiple" headerStyle={{ width: "3rem" }} />
-                <Column field="name" header="Division Name" style={{ width: "200px" }} sortable />
-                <Column field="description" header="Description" body={descriptionBodyTemplate} sortable />
-                <Column 
-                    field="created_at" 
-                    header="Created Date" 
-                    body={(rowData) => dateBodyTemplate(rowData, 'created_at')} 
-                    sortable 
+                <Column field="name" header="Division Name" style={{ minWidth: "13rem" }} sortable />
+                <Column
+                    field="description"
+                    header="Description"
+                    sortable
+                    body={(rowData) => (
+                        <>
+                            <Tooltip target={`.description-tooltip-${rowData.id}`} position="bottom" />
+                            <span
+                                className={`text-sm description-tooltip-${rowData.id}`}
+                                data-pr-tooltip={rowData.description}
+                                style={{
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    display: "block",
+                                    maxWidth: "200px"
+                                }}
+                            >
+                                {rowData.description}
+                            </span>
+                        </>
+                    )}
                 />
-                <Column 
-                    field="updated_at" 
-                    header="Updated Date" 
-                    body={(rowData) => dateBodyTemplate(rowData, 'updated_at')} 
-                    sortable 
-                />
+                <Column field="created_at" header="Created" body={(rowData) => dateBodyTemplate(rowData, "created_at")} sortable style={{ minWidth: "10rem" }} />
+                <Column field="updated_at" header="Updated" body={(rowData) => dateBodyTemplate(rowData, "updated_at")} sortable style={{ minWidth: "10rem" }} />
                 <Column header="Actions" body={actionBodyTemplate} style={{ minWidth: "8rem" }} />
             </DataTable>
         </div>
