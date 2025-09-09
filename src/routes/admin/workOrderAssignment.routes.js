@@ -20,4 +20,7 @@ router.post('/bulk-assign', WorkOrderAssignmentController.bulkAssign);
 router.patch('/:id/reassign', WorkOrderAssignmentController.reassignWorkOrder);
 router.patch('/:id/unassign', WorkOrderAssignmentController.unassignWorkOrder);
 
+router.delete('/:id', WorkOrderAssignmentController.delete);
+router.post('/delete-many', WorkOrderAssignmentController.deleteMany);
+
 export default router;
