@@ -52,7 +52,6 @@ const AdminDashboardPage = () => {
                 const result = await response.json();
                 if (result.success && result.data) {
                     setDashboardData(result.data);
-                    setProvidedKeys(Object.keys(result.data));
                 } else {
                     throw new Error("Format data dari API tidak valid");
                 }
@@ -193,7 +192,7 @@ const AdminDashboardPage = () => {
         setHighPriorityWO(dashboardData.highPriorityPendingWO || []);
     }, [dashboardData]);
 
-    const { keyMetrics, actionItems, recentActivities } = dashboardData;
+    const { keyMetrics, actionItems } = dashboardData;
 
     const metricCards = [
         {
@@ -227,53 +226,6 @@ const AdminDashboardPage = () => {
             trendLabel: "compared to yesterday"
         }
     ];
-
-    // Top 4 cards only
-    const topCards = [
-        { id: 'totalWorkOrders', title: 'Total Work Orders', value: dashboardData.totalWorkOrders, icon: 'pi pi-briefcase', colorClass: 'bg-blue-100 text-blue-500' },
-        { id: 'closedWorkOrders', title: 'Closed Work Orders', value: dashboardData.closedWorkOrders, icon: 'pi pi-check', colorClass: 'bg-green-100 text-green-500' },
-        { id: 'overdueWorkOrders', title: 'Overdue Work Orders', value: dashboardData.overdueWorkOrders, icon: 'pi pi-clock', colorClass: 'bg-red-100 text-red-500' },
-        { id: 'completionRate', title: 'Completion Rate', value: `${completionRate}%`, icon: 'pi pi-chart-line', colorClass: 'bg-purple-100 text-purple-500' }
-    ];
-
-    const secondaryCards = [
-        { id: 'openIssues', title: 'Open Issues', value: dashboardData.openIssues, icon: 'pi pi-exclamation-triangle', colorClass: 'bg-orange-100 text-orange-500' },
-        { id: 'inProgressIssues', title: 'In Progress', value: dashboardData.inProgressIssues, icon: 'pi pi-spinner', colorClass: 'bg-indigo-100 text-indigo-500' },
-        { id: 'resolvedIssues', title: 'Resolved Issues', value: dashboardData.resolvedIssues, icon: 'pi pi-check-circle', colorClass: 'bg-cyan-100 text-cyan-500' },
-        { id: 'totalMachines', title: 'Total Machines', value: dashboardData.totalMachines, icon: 'pi pi-cog', colorClass: 'bg-amber-100 text-amber-500' },
-        { id: 'offlineMachines', title: 'Offline Machines', value: dashboardData.offlineMachines, icon: 'pi pi-power-off', colorClass: 'bg-gray-100 text-gray-700' },
-        { id: 'lowStockParts', title: 'Low Stock Parts', value: dashboardData.lowStockParts, icon: 'pi pi-box', colorClass: 'bg-yellow-100 text-yellow-600' },
-        { id: 'mttr', title: 'MTTR', value: dashboardData.mttr || 'N/A', icon: 'pi pi-clock', colorClass: 'bg-teal-100 text-teal-500' },
-        { id: 'maintenanceExpenses', title: 'Maintenance Expenses', value: `$${dashboardData.maintenanceExpenses}`, icon: 'pi pi-dollar', colorClass: 'bg-green-50 text-green-700' },
-    ];
-
-    // Chart data (only use if backend returned required fields)
-    const workOrderChartData = {
-        labels: ['Closed', 'Overdue', 'Other Open'],
-        datasets: [
-            {
-                data: [
-                    dashboardData.closedWorkOrders || 0,
-                    dashboardData.overdueWorkOrders || 0,
-                    Math.max((dashboardData.totalWorkOrders || 0) - (dashboardData.closedWorkOrders || 0) - (dashboardData.overdueWorkOrders || 0), 0)
-                ],
-                backgroundColor: ['#34d399', '#f87171', '#60a5fa'],
-                hoverBackgroundColor: ['#10b981', '#ef4444', '#3b82f6']
-            }
-        ]
-    };
-
-    const issuesChartData = {
-        labels: ['Open', 'In Progress', 'Resolved'],
-        datasets: [
-            {
-                data: [dashboardData.openIssues || 0, dashboardData.inProgressIssues || 0, dashboardData.resolvedIssues || 0],
-                backgroundColor: ['#fb923c', '#7c3aed', '#06b6d4'],
-                hoverBackgroundColor: ['#f97316', '#6d28d9', '#0891b2']
-            }
-        ]
-    };
-
     return (
         <>
             <div className="card">
